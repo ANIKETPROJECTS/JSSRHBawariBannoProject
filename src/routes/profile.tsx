@@ -1,6 +1,17 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Heart, LogOut, MapPin, Package, Pencil, UserRound } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Heart,
+  LogOut,
+  MapPin,
+  Package,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { formatPrice, sarees } from "@/data/sarees";
@@ -11,12 +22,14 @@ export const Route = createFileRoute("/profile")({
       { title: "My Profile | Bawari Banno" },
       {
         name: "description",
-        content: "Manage your Bawari Banno profile, orders, saved sarees and delivery details.",
+        content: "Register with OTP and manage your Bawari Banno profile, orders and addresses.",
       },
     ],
   }),
   component: Profile,
 });
+
+type RegistrationStep = "phone" | "otp" | "details" | "complete";
 
 const profileLinks = [
   { label: "Account details", icon: UserRound },
@@ -25,28 +38,273 @@ const profileLinks = [
   { label: "Saved addresses", icon: MapPin },
 ];
 
+const orders = [
+  { id: "BB-2408-019", date: "12 August 2026", status: "Delivered", item: sarees[0] },
+  { id: "BB-2407-014", date: "28 July 2026", status: "In transit", item: sarees[3] },
+];
+
 function Profile() {
+  const [registrationStep, setRegistrationStep] = useState<RegistrationStep>("phone");
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
   const [activeLink, setActiveLink] = useState("Account details");
   const [editing, setEditing] = useState(false);
 
-  const handleProfileLink = (label: string) => {
-    setActiveLink(label);
-    if (label !== "Account details") {
-      toast.info(`${label} will be available here soon.`);
-    }
-  };
+  if (!showDashboard) {
+    return (
+      <SiteShell>
+        <RegistrationFlow
+          step={registrationStep}
+          phone={phone}
+          otp={otp}
+          onPhoneChange={setPhone}
+          onOtpChange={setOtp}
+          onStepChange={setRegistrationStep}
+          onComplete={() => setShowDashboard(true)}
+          onViewDemo={() => setShowDashboard(true)}
+        />
+      </SiteShell>
+    );
+  }
 
   return (
     <SiteShell>
+      <ProfileDashboard
+        activeLink={activeLink}
+        editing={editing}
+        onActiveLinkChange={(label) => {
+          setActiveLink(label);
+          if (label !== "Account details") toast.info(`${label} is shown in this demo account.`);
+        }}
+        onEditingChange={setEditing}
+        onSignOut={() => {
+          setShowDashboard(false);
+          setRegistrationStep("phone");
+          toast.success("You have been signed out of this demo account.");
+        }}
+      />
+    </SiteShell>
+  );
+}
+
+function RegistrationFlow({
+  step,
+  phone,
+  otp,
+  onPhoneChange,
+  onOtpChange,
+  onStepChange,
+  onComplete,
+  onViewDemo,
+}: {
+  step: RegistrationStep;
+  phone: string;
+  otp: string;
+  onPhoneChange: (value: string) => void;
+  onOtpChange: (value: string) => void;
+  onStepChange: (step: RegistrationStep) => void;
+  onComplete: () => void;
+  onViewDemo: () => void;
+}) {
+  const progress = { phone: 1, otp: 2, details: 3, complete: 4 }[step];
+
+  return (
+    <section className="fabric-texture border-b border-border">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-12 px-5 py-12 lg:grid-cols-[1fr_440px] lg:py-16">
+        <div className="max-w-xl">
+          <p className="text-eyebrow text-muted-foreground">A private space for your edit</p>
+          <h1 className="mt-4 font-display text-5xl font-light leading-[1.05] text-primary md:text-7xl">
+            Your heirlooms, all in one place.
+          </h1>
+          <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Create your Bawari Banno account to save favourite sarees, follow every delivery and
+            keep your preferred address ready for the next occasion.
+          </p>
+          <div className="mt-10 grid max-w-md gap-4 sm:grid-cols-3">
+            {[
+              ["01", "One-tap checkout"],
+              ["02", "Order updates"],
+              ["03", "Saved favourites"],
+            ].map(([number, label]) => (
+              <div key={number} className="border-t border-gold pt-3">
+                <p className="text-eyebrow text-primary">{number}</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border border-border bg-card p-6 shadow-[0_20px_50px_-35px_rgba(60,20,20,0.5)] sm:p-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-eyebrow text-muted-foreground">Welcome to Bawari Banno</p>
+              <h2 className="mt-2 font-display text-3xl font-light text-primary">
+                {step === "complete" ? "Your account is ready" : "Create your account"}
+              </h2>
+            </div>
+            <span className="text-sm text-muted-foreground">{progress}/4</span>
+          </div>
+
+          <div className="mt-6 flex gap-1">
+            {[1, 2, 3, 4].map((item) => (
+              <span
+                key={item}
+                className={`h-1 flex-1 ${item <= progress ? "bg-primary" : "bg-border"}`}
+              />
+            ))}
+          </div>
+
+          {step === "phone" && (
+            <form
+              className="mt-9"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (phone.replace(/\D/g, "").length < 10) {
+                  toast.error("Please enter a valid 10-digit mobile number.");
+                  return;
+                }
+                onStepChange("otp");
+                toast.success("Demo OTP sent to your mobile number.");
+              }}
+            >
+              <label htmlFor="phone" className="text-eyebrow text-muted-foreground">
+                Mobile number
+              </label>
+              <div className="mt-2 flex border-b border-border focus-within:border-gold">
+                <span className="py-3 text-sm text-muted-foreground">+91</span>
+                <input
+                  id="phone"
+                  required
+                  inputMode="numeric"
+                  value={phone}
+                  onChange={(event) => onPhoneChange(event.target.value.replace(/\D/g, "").slice(0, 10))}
+                  className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none"
+                  placeholder="98765 43210"
+                />
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                We’ll send a one-time password to verify your number. No password required.
+              </p>
+              <button type="submit" className="mt-8 w-full bg-primary px-6 py-3.5 text-eyebrow text-primary-foreground hover:bg-ink">
+                Send OTP
+              </button>
+            </form>
+          )}
+
+          {step === "otp" && (
+            <form
+              className="mt-9"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (otp !== "123456") {
+                  toast.error("Use the demo OTP 123456 to continue.");
+                  return;
+                }
+                onStepChange("details");
+              }}
+            >
+              <div className="flex items-center gap-2 text-sm text-foreground">
+                <ShieldCheck className="size-4 text-emerald-deep" strokeWidth={1.5} />
+                OTP sent to +91 {phone}
+              </div>
+              <label htmlFor="otp" className="mt-7 block text-eyebrow text-muted-foreground">
+                Enter 6-digit OTP
+              </label>
+              <input
+                id="otp"
+                required
+                autoFocus
+                inputMode="numeric"
+                maxLength={6}
+                value={otp}
+                onChange={(event) => onOtpChange(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="mt-2 w-full border-b border-border bg-transparent py-3 text-center text-2xl tracking-[0.5em] outline-none focus:border-gold"
+                placeholder="••••••"
+              />
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                Demo mode: enter <span className="text-primary">123456</span> to verify.
+              </p>
+              <button type="submit" className="mt-8 w-full bg-primary px-6 py-3.5 text-eyebrow text-primary-foreground hover:bg-ink">
+                Verify OTP
+              </button>
+              <button type="button" onClick={() => onStepChange("phone")} className="mt-4 w-full text-xs text-muted-foreground hover:text-primary">
+                Change mobile number
+              </button>
+            </form>
+          )}
+
+          {step === "details" && (
+            <form
+              className="mt-9 space-y-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                onStepChange("complete");
+              }}
+            >
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Your mobile number is verified. Tell us a little about yourself.
+              </p>
+              {[
+                ["full-name", "Full name", "Ananya Kapoor"],
+                ["email", "Email address", "ananya@example.com"],
+              ].map(([id, label, placeholder]) => (
+                <label key={id} htmlFor={id} className="block">
+                  <span className="text-eyebrow text-muted-foreground">{label}</span>
+                  <input id={id} required type={id === "email" ? "email" : "text"} placeholder={placeholder} className="mt-2 w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-gold" />
+                </label>
+              ))}
+              <button type="submit" className="w-full bg-primary px-6 py-3.5 text-eyebrow text-primary-foreground hover:bg-ink">
+                Complete registration
+              </button>
+            </form>
+          )}
+
+          {step === "complete" && (
+            <div className="mt-9">
+              <div className="flex size-14 items-center justify-center rounded-full bg-emerald-deep text-primary-foreground">
+                <Check className="size-7" strokeWidth={1.5} />
+              </div>
+              <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                Your account is verified and ready. Your saved details, addresses and orders will
+                be available from your profile dashboard.
+              </p>
+              <button type="button" onClick={onComplete} className="mt-8 w-full bg-primary px-6 py-3.5 text-eyebrow text-primary-foreground hover:bg-ink">
+                Go to my profile
+              </button>
+            </div>
+          )}
+
+          <button type="button" onClick={onViewDemo} className="mt-7 flex w-full items-center justify-center gap-1 text-xs text-muted-foreground hover:text-primary">
+            Already registered? View demo profile <ChevronRight className="size-3" strokeWidth={1.5} />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProfileDashboard({
+  activeLink,
+  editing,
+  onActiveLinkChange,
+  onEditingChange,
+  onSignOut,
+}: {
+  activeLink: string;
+  editing: boolean;
+  onActiveLinkChange: (label: string) => void;
+  onEditingChange: (editing: boolean) => void;
+  onSignOut: () => void;
+}) {
+  return (
+    <>
       <section className="fabric-texture border-b border-border">
         <div className="mx-auto max-w-7xl px-5 py-14 sm:py-16">
           <p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p>
-          <h1 className="mt-3 font-display text-5xl font-light text-primary md:text-6xl">
-            Welcome back, Ananya
-          </h1>
+          <h1 className="mt-3 font-display text-5xl font-light text-primary md:text-6xl">Welcome back, Ananya</h1>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
-            Your personal space for heirlooms, orders and the little details that make every
-            drape feel yours.
+            Your personal space for heirlooms, orders and the little details that make every drape feel yours.
           </p>
         </div>
       </section>
@@ -55,17 +313,15 @@ function Profile() {
         <aside>
           <div className="border border-border bg-card p-6">
             <div className="flex items-center gap-4">
-              <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground">
-                AK
-              </div>
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-primary text-2xl text-primary-foreground">AK</div>
               <div className="min-w-0">
                 <p className="font-display text-2xl text-primary">Ananya Kapoor</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">ananya@example.com</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">+91 98765 43210</p>
               </div>
             </div>
             <div className="mt-6 border-t border-border pt-5">
-              <p className="text-eyebrow text-muted-foreground">Member since</p>
-              <p className="mt-1 text-sm text-foreground">August 2024</p>
+              <p className="text-eyebrow text-muted-foreground">Verified mobile</p>
+              <p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p>
             </div>
           </div>
 
@@ -73,40 +329,22 @@ function Profile() {
             {profileLinks.map(({ label, icon: Icon }) => {
               const active = activeLink === label;
               return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => handleProfileLink(label)}
-                  className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${
-                    active
-                      ? "bg-secondary text-primary"
-                      : "text-foreground/70 hover:bg-secondary/60 hover:text-primary"
-                  }`}
-                >
+                <button key={label} type="button" onClick={() => onActiveLinkChange(label)} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${active ? "bg-secondary text-primary" : "text-foreground/70 hover:bg-secondary/60 hover:text-primary"}`}>
                   <Icon className="size-4" strokeWidth={1.5} />
                   <span>{label}</span>
                   {active && <ChevronRight className="ml-auto size-3.5" strokeWidth={1.5} />}
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={() => toast.info("You are safely signed out of this demo profile.")}
-              className="mt-1 flex w-full items-center gap-3 border-t border-border px-3 py-3 text-left text-sm text-foreground/60 transition-colors hover:text-primary"
-            >
-              <LogOut className="size-4" strokeWidth={1.5} />
-              Sign out
+            <button type="button" onClick={onSignOut} className="mt-1 flex w-full items-center gap-3 border-t border-border px-3 py-3 text-left text-sm text-foreground/60 hover:text-primary">
+              <LogOut className="size-4" strokeWidth={1.5} /> Sign out
             </button>
           </nav>
         </aside>
 
         <div className="min-w-0">
           <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              ["Orders placed", "03"],
-              ["Saved sarees", "07"],
-              ["Loyalty points", "240"],
-            ].map(([label, value]) => (
+            {[["03", "Orders placed"], ["07", "Saved sarees"], ["240", "Loyalty points"]].map(([value, label]) => (
               <div key={label} className="border border-border bg-card p-5">
                 <p className="font-display text-4xl font-light text-primary">{value}</p>
                 <p className="mt-2 text-eyebrow text-muted-foreground">{label}</p>
@@ -114,114 +352,54 @@ function Profile() {
             ))}
           </div>
 
-          <div className="mt-10 border border-border bg-card p-6 sm:p-8">
+          <section className="mt-10 border border-border bg-card p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-eyebrow text-muted-foreground">Personal details</p>
-                <h2 className="mt-2 font-display text-3xl font-light text-primary">
-                  Account details
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditing((current) => !current)}
-                className="inline-flex items-center gap-2 text-sm text-primary transition-colors hover:text-ink"
-              >
-                <Pencil className="size-3.5" strokeWidth={1.5} />
-                {editing ? "Cancel" : "Edit details"}
-              </button>
+              <div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div>
+              <button type="button" onClick={() => onEditingChange(!editing)} className="inline-flex items-center gap-2 text-sm text-primary hover:text-ink"><Pencil className="size-3.5" strokeWidth={1.5} />{editing ? "Cancel" : "Edit details"}</button>
             </div>
-
             <div className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
-              {[
-                ["Full name", "Ananya Kapoor"],
-                ["Email address", "ananya@example.com"],
-                ["Phone number", "+91 98765 43210"],
-                ["Date of birth", "18 September 1995"],
-              ].map(([label, value]) => (
-                <label key={label} className="block">
-                  <span className="text-eyebrow text-muted-foreground">{label}</span>
-                  <input
-                    defaultValue={value}
-                    readOnly={!editing}
-                    className={`mt-2 w-full border-b bg-transparent py-2 text-sm text-foreground outline-none transition-colors ${
-                      editing
-                        ? "border-gold focus:border-primary"
-                        : "border-border cursor-default"
-                    }`}
-                  />
-                </label>
+              {[["Full name", "Ananya Kapoor"], ["Email address", "ananya@example.com"], ["Phone number", "+91 98765 43210"], ["Date of birth", "18 September 1995"]].map(([label, value]) => (
+                <label key={label} className="block"><span className="text-eyebrow text-muted-foreground">{label}</span><input defaultValue={value} readOnly={!editing} className={`mt-2 w-full border-b bg-transparent py-2 text-sm text-foreground outline-none ${editing ? "border-gold focus:border-primary" : "border-border cursor-default"}`} /></label>
               ))}
             </div>
-            {editing && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditing(false);
-                  toast.success("Your profile details have been updated.");
-                }}
-                className="mt-8 bg-primary px-7 py-3 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
-              >
-                Save changes
-              </button>
-            )}
-          </div>
+            {editing && <button type="button" onClick={() => { onEditingChange(false); toast.success("Your profile details have been updated."); }} className="mt-8 bg-primary px-7 py-3 text-eyebrow text-primary-foreground hover:bg-ink">Save changes</button>}
+          </section>
 
-          <div className="mt-10">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-eyebrow text-muted-foreground">Most recent</p>
-                <h2 className="mt-2 font-display text-3xl font-light text-primary">Your orders</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleProfileLink("My orders")}
-                className="text-sm text-primary hover:text-ink"
-              >
-                View all
-              </button>
-            </div>
+          <section className="mt-10">
+            <div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Most recent</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Your orders</h2></div><button type="button" onClick={() => onActiveLinkChange("My orders")} className="text-sm text-primary hover:text-ink">View all</button></div>
             <div className="mt-5 divide-y divide-border border-y border-border">
-              {[
-                ["BB-2408-019", "12 August 2026", "Delivered", sarees[0]],
-                ["BB-2407-014", "28 July 2026", "In transit", sarees[3]],
-              ].map(([order, date, status, saree]) => (
-                <div key={order as string} className="flex items-center gap-4 py-4">
-                  <img
-                    src={(saree as (typeof sarees)[number]).image}
-                    alt=""
-                    className="size-16 object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-foreground">{order as string}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{date as string}</p>
-                  </div>
-                  <div className="hidden text-right sm:block">
-                    <p className="text-sm text-foreground">
-                      {formatPrice((saree as (typeof sarees)[number]).price)}
-                    </p>
-                    <p className="mt-1 text-xs text-emerald-deep">{status as string}</p>
-                  </div>
+              {orders.map((order) => (
+                <div key={order.id} className="flex items-center gap-4 py-4">
+                  <img src={order.item.image} alt="" className="size-16 object-cover" />
+                  <div className="min-w-0 flex-1"><p className="text-sm text-foreground">{order.id}</p><p className="mt-1 text-xs text-muted-foreground">{order.date}</p></div>
+                  <div className="hidden text-right sm:block"><p className="text-sm text-foreground">{formatPrice(order.item.price)}</p><p className="mt-1 text-xs text-emerald-deep">{order.status}</p></div>
                   <ChevronRight className="size-4 text-muted-foreground" strokeWidth={1.5} />
                 </div>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="mt-10 border border-gold/40 bg-secondary/40 p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
-            <div>
-              <p className="text-eyebrow text-primary">A little more room for beauty</p>
-              <p className="mt-2 font-display text-2xl text-primary">Continue browsing your edit</p>
+          <section className="mt-10 grid gap-4 sm:grid-cols-2">
+            <div className="border border-border bg-card p-6">
+              <div className="flex items-center justify-between"><p className="text-eyebrow text-muted-foreground">Saved address</p><button type="button" onClick={() => onActiveLinkChange("Saved addresses")} className="text-primary hover:text-ink"><Pencil className="size-3.5" /></button></div>
+              <p className="mt-4 font-display text-2xl text-primary">Home</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Ananya Kapoor<br />24, Lotus Enclave, Adyar<br />Chennai 600020</p>
+              <p className="mt-4 text-xs text-emerald-deep">Default delivery address</p>
             </div>
-            <Link
-              to="/products"
-              className="mt-4 inline-flex items-center gap-2 text-sm text-primary hover:text-ink sm:mt-0"
-            >
-              Explore sarees <ChevronRight className="size-4" strokeWidth={1.5} />
-            </Link>
+            <div className="border border-gold/40 bg-secondary/40 p-6">
+              <p className="text-eyebrow text-primary">Saved favourites</p>
+              <p className="mt-3 font-display text-2xl text-primary">Seven sarees waiting</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Your saved edit is ready whenever the occasion calls.</p>
+              <Link to="/products" className="mt-5 inline-flex items-center gap-2 text-sm text-primary hover:text-ink">View wishlist <Heart className="size-4" strokeWidth={1.5} /></Link>
+            </div>
+          </section>
+
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border border-gold/40 bg-secondary/40 p-6">
+            <div><p className="text-eyebrow text-primary">A little more room for beauty</p><p className="mt-2 font-display text-2xl text-primary">Continue browsing your edit</p></div>
+            <Link to="/products" className="inline-flex items-center gap-2 text-sm text-primary hover:text-ink">Explore sarees <ChevronRight className="size-4" strokeWidth={1.5} /></Link>
           </div>
         </div>
       </section>
-    </SiteShell>
+    </>
   );
 }
