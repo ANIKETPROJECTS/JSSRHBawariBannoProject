@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
-import searchIcon from "../../../attached_assets/search_(3)_1787337736165.png";
+import searchIcon from "../../../attached_assets/search_(4)_1787337839736.png";
 
 const nav = [
   { to: "/", label: "Home" },
