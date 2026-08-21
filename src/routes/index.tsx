@@ -108,8 +108,8 @@ function Home() {
           Six yards in motion.
         </h2>
 
-        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {sarees.slice(0, 6).map((saree, index) => (
+        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {sarees.slice(0, 5).map((saree, index) => (
             <figure key={saree.id} className="group relative aspect-[9/16] overflow-hidden bg-secondary">
               <img
                 src={saree.image}
