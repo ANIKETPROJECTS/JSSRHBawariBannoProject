@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { SiteShell, PageHeading } from "@/components/site/SiteShell";
+import { SiteShell } from "@/components/site/SiteShell";
 import locationIcon from "../../attached_assets/location_(1)_1787339144815.png";
 import phoneIcon from "../../attached_assets/phone-call_1787339180267.png";
 import mailIcon from "../../attached_assets/mail_1787339203534.png";
@@ -35,13 +35,19 @@ const details = [
 function Contact() {
   return (
     <SiteShell>
-      <PageHeading
-        eyebrow="Contact Us"
-        title="Come sit with the silks"
-        intro="Questions on a weave, a bridal commission, or blouse measurements? Write to us, or visit our atelier in Mylapore."
-      />
+      <div className="border-b border-border bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-14">
+          <p className="text-eyebrow text-muted-foreground">Contact Us</p>
+          <h1 className="mt-3 font-display text-5xl font-light leading-[1.05] tracking-tight text-primary md:text-7xl">
+            Come sit with the silks
+          </h1>
+          <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Questions on a weave, a bridal commission, or blouse measurements? Write to us, or visit our atelier in Mylapore.
+          </p>
+        </div>
+      </div>
 
-      <section className="mx-auto mt-16 grid max-w-7xl gap-16 px-5 pb-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-24">
+      <section className="mx-auto mt-16 grid max-w-7xl gap-16 bg-white px-5 pb-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-24">
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -54,7 +60,7 @@ function Contact() {
             toast.success("Thank you — we'll reply within one working day.");
             form.reset();
           }}
-          className="border border-border bg-card p-8 sm:p-10"
+          className="border border-border bg-white p-8 sm:p-10"
         >
           <p className="text-eyebrow text-muted-foreground">We would love to hear from you</p>
           <h2 className="mt-3 font-display text-4xl font-light leading-tight text-primary sm:text-5xl">
@@ -140,7 +146,7 @@ function Contact() {
                 <img
                   src={icon}
                   alt=""
-                  className="size-16 shrink-0 object-contain mix-blend-multiply sm:size-20"
+                  className="size-11 shrink-0 object-contain mix-blend-multiply sm:size-14"
                 />
                 <div>
                   <p className="text-eyebrow text-muted-foreground">{label}</p>
@@ -150,12 +156,33 @@ function Contact() {
             ))}
           </ul>
 
-          <div className="mt-12 border-y border-gold/50 py-8">
-            <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center">
-              <p className="font-display text-3xl font-light text-primary">Mylapore, Chennai</p>
-              <p className="max-w-xs px-6 text-xs leading-relaxed text-muted-foreground">
-                Two minutes from Kapaleeshwarar Temple tank. Map preview placeholder.
-              </p>
+          <div className="mt-12 overflow-hidden border border-border bg-white">
+            <div className="relative h-52 overflow-hidden bg-[#f1eee7]" aria-label="Dummy Google Maps preview">
+              <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(32deg,transparent_47%,#d3cec2_48%,#d3cec2_50%,transparent_51%),linear-gradient(118deg,transparent_47%,#d3cec2_48%,#d3cec2_50%,transparent_51%),linear-gradient(90deg,transparent_49%,#ddd8cd_50%,transparent_51%),linear-gradient(0deg,transparent_49%,#ddd8cd_50%,transparent_51%)] [background-size:150px_120px,180px_150px,95px_95px,120px_120px]" />
+              <div className="absolute left-[52%] top-[43%] flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-xl text-white shadow-lg">
+                •
+              </div>
+              <div className="absolute bottom-3 left-3 bg-white px-3 py-2 text-xs text-foreground shadow-sm">
+                Google Maps preview
+              </div>
+              <div className="absolute right-3 top-3 flex flex-col overflow-hidden bg-white text-xs text-foreground shadow-sm">
+                <span className="border-b border-border px-2 py-1">+</span>
+                <span className="px-2 py-1">−</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 p-5">
+              <div>
+                <p className="font-display text-2xl font-light text-primary">Mylapore, Chennai</p>
+                <p className="mt-1 text-xs text-muted-foreground">Two minutes from Kapaleeshwarar Temple tank</p>
+              </div>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Mylapore%2C+Chennai"
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 text-xs text-primary underline decoration-gold underline-offset-4 hover:text-ink"
+              >
+                Open map
+              </a>
             </div>
           </div>
         </div>
