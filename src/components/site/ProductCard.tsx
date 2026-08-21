@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Heart } from "lucide-react";
 import { formatPrice, type Saree } from "@/data/sarees";
+import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
 export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: boolean }) {
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -34,12 +34,16 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
             isWishlisted ? "text-red-600" : "text-foreground/75 hover:text-red-600"
           }`}
         >
-          <Heart
-            className="size-[1.35rem] transition-transform duration-200 group-hover:scale-105 active:scale-90"
-            fill={isWishlisted ? "currentColor" : "none"}
-            strokeWidth={1.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <img
+            src={wishlistHeart}
+            alt=""
+            aria-hidden="true"
+            className="size-[1.35rem] object-contain transition-transform duration-200 group-hover:scale-105 active:scale-90"
+            style={{
+              filter: isWishlisted
+                ? "brightness(0) saturate(100%) invert(19%) sepia(93%) saturate(3480%) hue-rotate(348deg) brightness(91%) contrast(94%)"
+                : "none",
+            }}
           />
         </button>
       </div>
