@@ -51,9 +51,7 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
               src={wishlistHeart}
               alt=""
               aria-hidden="true"
-              className={`relative size-full object-contain transition-opacity duration-200 ${
-                isWishlisted ? "opacity-100" : "opacity-55"
-              }`}
+              className="relative size-full object-contain transition-opacity duration-200"
               style={{
                 filter: isWishlisted
                   ? "brightness(0) saturate(100%) invert(19%) sepia(93%) saturate(3480%) hue-rotate(348deg) brightness(91%) contrast(94%)"
