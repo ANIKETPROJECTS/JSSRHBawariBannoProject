@@ -174,7 +174,7 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="mx-auto max-w-[1440px] px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
+    <section className="mx-auto max-w-[1440px] px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
       <h2 className="text-center font-display text-5xl font-light text-primary sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-5 gap-5 pb-3">
