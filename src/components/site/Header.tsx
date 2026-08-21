@@ -87,13 +87,13 @@ export function Header() {
           >
             <img src={wishlistIcon} alt="" className="size-6 object-contain" />
           </button>
-          <button
-            type="button"
+          <Link
+            to="/profile"
             aria-label="Account"
             className="p-1 transition-transform hover:scale-110"
           >
             <img src={profileIcon} alt="" className="size-6 object-contain" />
-          </button>
+          </Link>
         </div>
       </div>
 
