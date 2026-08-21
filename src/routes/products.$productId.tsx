@@ -16,15 +16,15 @@ export const Route = createFileRoute("/products/$productId")({
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
-        meta: [{ title: "Saree unavailable | Vastraa" }, { name: "robots", content: "noindex" }],
+        meta: [{ title: "Saree unavailable | Bawari Banno" }, { name: "robots", content: "noindex" }],
       };
     }
     const { saree } = loaderData;
     return {
       meta: [
-        { title: `${saree.name} — ${saree.fabric} | Vastraa` },
+        { title: `${saree.name} — ${saree.fabric} | Bawari Banno` },
         { name: "description", content: saree.description.slice(0, 155) },
-        { property: "og:title", content: `${saree.name} | Vastraa` },
+        { property: "og:title", content: `${saree.name} | Bawari Banno` },
         { property: "og:description", content: saree.description.slice(0, 155) },
       ],
     };

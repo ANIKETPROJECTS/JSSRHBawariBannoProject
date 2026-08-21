@@ -6,16 +6,16 @@ import { SiteShell, PageHeading } from "@/components/site/SiteShell";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact & Visit — Vastraa Saree Atelier, Chennai" },
+      { title: "Contact & Visit — Bawari Banno, Chennai" },
       {
         name: "description",
         content:
-          "Write to the Vastraa atelier or visit our Mylapore, Chennai store. Address, phone, email and store hours.",
+          "Write to the Bawari Banno atelier or visit our Mylapore, Chennai store. Address, phone, email and store hours.",
       },
-      { property: "og:title", content: "Contact & Visit — Vastraa Saree Atelier" },
+      { property: "og:title", content: "Contact & Visit — Bawari Banno" },
       {
         property: "og:description",
-        content: "Reach the Vastraa atelier in Mylapore, Chennai — address, phone and email.",
+        content: "Reach the Bawari Banno atelier in Mylapore, Chennai — address, phone and email.",
       },
     ],
   }),

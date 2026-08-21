@@ -26,13 +26,13 @@ const heroSlides = [
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Vastraa — Handwoven Silk & Cotton Sarees" },
+      { title: "Bawari Banno — Handwoven Silk & Cotton Sarees" },
       {
         name: "description",
         content:
           "Shop handwoven Kanjivaram, Banarasi, handloom cotton and bridal sarees, sourced directly from Indian weaving clusters.",
       },
-      { property: "og:title", content: "Vastraa — Handwoven Silk & Cotton Sarees" },
+      { property: "og:title", content: "Bawari Banno — Handwoven Silk & Cotton Sarees" },
       {
         property: "og:description",
         content:

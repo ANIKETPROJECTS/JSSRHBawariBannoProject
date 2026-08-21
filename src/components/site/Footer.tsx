@@ -7,7 +7,7 @@ export function Footer() {
       <div className="fabric-texture">
         <div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 md:grid-cols-4">
           <div>
-            <p className="font-display text-3xl">Vastraa</p>
+            <p className="font-display text-3xl">Bawari Banno</p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/75">
               Handpicked handloom and heirloom sarees, sourced directly from weaving clusters
               across India since 1974.
@@ -88,7 +88,7 @@ export function Footer() {
 
         <div className="border-t border-primary-foreground/15">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs text-primary-foreground/60">
-            <p>© {new Date().getFullYear()} Vastraa Saree Atelier. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
             <p>Crafted in India · Demo storefront</p>
           </div>
         </div>

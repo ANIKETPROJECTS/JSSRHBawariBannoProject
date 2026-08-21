@@ -6,16 +6,16 @@ import craftImage from "@/assets/craft.jpg";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "Our Story & Craft — Vastraa Saree Atelier" },
+      { title: "Our Story & Craft — Bawari Banno" },
       {
         name: "description",
         content:
-          "Three generations of saree sourcing: how Vastraa works with weaving clusters in Kanchipuram, Varanasi and Bengal.",
+          "Three generations of saree sourcing: how Bawari Banno works with weaving clusters in Kanchipuram, Varanasi and Bengal.",
       },
-      { property: "og:title", content: "Our Story & Craft — Vastraa Saree Atelier" },
+      { property: "og:title", content: "Our Story & Craft — Bawari Banno" },
       {
         property: "og:description",
-        content: "How Vastraa sources handwoven sarees directly from Indian weaving families.",
+        content: "How Bawari Banno sources handwoven sarees directly from Indian weaving families.",
       },
     ],
   }),
@@ -41,7 +41,7 @@ function About() {
       <PageHeading
         eyebrow="About Us"
         title="A house built on six yards"
-        intro="Vastraa began as a counter in Mylapore in 1974. Fifty-two years on, we still buy the way we started — loom by loom, family by family."
+        intro="Bawari Banno began as a counter in Mylapore in 1974. Fifty-two years on, we still buy the way we started — loom by loom, family by family."
       />
 
       <section className="mx-auto mt-16 grid max-w-7xl items-center gap-12 px-5 md:grid-cols-2">

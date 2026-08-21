@@ -8,16 +8,16 @@ import { sarees } from "@/data/sarees";
 export const Route = createFileRoute("/products/")({
   head: () => ({
     meta: [
-      { title: "All Sarees — Silk, Cotton & Bridal | Vastraa" },
+      { title: "All Sarees — Silk, Cotton & Bridal | Bawari Banno" },
       {
         name: "description",
         content:
-          "Browse the full Vastraa catalogue: Kanjivaram, Banarasi, Mysore silk, handloom cotton, designer and bridal sarees.",
+          "Browse the full Bawari Banno catalogue: Kanjivaram, Banarasi, Mysore silk, handloom cotton, designer and bridal sarees.",
       },
-      { property: "og:title", content: "All Sarees — Silk, Cotton & Bridal | Vastraa" },
+      { property: "og:title", content: "All Sarees — Silk, Cotton & Bridal | Bawari Banno" },
       {
         property: "og:description",
-        content: "Filter by fabric and weave across the full Vastraa saree catalogue.",
+        content: "Filter by fabric and weave across the full Bawari Banno saree catalogue.",
       },
     ],
   }),

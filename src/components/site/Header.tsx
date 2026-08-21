@@ -20,10 +20,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-5">
         <Link to="/" className="flex items-baseline gap-2">
           <span className="font-display text-3xl leading-none tracking-tight text-primary">
-            Vastraa
-          </span>
-          <span className="hidden text-eyebrow text-muted-foreground sm:inline">
-            Saree Atelier
+            Bawari Banno
           </span>
         </Link>
 
