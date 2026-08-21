@@ -34,7 +34,13 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
             isWishlisted ? "text-red-600" : "text-foreground/75 hover:text-red-600"
           }`}
         >
-          <Heart className="size-5" fill={isWishlisted ? "currentColor" : "none"} strokeWidth={1.7} />
+          <Heart
+            className="size-[1.35rem] transition-transform duration-200 group-hover:scale-105 active:scale-90"
+            fill={isWishlisted ? "currentColor" : "none"}
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </button>
       </div>
       <div className="pt-4">
