@@ -28,7 +28,7 @@ export function Header() {
           {nav.map((item) => (
             item.label === "Categories" ? (
               <details key={`${item.label}-${item.to}`} className="group relative">
-                <summary className="list-none cursor-pointer py-1 text-base tracking-wide text-foreground/80 transition-colors hover:text-primary">
+                <summary className="list-none cursor-pointer py-1 text-lg font-medium tracking-wide text-foreground transition-colors hover:text-primary">
                   Categories <span className="ml-1 text-[0.65rem]">⌄</span>
                 </summary>
                 <div className="absolute left-1/2 top-full z-50 mt-3 w-48 -translate-x-1/2 border border-border bg-background p-2 shadow-xl">
@@ -41,7 +41,7 @@ export function Header() {
                     <Link
                       key={category.label}
                       to={category.href}
-                      className="block px-3 py-2.5 text-base text-foreground/80 transition-colors hover:bg-secondary hover:text-primary"
+                      className="block px-3 py-2.5 text-lg text-foreground transition-colors hover:bg-secondary hover:text-primary"
                     >
                       {category.label}
                     </Link>
@@ -53,7 +53,7 @@ export function Header() {
                 key={`${item.label}-${item.to}`}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                className="relative py-1 text-base tracking-wide text-foreground/80 transition-colors hover:text-primary"
+                className="relative py-1 text-lg font-medium tracking-wide text-foreground transition-colors hover:text-primary"
                 activeProps={{
                   className:
                     "text-primary after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-gold",
@@ -97,24 +97,24 @@ export function Header() {
         </div>
       </div>
 
-      <nav className="flex items-center gap-6 overflow-x-auto px-5 py-2.5 text-base md:hidden no-scrollbar">
+      <nav className="flex items-center gap-6 overflow-x-auto px-5 py-2.5 text-lg md:hidden no-scrollbar">
         {nav.map((item) => (
           item.label === "Categories" ? (
             <details key={`${item.label}-${item.to}`} className="shrink-0">
-              <summary className="list-none cursor-pointer whitespace-nowrap text-foreground/75">
+                <summary className="list-none cursor-pointer whitespace-nowrap font-medium text-foreground">
                 Categories ⌄
               </summary>
               <div className="mt-2 flex gap-4 border-l border-border pl-4">
-                <Link to="/products" className="whitespace-nowrap text-foreground/75">
+                  <Link to="/products" className="whitespace-nowrap text-foreground">
                   Silk Sarees
                 </Link>
-                <Link to="/products" className="whitespace-nowrap text-foreground/75">
+                  <Link to="/products" className="whitespace-nowrap text-foreground">
                   Cotton Sarees
                 </Link>
-                <Link to="/products" className="whitespace-nowrap text-foreground/75">
+                  <Link to="/products" className="whitespace-nowrap text-foreground">
                   Designer Sarees
                 </Link>
-                <Link to="/products" className="whitespace-nowrap text-foreground/75">
+                  <Link to="/products" className="whitespace-nowrap text-foreground">
                   Wedding Collection
                 </Link>
               </div>
@@ -124,7 +124,7 @@ export function Header() {
               key={`${item.label}-${item.to}`}
               to={item.to}
               activeOptions={{ exact: item.to === "/" }}
-              className="whitespace-nowrap text-foreground/75"
+              className="whitespace-nowrap text-foreground"
               activeProps={{ className: "text-primary" }}
             >
               {item.label}
