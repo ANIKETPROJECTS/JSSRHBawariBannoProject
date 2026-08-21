@@ -87,40 +87,6 @@ function Home() {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-5 right-5 flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Previous hero image"
-              onClick={() =>
-                setActiveHero((current) => (current - 1 + heroSlides.length) % heroSlides.length)
-              }
-              className="flex size-8 items-center justify-center border border-primary-foreground/60 bg-ink/20 text-sm text-primary-foreground backdrop-blur-sm transition-colors hover:bg-ink/50"
-            >
-              ←
-            </button>
-            {heroSlides.map((slide, index) => (
-              <button
-                key={slide.image}
-                type="button"
-                aria-label={`Show hero image ${index + 1}`}
-                aria-current={activeHero === index ? "true" : undefined}
-                onClick={() => setActiveHero(index)}
-                className={`h-1.5 transition-all ${
-                  activeHero === index
-                    ? "w-8 bg-primary-foreground"
-                    : "w-4 bg-primary-foreground/50 hover:bg-primary-foreground/80"
-                }`}
-              />
-            ))}
-            <button
-              type="button"
-              aria-label="Next hero image"
-              onClick={() => setActiveHero((current) => (current + 1) % heroSlides.length)}
-              className="flex size-8 items-center justify-center border border-primary-foreground/60 bg-ink/20 text-sm text-primary-foreground backdrop-blur-sm transition-colors hover:bg-ink/50"
-            >
-              →
-            </button>
-          </div>
         </div>
       </section>
 
