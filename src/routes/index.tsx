@@ -178,8 +178,8 @@ function ProductRail({
       <h2 className="text-center font-display text-5xl font-light text-primary sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-5 gap-5 pb-3">
-        {products.map((saree) => (
-          <ProductCard key={saree.id} saree={saree} tall />
+          {products.map((saree) => (
+          <ProductCard key={saree.id} saree={saree} tall showAddToCart />
         ))}
       </div>
     </section>

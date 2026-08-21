@@ -1,9 +1,19 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
+import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787336793109.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
-export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: boolean }) {
+export function ProductCard({
+  saree,
+  tall = false,
+  showAddToCart = false,
+}: {
+  saree: Saree;
+  tall?: boolean;
+  showAddToCart?: boolean;
+}) {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   return (
@@ -70,6 +80,20 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
           <p className="text-base tracking-wide text-muted-foreground line-through">
             {formatPrice(Math.ceil((saree.price * 1.15) / 100) * 100)}
           </p>
+          {showAddToCart && (
+            <button
+              type="button"
+              aria-label={`Add ${saree.name} to cart`}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                toast.success(`${saree.name} added to your bag`);
+              }}
+              className="ml-auto flex size-7 shrink-0 items-center justify-center transition-transform hover:scale-110 active:scale-95"
+            >
+              <img src={cartIcon} alt="" aria-hidden="true" className="size-5 object-contain" />
+            </button>
+          )}
         </div>
       </div>
     </Link>
