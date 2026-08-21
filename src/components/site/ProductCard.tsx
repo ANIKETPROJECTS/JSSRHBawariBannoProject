@@ -19,7 +19,7 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
         />
       </div>
       <div className="pt-4">
-        <h3 className="font-display text-2xl leading-tight text-foreground transition-colors group-hover:text-primary">
+        <h3 className="overflow-hidden text-2xl leading-tight text-ellipsis text-foreground transition-colors group-hover:text-primary whitespace-nowrap">
           {saree.name}
         </h3>
         <div className="mt-2 flex items-baseline gap-2">
