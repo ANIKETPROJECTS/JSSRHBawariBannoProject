@@ -23,8 +23,8 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
           {saree.name}
         </h3>
         <div className="mt-2 flex items-baseline gap-2">
-          <p className="text-lg font-medium tracking-wide text-primary">{formatPrice(saree.price)}</p>
-          <p className="text-sm tracking-wide text-muted-foreground line-through">
+          <p className="text-xl font-medium tracking-wide text-primary">{formatPrice(saree.price)}</p>
+          <p className="text-base tracking-wide text-muted-foreground line-through">
             {formatPrice(Math.ceil((saree.price * 1.15) / 100) * 100)}
           </p>
         </div>
