@@ -91,7 +91,7 @@ export function ProductCard({
               }}
               className="ml-auto flex size-7 shrink-0 items-center justify-center transition-transform hover:scale-110 active:scale-95"
             >
-              <img src={cartIcon} alt="" aria-hidden="true" className="size-5 object-contain" />
+              <img src={cartIcon} alt="" aria-hidden="true" className="size-6 object-contain" />
             </button>
           )}
         </div>
