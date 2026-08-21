@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Heart } from "lucide-react";
-import cartIcon from "../../../attached_assets/shopping-bag_(1)_1787301302642.png";
-import profileIcon from "../../../attached_assets/user_(3)_1787301305424.png";
-import searchIcon from "../../../attached_assets/search_(1)_1787301344357.png";
+import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
+import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
+import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
+import searchIcon from "../../../attached_assets/search_(3)_1787337736165.png";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -65,34 +65,34 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             aria-label="Search"
-            className="rounded-full border border-transparent p-2.5 text-foreground/70 transition-colors hover:border-border hover:text-primary"
+            className="p-1 transition-transform hover:scale-110"
           >
-            <img src={searchIcon} alt="" className="size-4 object-contain" />
+            <img src={searchIcon} alt="" className="size-6 object-contain" />
           </button>
           <button
             type="button"
             aria-label="Shopping bag"
-            className="rounded-full border border-transparent p-2.5 text-foreground/70 transition-colors hover:border-border hover:text-primary"
+            className="p-1 transition-transform hover:scale-110"
           >
-            <img src={cartIcon} alt="" className="size-4 object-contain" />
+            <img src={cartIcon} alt="" className="size-6 object-contain" />
           </button>
           <button
             type="button"
             aria-label="Wishlist"
-            className="rounded-full border border-transparent p-2.5 text-foreground/70 transition-colors hover:border-border hover:text-primary"
+            className="p-1 transition-transform hover:scale-110"
           >
-            <Heart className="size-4" strokeWidth={1.5} />
+            <img src={wishlistIcon} alt="" className="size-6 object-contain" />
           </button>
           <button
             type="button"
             aria-label="Account"
-            className="rounded-full border border-border p-2.5 text-foreground/80 transition-colors hover:border-gold hover:text-primary"
+            className="p-1 transition-transform hover:scale-110"
           >
-            <img src={profileIcon} alt="" className="size-4 object-contain" />
+            <img src={profileIcon} alt="" className="size-6 object-contain" />
           </button>
         </div>
       </div>
