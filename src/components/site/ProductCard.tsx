@@ -34,17 +34,31 @@ export function ProductCard({ saree, tall = false }: { saree: Saree; tall?: bool
             isWishlisted ? "text-red-600" : "text-foreground/75 hover:text-red-600"
           }`}
         >
-          <img
-            src={wishlistHeart}
-            alt=""
-            aria-hidden="true"
-            className="size-[1.35rem] object-contain transition-transform duration-200 group-hover:scale-105 active:scale-90"
-            style={{
-              filter: isWishlisted
-                ? "brightness(0) saturate(100%) invert(19%) sepia(93%) saturate(3480%) hue-rotate(348deg) brightness(91%) contrast(94%)"
-                : "none",
-            }}
-          />
+          <span className="relative size-[1.35rem] transition-transform duration-200 group-hover:scale-105 active:scale-90">
+            <svg
+              viewBox="0 0 512 512"
+              aria-hidden="true"
+              className={`absolute inset-0 size-full transition-opacity duration-200 ${
+                isWishlisted ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              <path
+                d="M256 480C232 460 32 304 32 177 32 95 93 32 174 32c39 0 71 17 82 37 11-20 43-37 82-37 81 0 142 63 142 145 0 127-200 283-224 303Z"
+                fill="currentColor"
+              />
+            </svg>
+            <img
+              src={wishlistHeart}
+              alt=""
+              aria-hidden="true"
+              className="relative size-full object-contain"
+              style={{
+                filter: isWishlisted
+                  ? "brightness(0) saturate(100%) invert(19%) sepia(93%) saturate(3480%) hue-rotate(348deg) brightness(91%) contrast(94%)"
+                  : "none",
+              }}
+            />
+          </span>
         </button>
       </div>
       <div className="pt-4">
