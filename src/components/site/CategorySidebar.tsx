@@ -1,16 +1,24 @@
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RotateCcw } from "lucide-react";
 import { categories } from "@/data/sarees";
 import { cn } from "@/lib/utils";
 
 export type Selection = { category: string | null; subcategory: string | null };
+export type Filters = {
+  price: string;
+  colors: string[];
+  fabrics: string[];
+  inStock: boolean;
+};
 
 type Props = {
   selection: Selection;
   onSelect: (selection: Selection) => void;
+  filters: Filters;
+  onFiltersChange: (filters: Filters) => void;
 };
 
-export function CategorySidebar({ selection, onSelect }: Props) {
+export function CategorySidebar({ selection, onSelect, filters, onFiltersChange }: Props) {
   const [open, setOpen] = useState<string[]>(["silk"]);
 
   const toggle = (id: string) =>
@@ -100,6 +108,106 @@ export function CategorySidebar({ selection, onSelect }: Props) {
             );
           })}
         </ul>
+      </div>
+
+      <div className="mt-5 border border-border bg-sidebar/60 p-5">
+        <div className="flex items-center justify-between">
+          <p className="text-eyebrow text-muted-foreground">Refine</p>
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ price: "all", colors: [], fabrics: [], inStock: false })}
+            className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-primary"
+          >
+            <RotateCcw className="size-3" strokeWidth={1.5} /> Clear
+          </button>
+        </div>
+
+        <div className="mt-4 h-px bg-gold/40" />
+        <fieldset className="mt-5">
+          <legend className="text-sm text-primary">Price range</legend>
+          <div className="mt-3 space-y-1.5">
+            {[
+              ["all", "All prices"],
+              ["under-5000", "Under ₹5,000"],
+              ["5000-15000", "₹5,000 – ₹15,000"],
+              ["15000-30000", "₹15,000 – ₹30,000"],
+              ["over-30000", "Above ₹30,000"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/75 hover:text-primary">
+                <input
+                  type="radio"
+                  name="price-range"
+                  checked={filters.price === value}
+                  onChange={() => onFiltersChange({ ...filters, price: value })}
+                  className="accent-primary"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="mt-6">
+          <legend className="text-sm text-primary">Colour</legend>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[
+              ["maroon", "#78152a"],
+              ["blue", "#254aa5"],
+              ["green", "#2c7a52"],
+              ["ivory", "#e8dfc9"],
+              ["pink", "#e3a1ae"],
+              ["indigo", "#364273"],
+              ["plum", "#693d68"],
+              ["mustard", "#c7952d"],
+            ].map(([color, hex]) => {
+              const checked = filters.colors.includes(color);
+              return (
+                <label key={color} title={color} className={cn("flex size-7 cursor-pointer items-center justify-center rounded-full border", checked ? "border-primary p-0.5" : "border-transparent")}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onFiltersChange({ ...filters, colors: checked ? filters.colors.filter((item) => item !== color) : [...filters.colors, color] })}
+                    className="sr-only"
+                  />
+                  <span className="size-full rounded-full border border-black/10" style={{ backgroundColor: hex }} />
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[0.65rem] capitalize text-muted-foreground">
+            {filters.colors.length ? filters.colors.join(", ") : "All colours"}
+          </p>
+        </fieldset>
+
+        <fieldset className="mt-6">
+          <legend className="text-sm text-primary">Fabric</legend>
+          <div className="mt-3 space-y-1.5">
+            {["Silk", "Cotton", "Georgette", "Organza"].map((fabric) => {
+              const checked = filters.fabrics.includes(fabric);
+              return (
+                <label key={fabric} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/75 hover:text-primary">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onFiltersChange({ ...filters, fabrics: checked ? filters.fabrics.filter((item) => item !== fabric) : [...filters.fabrics, fabric] })}
+                    className="accent-primary"
+                  />
+                  {fabric}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <label className="mt-6 flex cursor-pointer items-center gap-2 border-t border-border pt-4 text-xs text-foreground/75 hover:text-primary">
+          <input
+            type="checkbox"
+            checked={filters.inStock}
+            onChange={(event) => onFiltersChange({ ...filters, inStock: event.target.checked })}
+            className="accent-primary"
+          />
+          Show available pieces only
+        </label>
       </div>
 
       <div className="mt-5 hidden border border-border fabric-texture p-5 lg:block">

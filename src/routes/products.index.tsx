@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { SiteShell, PageHeading } from "@/components/site/SiteShell";
-import { CategorySidebar, type Selection } from "@/components/site/CategorySidebar";
+import { SiteShell } from "@/components/site/SiteShell";
+import { CategorySidebar, type Filters, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
-import { sarees } from "@/data/sarees";
+import { categories, sarees } from "@/data/sarees";
 
 export const Route = createFileRoute("/products/")({
   head: () => ({
@@ -33,18 +33,69 @@ const sortLabels: Record<Sort, string> = {
   newest: "Newest",
 };
 
+const categoryDetails: Record<string, { title: string; description: string }> = {
+  all: {
+    title: "All Sarees",
+    description: "Nine heirloom weaves currently on the shelf, from everyday handloom cottons to occasion-ready silks, each traced to its loom.",
+  },
+  silk: {
+    title: "Silk Sarees",
+    description: "Lustrous silk drapes woven for celebrations, with temple borders, brocade details and the unmistakable richness of Indian craft.",
+  },
+  cotton: {
+    title: "Cotton Sarees",
+    description: "Light, breathable handloom cottons made for long days, warm weather and the quiet luxury of an easy, beautiful drape.",
+  },
+  designer: {
+    title: "Designer Sarees",
+    description: "Contemporary silhouettes and thoughtful embellishment for evenings that call for something a little more unexpected.",
+  },
+  wedding: {
+    title: "Wedding Collection",
+    description: "Ceremonial sarees with generous zari, rich colour and the presence to become part of your family story.",
+  },
+};
+
+function getSareeColor(id: string) {
+  if (id.includes("maroon") || id.includes("crimson")) return "maroon";
+  if (id.includes("blue")) return "blue";
+  if (id.includes("emerald")) return "green";
+  if (id.includes("ivory")) return "ivory";
+  if (id.includes("pink") || id.includes("blush")) return "pink";
+  if (id.includes("indigo")) return "indigo";
+  if (id.includes("plum")) return "plum";
+  if (id.includes("mustard")) return "mustard";
+  return "ivory";
+}
+
 function Products() {
   const [selection, setSelection] = useState<Selection>({
     category: null,
     subcategory: null,
   });
   const [sort, setSort] = useState<Sort>("featured");
+  const [filters, setFilters] = useState<Filters>({
+    price: "all",
+    colors: [],
+    fabrics: [],
+    inStock: false,
+  });
 
   const list = useMemo(() => {
     const filtered = sarees.filter((s) => {
       if (selection.subcategory) return s.subcategory === selection.subcategory;
       if (selection.category) return s.category === selection.category;
       return true;
+    }).filter((s) => {
+      const priceMatch =
+        filters.price === "all" ||
+        (filters.price === "under-5000" && s.price < 5000) ||
+        (filters.price === "5000-15000" && s.price >= 5000 && s.price <= 15000) ||
+        (filters.price === "15000-30000" && s.price > 15000 && s.price <= 30000) ||
+        (filters.price === "over-30000" && s.price > 30000);
+      const colorMatch = filters.colors.length === 0 || filters.colors.includes(getSareeColor(s.id));
+      const fabricMatch = filters.fabrics.length === 0 || filters.fabrics.some((fabric) => s.fabric.toLowerCase().includes(fabric.toLowerCase()));
+      return priceMatch && colorMatch && fabricMatch;
     });
     const sorted = [...filtered];
     if (sort === "price-asc") sorted.sort((a, b) => a.price - b.price);
@@ -53,19 +104,34 @@ function Products() {
     if (sort === "featured")
       sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
-  }, [selection, sort]);
+  }, [filters, selection, sort]);
+
+  const categoryKey = selection.category ?? "all";
+  const category = categoryDetails[categoryKey] ?? categoryDetails.all;
 
   return (
     <SiteShell>
-      <PageHeading
-        eyebrow="The Collection"
-        title="All Sarees"
-        intro="Nine weaves currently on the shelf, each traced to its loom. Filter by category or sort to find your drape."
-      />
+      <div className="border-b border-border fabric-texture">
+        <div className="mx-auto max-w-7xl px-5 py-10 md:py-11">
+          <p className="text-eyebrow text-muted-foreground">The Collection</p>
+          <h1 className="mt-2 font-display text-5xl font-light leading-none tracking-tight text-primary md:text-6xl">
+            {category.title}
+          </h1>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">{category.description}</p>
+        </div>
+      </div>
 
-      <section className="mx-auto mt-12 max-w-7xl px-5">
+      <section className="mx-auto mt-10 max-w-7xl px-5 pb-16">
         <div className="flex flex-col gap-10 lg:flex-row">
-          <CategorySidebar selection={selection} onSelect={setSelection} />
+          <CategorySidebar
+            selection={selection}
+            onSelect={(nextSelection) => {
+              setSelection(nextSelection);
+              setFilters((current) => ({ ...current, price: current.price, colors: current.colors, fabrics: current.fabrics }));
+            }}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
 
           <div className="flex-1">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
@@ -90,7 +156,7 @@ function Products() {
 
             <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-3">
               {list.map((saree) => (
-                <ProductCard key={saree.id} saree={saree} />
+                <ProductCard key={saree.id} saree={saree} showAddToCart />
               ))}
             </div>
             {list.length === 0 && (
