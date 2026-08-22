@@ -19,6 +19,12 @@ type CartContextValue = {
   closeCart: () => void;
 };
 
+const demoCoupons = [
+  { code: "BAWARI10", label: "10% off your order", discount: (subtotal: number) => Math.round(subtotal * 0.1) },
+  { code: "SILK1500", label: "₹1,500 off above ₹15,000", discount: (subtotal: number) => subtotal >= 15000 ? 1500 : 0 },
+  { code: "WELCOME500", label: "₹500 off your first order", discount: () => 500 },
+];
+
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -148,9 +154,7 @@ function CartDrawer() {
             <>
               <div className="border-b border-border pb-5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">
-                    {subtotal >= 15000 ? "You have unlocked free shipping" : "Free shipping on orders above ₹15,000"}
-                  </span>
+                  <span className="text-muted-foreground">Free shipping on orders above ₹15,000</span>
                   <span className="text-primary">{Math.round(freeShippingProgress)}%</span>
                 </div>
                 <div className="mt-3 h-1 bg-secondary">
@@ -161,7 +165,7 @@ function CartDrawer() {
               <div className="divide-y divide-border">
                 {items.map(({ product, quantity }) => (
                   <div key={product.id} className="flex gap-4 py-5">
-                    <img src={product.image} alt={product.name} className="size-24 shrink-0 object-cover" />
+                    <img src={product.image} alt={product.name} className="aspect-[3/4] w-20 shrink-0 object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -204,11 +208,15 @@ function CartDrawer() {
                   <button
                     type="button"
                     onClick={() => {
-                      if (coupon === "BAWARI10") {
-                        setDiscount(Math.round(subtotal * 0.1));
-                        toast.success("10% discount applied");
+                      const selectedCoupon = demoCoupons.find((item) => item.code === coupon);
+                      const couponDiscount = selectedCoupon?.discount(subtotal) ?? 0;
+                      if (!selectedCoupon) {
+                        toast.error("Choose one of the demo coupons below.");
+                      } else if (couponDiscount === 0) {
+                        toast.error("This coupon applies to orders above ₹15,000.");
                       } else {
-                        toast.error("Try the demo code BAWARI10");
+                        setDiscount(couponDiscount);
+                        toast.success(`${selectedCoupon.code} applied — ${selectedCoupon.label}`);
                       }
                     }}
                     className="border border-primary px-4 text-eyebrow text-primary hover:bg-primary hover:text-primary-foreground"
@@ -216,7 +224,21 @@ function CartDrawer() {
                     Apply
                   </button>
                 </div>
-                <p className="mt-2 text-[0.7rem] text-muted-foreground">Demo coupon: BAWARI10</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {demoCoupons.map(({ code }) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setCoupon(code)}
+                      className="border border-border px-2 py-1 text-[0.65rem] text-primary transition-colors hover:border-gold hover:bg-secondary"
+                    >
+                      {code}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-3 text-[0.7rem] text-muted-foreground">
+                  Try a demo coupon: BAWARI10, SILK1500 or WELCOME500
+                </p>
               </div>
 
               <div className="space-y-3 py-5 text-sm">
