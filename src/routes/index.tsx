@@ -151,12 +151,6 @@ function Home() {
                   <Play className="ml-0.5 size-4 fill-current" strokeWidth={1.5} />
                 </span>
               </div>
-              <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between px-3 pb-3 text-primary-foreground">
-                <span className="text-xs">Customer look</span>
-                <span className="text-[0.65rem] tracking-[0.15em] text-primary-foreground/70">
-                  0{index + 1}
-                </span>
-              </figcaption>
             </figure>
           ))}
         </div>
