@@ -1,5 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { MongoClient, type Db, ObjectId } from "mongodb";
+import { categories, categoryEdits, sarees } from "@/data/sarees";
+import heroImage from "@/assets/hero.jpg";
+import storyImage from "@/assets/story.jpg";
+import craftImage from "@/assets/craft.jpg";
 
 type Resource = "heroes" | "categories" | "products";
 type JsonRecord = Record<string, unknown>;
@@ -112,6 +116,39 @@ async function remove(resource: Resource, id: string) {
   return result.deletedCount > 0;
 }
 
+async function seedCatalog() {
+  const database = await db();
+  const now = new Date();
+  const categoryDocuments = [
+    ...categories.map((category, order) => ({
+      label: category.label,
+      slug: category.id,
+      description: `Explore our ${category.label.toLowerCase()} collection.`,
+      image: categoryEdits.find((item) => item.id === category.id)?.image ?? categoryEdits[order % categoryEdits.length]?.image,
+      order,
+      published: true,
+    })),
+    ...categoryEdits.filter((item) => !categories.some((category) => category.id === item.id)).map((item, index) => ({
+      label: item.title,
+      slug: item.id,
+      description: `Explore our ${item.title.toLowerCase()} collection.`,
+      image: item.image,
+      order: categories.length + index,
+      published: true,
+    })),
+  ];
+  await Promise.all([
+    database.collection("heroes").bulkWrite([
+      { updateOne: { filter: { order: 0 }, update: { $set: { title: "The Festive Edit", subtitle: "Six yards, woven with a lifetime of patience.", image: heroImage, alt: "Woman in a maroon Kanjivaram silk saree in a heritage courtyard", order: 0, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
+      { updateOne: { filter: { order: 1 }, update: { $set: { title: "Made by hand", subtitle: "Stories of craft, traced back to the loom.", image: storyImage, alt: "Handwoven saree craftsmanship and textile details", order: 1, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
+      { updateOne: { filter: { order: 2 }, update: { $set: { title: "The art of the drape", subtitle: "Traditional techniques, thoughtfully preserved.", image: craftImage, alt: "Artisan hands working with traditional saree weaving techniques", order: 2, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
+    ]),
+    database.collection("categories").bulkWrite(categoryDocuments.map((category) => ({ updateOne: { filter: { slug: category.slug }, update: { $set: { ...category, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } }))),
+    database.collection("products").bulkWrite(sarees.map((product) => ({ updateOne: { filter: { id: product.id }, update: { $set: { ...product, stock: 10, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } }))),
+  ]);
+  return { heroes: 3, categories: categoryDocuments.length, products: sarees.length };
+}
+
 async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/login" && request.method === "POST") {
     const input = await body(request);
@@ -134,6 +171,7 @@ async function handleAdmin(request: Request, path: string) {
     ]);
     return json({ products, categories, heroes, lowStock, outOfStock });
   }
+  if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
   const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
   const resource = match[1] as Resource;
