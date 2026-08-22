@@ -11,8 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as BestsellerRouteImport } from './routes/bestseller'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as NewArrivalRouteImport } from './routes/new-arrival'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as TrendingRouteImport } from './routes/trending'
+import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
 
@@ -26,14 +30,34 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BestsellerRoute = BestsellerRouteImport.update({
+  id: '/bestseller',
+  path: '/bestseller',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewArrivalRoute = NewArrivalRouteImport.update({
+  id: '/new-arrival',
+  path: '/new-arrival',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrendingRoute = TrendingRouteImport.update({
+  id: '/trending',
+  path: '/trending',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesCategoryRoute = CategoriesCategoryRouteImport.update({
+  id: '/categories/$category',
+  path: '/categories/$category',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsIndexRoute = ProductsIndexRouteImport.update({
@@ -50,16 +74,24 @@ const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bestseller': typeof BestsellerRoute
   '/contact': typeof ContactRoute
+  '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
+  '/trending': typeof TrendingRoute
+  '/categories/$category': typeof CategoriesCategoryRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products/': typeof ProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bestseller': typeof BestsellerRoute
   '/contact': typeof ContactRoute
+  '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
+  '/trending': typeof TrendingRoute
+  '/categories/$category': typeof CategoriesCategoryRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products': typeof ProductsIndexRoute
 }
@@ -67,8 +99,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bestseller': typeof BestsellerRoute
   '/contact': typeof ContactRoute
+  '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
+  '/trending': typeof TrendingRoute
+  '/categories/$category': typeof CategoriesCategoryRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products/': typeof ProductsIndexRoute
 }
@@ -77,24 +113,36 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/bestseller'
     | '/contact'
+    | '/new-arrival'
     | '/profile'
+    | '/trending'
+    | '/categories/$category'
     | '/products/$productId'
     | '/products/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
+    | '/bestseller'
     | '/contact'
+    | '/new-arrival'
     | '/profile'
+    | '/trending'
+    | '/categories/$category'
     | '/products/$productId'
     | '/products'
   id:
     | '__root__'
     | '/'
     | '/about'
+    | '/bestseller'
     | '/contact'
+    | '/new-arrival'
     | '/profile'
+    | '/trending'
+    | '/categories/$category'
     | '/products/$productId'
     | '/products/'
   fileRoutesById: FileRoutesById
@@ -102,8 +150,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  BestsellerRoute: typeof BestsellerRoute
   ContactRoute: typeof ContactRoute
+  NewArrivalRoute: typeof NewArrivalRoute
   ProfileRoute: typeof ProfileRoute
+  TrendingRoute: typeof TrendingRoute
+  CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
 }
@@ -124,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bestseller': {
+      id: '/bestseller'
+      path: '/bestseller'
+      fullPath: '/bestseller'
+      preLoaderRoute: typeof BestsellerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact': {
       id: '/contact'
       path: '/contact'
@@ -131,11 +190,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/new-arrival': {
+      id: '/new-arrival'
+      path: '/new-arrival'
+      fullPath: '/new-arrival'
+      preLoaderRoute: typeof NewArrivalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trending': {
+      id: '/trending'
+      path: '/trending'
+      fullPath: '/trending'
+      preLoaderRoute: typeof TrendingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories/$category': {
+      id: '/categories/$category'
+      path: '/categories/$category'
+      fullPath: '/categories/$category'
+      preLoaderRoute: typeof CategoriesCategoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/': {
@@ -158,8 +238,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  BestsellerRoute: BestsellerRoute,
   ContactRoute: ContactRoute,
+  NewArrivalRoute: NewArrivalRoute,
   ProfileRoute: ProfileRoute,
+  TrendingRoute: TrendingRoute,
+  CategoriesCategoryRoute: CategoriesCategoryRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
   ProductsIndexRoute: ProductsIndexRoute,
 }

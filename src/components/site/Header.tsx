@@ -8,9 +8,9 @@ import { useCart } from "./CartDrawer";
 const nav = [
   { to: "/", label: "Home" },
   { to: "/products", label: "Categories" },
-  { to: "/products", label: "New Arrival" },
-  { to: "/products", label: "Trending" },
-  { to: "/products", label: "Bestseller" },
+  { to: "/new-arrival", label: "New Arrival" },
+  { to: "/trending", label: "Trending" },
+  { to: "/bestseller", label: "Bestseller" },
   { to: "/about", label: "About Us" },
   { to: "/contact", label: "Contact Us" },
 ] as const;
