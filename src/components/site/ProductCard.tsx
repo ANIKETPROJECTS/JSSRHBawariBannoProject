@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
+import { useCart } from "./CartDrawer";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787336793109.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
@@ -15,6 +16,7 @@ export function ProductCard({
   showAddToCart?: boolean;
 }) {
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const { addItem } = useCart();
 
   return (
     <Link
@@ -87,7 +89,7 @@ export function ProductCard({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                toast.success(`${saree.name} added to your bag`);
+                addItem(saree);
               }}
               className="ml-auto flex size-7 shrink-0 items-center justify-center transition-transform hover:scale-110 active:scale-95"
             >

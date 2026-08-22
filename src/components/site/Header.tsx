@@ -3,6 +3,7 @@ import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.pn
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import searchIcon from "../../../attached_assets/search_(4)_1787337839736.png";
+import { useCart } from "./CartDrawer";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -15,6 +16,9 @@ const nav = [
 ] as const;
 
 export function Header() {
+  const { openCart, items } = useCart();
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-5">
@@ -76,9 +80,15 @@ export function Header() {
           <button
             type="button"
             aria-label="Shopping bag"
-            className="p-1 transition-transform hover:scale-110"
+            onClick={openCart}
+            className="relative p-1 transition-transform hover:scale-110"
           >
             <img src={cartIcon} alt="" className="size-6 object-contain" />
+            {itemCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.6rem] text-primary-foreground">
+                {itemCount}
+              </span>
+            )}
           </button>
           <button
             type="button"

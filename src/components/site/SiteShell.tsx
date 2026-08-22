@@ -1,25 +1,28 @@
 import type { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
+import { CartProvider } from "./CartDrawer";
 import whatsappIcon from "../../../attached_assets/apple_1787301622693.png";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <a
-        href="https://wa.me/919619523254"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Chat with us on WhatsApp"
-        title="Chat with us on WhatsApp"
-        className="fixed bottom-3 right-3 z-50 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-      >
-        <img src={whatsappIcon} alt="" className="size-14 object-contain" />
-      </a>
-      <Footer />
-    </div>
+    <CartProvider>
+      <div className="flex min-h-screen flex-col bg-background">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <a
+          href="https://wa.me/919619523254"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Chat with us on WhatsApp"
+          title="Chat with us on WhatsApp"
+          className="fixed bottom-3 right-3 z-50 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          <img src={whatsappIcon} alt="" className="size-14 object-contain" />
+        </a>
+        <Footer />
+      </div>
+    </CartProvider>
   );
 }
 

@@ -4,6 +4,7 @@ import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
+import { useCart } from "@/components/site/CartDrawer";
 import { formatPrice, sarees } from "@/data/sarees";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +37,7 @@ function ProductDetail() {
   const { saree } = Route.useLoaderData();
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
+  const { addItem } = useCart();
 
   const gallery = [saree.image, saree.image, saree.image];
   const related = sarees
@@ -145,7 +147,7 @@ function ProductDetail() {
 
             <button
               type="button"
-              onClick={() => toast.success(`${saree.name} added to your bag (${qty})`)}
+              onClick={() => addItem(saree, qty)}
               className="inline-flex flex-1 items-center justify-center gap-2 bg-primary px-8 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
             >
               <ShoppingBag className="size-4" strokeWidth={1.6} /> Add to Cart
