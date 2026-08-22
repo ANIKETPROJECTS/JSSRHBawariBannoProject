@@ -15,7 +15,13 @@ function getClient() {
 
 async function db(): Promise<Db> {
   const client = await getClient();
-  return client.db();
+  const database = client.db();
+  await Promise.all([
+    database.collection("products").createIndex({ id: 1 }, { unique: true, sparse: true }),
+    database.collection("categories").createIndex({ slug: 1 }, { unique: true, sparse: true }),
+    database.collection("products").createIndex({ published: 1, category: 1, createdAt: -1 }),
+  ]);
+  return database;
 }
 
 function secret(name: string) {
@@ -78,10 +84,22 @@ async function list(resource: Resource) {
 }
 
 async function save(resource: Resource, id: string | undefined, input: JsonRecord) {
-  const collection = (await db()).collection(resource);
+  const database = await db();
+  const collection = database.collection(resource);
   const document = { ...cleanDocument(input), updatedAt: new Date() };
   if (id && ObjectId.isValid(id)) {
+    const previous = await collection.findOne({ _id: new ObjectId(id) });
     await collection.updateOne({ _id: new ObjectId(id) }, { $set: document });
+    if (resource === "products" && previous && typeof previous.stock === "number" && typeof document.stock === "number" && previous.stock !== document.stock) {
+      await database.collection("inventory_movements").insertOne({
+        productId: id,
+        previousStock: previous.stock,
+        nextStock: document.stock,
+        change: document.stock - previous.stock,
+        reason: "Admin stock update",
+        createdAt: new Date(),
+      });
+    }
     return collection.findOne({ _id: new ObjectId(id) });
   }
   const result = await collection.insertOne({ ...document, published: document.published !== false, createdAt: new Date() });
