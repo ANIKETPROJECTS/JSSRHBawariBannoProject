@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
-import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useCart } from "@/components/site/CartDrawer";
@@ -35,6 +34,14 @@ export const Route = createFileRoute("/products/$productId")({
 
 function ProductDetail() {
   const { saree } = Route.useLoaderData();
+  return (
+    <SiteShell>
+      <ProductDetailContent saree={saree} />
+    </SiteShell>
+  );
+}
+
+function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const { addItem } = useCart();
@@ -46,7 +53,7 @@ function ProductDetail() {
     .slice(0, 4);
 
   return (
-    <SiteShell>
+    <>
       <div className="mx-auto max-w-7xl px-5 pt-8">
         <nav className="text-xs text-muted-foreground">
           <Link to="/" className="hover:text-primary">
@@ -168,6 +175,6 @@ function ProductDetail() {
           ))}
         </div>
       </section>
-    </SiteShell>
+    </>
   );
 }
