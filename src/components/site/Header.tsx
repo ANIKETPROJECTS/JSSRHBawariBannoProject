@@ -37,10 +37,10 @@ export function Header() {
                 </summary>
                 <div className="absolute left-1/2 top-full z-50 mt-3 w-48 -translate-x-1/2 border border-border bg-background p-2 shadow-xl">
                   {[
-                    { label: "Silk Sarees", href: "/products" },
-                    { label: "Cotton Sarees", href: "/products" },
-                    { label: "Designer Sarees", href: "/products" },
-                    { label: "Wedding Collection", href: "/products" },
+                    { label: "Silk Sarees", href: "/categories/silk-sarees" },
+                    { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
+                    { label: "Designer Sarees", href: "/categories/designer-sarees" },
+                    { label: "Wedding Collection", href: "/categories/wedding-collection" },
                   ].map((category) => (
                     <Link
                       key={category.label}
@@ -115,16 +115,16 @@ export function Header() {
                 Categories ⌄
               </summary>
               <div className="mt-2 flex gap-4 border-l border-border pl-4">
-                  <Link to="/products" className="whitespace-nowrap text-foreground">
+                  <Link to="/categories/silk-sarees" className="whitespace-nowrap text-foreground">
                   Silk Sarees
                 </Link>
-                  <Link to="/products" className="whitespace-nowrap text-foreground">
+                  <Link to="/categories/cotton-sarees" className="whitespace-nowrap text-foreground">
                   Cotton Sarees
                 </Link>
-                  <Link to="/products" className="whitespace-nowrap text-foreground">
+                  <Link to="/categories/designer-sarees" className="whitespace-nowrap text-foreground">
                   Designer Sarees
                 </Link>
-                  <Link to="/products" className="whitespace-nowrap text-foreground">
+                  <Link to="/categories/wedding-collection" className="whitespace-nowrap text-foreground">
                   Wedding Collection
                 </Link>
               </div>
