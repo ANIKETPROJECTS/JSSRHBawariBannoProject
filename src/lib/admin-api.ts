@@ -153,6 +153,7 @@ async function recordPurchase(request: Request) {
   const orderNumber = Number(counter?.value ?? 1);
   const orderId = `BawriBanno${String(orderNumber).padStart(2, "0")}`;
   const events = [];
+  const orderItems = [];
   for (const item of items) {
     if (!item || typeof item !== "object") continue;
     const row = item as JsonRecord;
@@ -177,6 +178,13 @@ async function recordPurchase(request: Request) {
       nextStock: Number(result.stock ?? 0),
       createdAt: new Date(),
     });
+    orderItems.push({
+      productId,
+      name: product.name,
+      image: product.image,
+      quantity,
+      price: Number(product.price ?? 0),
+    });
   }
   if (events.length) await database.collection("inventory_movements").insertMany(events);
   await database.collection("orders").insertOne({
@@ -187,7 +195,7 @@ async function recordPurchase(request: Request) {
     customerPhone: customer?.phone || undefined,
     status: "pending",
     paymentStatus: "demo",
-    items,
+    items: orderItems,
     total: Number(input.total ?? 0),
     createdAt: new Date(),
     updatedAt: new Date(),
