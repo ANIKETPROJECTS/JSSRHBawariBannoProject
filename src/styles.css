@@ -156,3 +156,9 @@
 #wishlist {
   display: none;
 }
+
+/* Product creation is a page-level form; avoid a nested scroll container. */
+form[class*="max-h-"] {
+  max-height: none !important;
+  overflow: visible !important;
+}
