@@ -46,19 +46,21 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-[#ded5c9] bg-white px-5 py-7 lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-[#ded5c9] bg-white px-5 py-7 lg:flex">
         <Link to="/" className="font-display text-3xl text-primary">Bawari Banno</Link>
         <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>
-        <nav className="mt-12 space-y-1">
+        <nav className="mt-12 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
           {tabs.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" onClick={() => setTab(id)} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
               <Icon className="size-4" /> {label}
             </button>
           ))}
         </nav>
-        <button type="button" onClick={async () => { await api("/api/admin/logout", { method: "POST" }); navigate({ to: "/admin" }); }} className="absolute bottom-8 flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary">
+        <div className="mt-4 shrink-0 border-t border-[#ded5c9] pt-5">
+        <button type="button" onClick={async () => { await api("/api/admin/logout", { method: "POST" }); navigate({ to: "/admin" }); }} className="flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary">
           <LogOut className="size-4" /> Sign out
         </button>
+        </div>
       </aside>
       <main className="lg:ml-64">
         <header className="flex items-center justify-between border-b border-[#ded5c9] bg-white px-5 py-5 md:px-10">
