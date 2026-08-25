@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Megaphone, Menu, Package, Plus, Save, Settings, ShoppingCart, Star, Tags, Trash2, Users, X } from "lucide-react";
+import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Megaphone, Menu, Package, Plus, Save, Settings, ShoppingCart, Star, Tags, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -47,7 +47,7 @@ function AdminPage() {
   return (
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
       <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "w-[72px] px-3"}`}>
-        <div className={`flex items-center ${sidebarOpen ? "justify-between" : "justify-center"}`}><Link to="/" className={`font-display text-primary ${sidebarOpen ? "text-3xl" : "text-xl"}`}>{sidebarOpen ? "Bawari Banno" : "BB"}</Link>{sidebarOpen && <button type="button" onClick={() => setSidebarOpen(false)} className="text-muted-foreground hover:text-primary" aria-label="Collapse sidebar"><X className="size-4" /></button>}</div>
+        <div className={`flex items-center ${sidebarOpen ? "justify-between" : "justify-center"}`}><Link to="/" className={`font-display text-primary ${sidebarOpen ? "text-3xl" : "text-xl"}`}>{sidebarOpen ? "Bawari Banno" : "BB"}</Link></div>
         {sidebarOpen && <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>}
         <nav className="mt-12 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
           {tabs.map(({ id, label, icon: Icon }) => (
@@ -64,7 +64,7 @@ function AdminPage() {
       </aside>
       <main className={`transition-all ${sidebarOpen ? "lg:ml-64" : "lg:ml-[72px]"}`}>
         <header className="flex items-center justify-between border-b border-[#ded5c9] bg-white px-5 py-5 md:px-10">
-          <div className="flex items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="text-muted-foreground hover:text-primary lg:hidden" aria-label="Toggle sidebar"><Menu className="size-5" /></button><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="hidden text-muted-foreground hover:text-primary lg:block" aria-label="Toggle sidebar">{sidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}</button><div><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 font-display text-3xl text-primary">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
+          <div className="flex items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="text-muted-foreground hover:text-primary" aria-label="Toggle sidebar"><Menu className="size-5" /></button><div><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 font-display text-3xl text-primary">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
           <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">View storefront <ChevronRight className="size-3" /></Link>
         </header>
         <div className="border-b border-[#ded5c9] bg-white px-5 py-3 lg:hidden">
