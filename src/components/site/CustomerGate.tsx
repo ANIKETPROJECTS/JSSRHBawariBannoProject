@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 type Customer = { _id?: string; phone: string; name?: string; email?: string };
 type Step = "phone" | "otp" | "details";
+let cachedCustomer: Customer | null | undefined;
 
 async function authApi(path: string, init?: RequestInit) {
   const response = await fetch(path, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
@@ -13,9 +14,12 @@ async function authApi(path: string, init?: RequestInit) {
 }
 
 export function CustomerGate({ children }: { children: ReactNode }) {
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [checking, setChecking] = useState(true);
-  useEffect(() => { authApi("/api/auth/me").then((result) => setCustomer(result.customer)).catch(() => setCustomer(null)).finally(() => setChecking(false)); }, []);
+  const [customer, setCustomer] = useState<Customer | null | undefined>(cachedCustomer);
+  const [checking, setChecking] = useState(cachedCustomer === undefined);
+  useEffect(() => {
+    if (cachedCustomer !== undefined) return;
+    authApi("/api/auth/me").then((result) => { cachedCustomer = result.customer; setCustomer(result.customer); }).catch(() => { cachedCustomer = null; setCustomer(null); }).finally(() => setChecking(false));
+  }, []);
   if (checking) return <>{children}</>;
   if (customer) return <>{children}</>;
   return <AccountAccess onComplete={setCustomer} />;
@@ -34,6 +38,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not send OTP."); } finally { setBusy(false); }
   }
   function finish(customer: Customer) {
+    cachedCustomer = customer;
     onComplete(customer);
     if (window.location.pathname !== "/") window.location.assign("/");
   }
