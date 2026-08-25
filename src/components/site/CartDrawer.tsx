@@ -92,6 +92,7 @@ function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, clearCart } = useCart();
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [couponMessage, setCouponMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [checkingOut, setCheckingOut] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<string | null>(null);
 
@@ -225,7 +226,10 @@ function CartDrawer() {
                 <div className="mt-3 flex gap-2">
                   <input
                     value={coupon}
-                    onChange={(event) => setCoupon(event.target.value.toUpperCase())}
+                    onChange={(event) => {
+                      setCoupon(event.target.value.toUpperCase());
+                      setCouponMessage(null);
+                    }}
                     placeholder="Enter code"
                     className="min-w-0 flex-1 border border-border bg-white px-3 py-2.5 text-xs outline-none focus:border-gold"
                   />
@@ -235,11 +239,14 @@ function CartDrawer() {
                       const selectedCoupon = demoCoupons.find((item) => item.code === coupon);
                       const couponDiscount = selectedCoupon?.discount(subtotal) ?? 0;
                       if (!selectedCoupon) {
+                        setCouponMessage({ ok: false, text: "Coupon not recognised. Try one of the available codes below." });
                         toast.error("Choose one of the demo coupons below.");
                       } else if (couponDiscount === 0) {
+                        setCouponMessage({ ok: false, text: `${selectedCoupon.code} applies to orders above ₹15,000.` });
                         toast.error("This coupon applies to orders above ₹15,000.");
                       } else {
                         setDiscount(couponDiscount);
+                        setCouponMessage({ ok: true, text: `${selectedCoupon.code} applied — you save ${formatPrice(couponDiscount)}.` });
                         toast.success(`${selectedCoupon.code} applied — ${selectedCoupon.label}`);
                       }
                     }}
@@ -263,6 +270,7 @@ function CartDrawer() {
                 <p className="mt-3 text-[0.7rem] text-muted-foreground">
                   Try a demo coupon: BAWARI10, SILK1500 or WELCOME500
                 </p>
+                {couponMessage && <p role="status" className={`mt-3 border px-3 py-2 text-xs ${couponMessage.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}>{couponMessage.text}</p>}
               </div>
 
               <div className="space-y-3 py-5 text-sm">
