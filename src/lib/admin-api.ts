@@ -319,6 +319,14 @@ async function handleAuth(request: Request, path: string) {
     const customer = await customerFromRequest(request);
     return customer ? json({ authenticated: true, customer }) : fail("Customer login required.", 401);
   }
+  if (path === "/api/auth/orders" && request.method === "GET") {
+    const customer = await customerFromRequest(request);
+    if (!customer) return fail("Customer login required.", 401);
+    const orders = await database.collection("orders").find({
+      $or: [{ customerId: customer._id }, { customerId: String(customer._id) }, { customerPhone: customer.phone }, ...(customer.email ? [{ customerEmail: customer.email }] : [])],
+    }).sort({ createdAt: -1 }).limit(100).toArray();
+    return json({ orders });
+  }
   if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, { headers: { "set-cookie": "bb_customer=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax" } });
   return fail("Not found.", 404);
 }

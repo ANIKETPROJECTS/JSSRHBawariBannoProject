@@ -97,7 +97,8 @@ function Home() {
           {categoryEdits.slice(0, 7).map((category) => (
             <Link
               key={category.id}
-              to="/products"
+              to="/categories/$category"
+              params={{ category: category.id }}
               className="group flex w-44 shrink-0 flex-col items-center gap-3 text-center"
             >
               <div className="rounded-full border border-gold/60 bg-gold/10 p-1 transition-colors duration-300 group-hover:border-primary group-hover:bg-gold/25">
