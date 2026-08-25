@@ -6,6 +6,10 @@ type Customer = { _id?: string; phone: string; name?: string; email?: string };
 type Step = "phone" | "otp" | "details";
 let cachedCustomer: Customer | null | undefined;
 
+export function clearCachedCustomer() {
+  cachedCustomer = null;
+}
+
 async function authApi(path: string, init?: RequestInit) {
   const response = await fetch(path, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
   const result = await response.json().catch(() => ({}));
@@ -16,6 +20,14 @@ async function authApi(path: string, init?: RequestInit) {
 export function CustomerGate({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null | undefined>(cachedCustomer);
   const [checking, setChecking] = useState(cachedCustomer === undefined);
+  useEffect(() => {
+    const onLogout = () => {
+      cachedCustomer = null;
+      setCustomer(null);
+    };
+    window.addEventListener("customer-logout", onLogout);
+    return () => window.removeEventListener("customer-logout", onLogout);
+  }, []);
   useEffect(() => {
     if (cachedCustomer !== undefined) return;
     authApi("/api/auth/me").then((result) => { cachedCustomer = result.customer; setCustomer(result.customer); }).catch(() => { cachedCustomer = null; setCustomer(null); }).finally(() => setChecking(false));

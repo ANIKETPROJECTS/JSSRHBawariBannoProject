@@ -40,6 +40,14 @@ function AdminPage() {
   useEffect(() => {
     api("/api/admin/me").then(() => setAuthenticated(true)).catch(() => setAuthenticated(false));
   }, []);
+  async function signOut() {
+    try {
+      await api("/api/admin/logout", { method: "POST" });
+    } finally {
+      setAuthenticated(false);
+      navigate({ to: "/admin" });
+    }
+  }
 
   if (authenticated === null) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading admin panel…</div>;
   if (!authenticated) return <Login onSuccess={() => setAuthenticated(true)} />;
@@ -57,7 +65,7 @@ function AdminPage() {
           ))}
         </nav>
         <div className="mt-4 shrink-0 border-t border-[#ded5c9] pt-5">
-        <button type="button" onClick={async () => { await api("/api/admin/logout", { method: "POST" }); navigate({ to: "/admin" }); }} className="flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary">
+        <button type="button" onClick={() => void signOut()} className="flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary">
           <LogOut className="size-4 shrink-0" /> {sidebarOpen && "Sign out"}
         </button>
         </div>

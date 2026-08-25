@@ -399,7 +399,7 @@ async function handleAuth(request: Request, path: string) {
     }).sort({ createdAt: -1 }).limit(100).toArray();
     return json({ orders });
   }
-  if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, { headers: { "set-cookie": "bb_customer=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax" } });
+  if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, { headers: { "set-cookie": "bb_customer=; HttpOnly; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax" } });
   return fail("Not found.", 404);
 }
 
@@ -443,7 +443,7 @@ async function handleAdmin(request: Request, path: string) {
     return json({ ok: true }, { headers: { "set-cookie": `bb_admin=${sessionToken(String(input.email))}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800` } });
   }
   if (path === "/api/admin/logout" && request.method === "POST") {
-    return json({ ok: true }, { headers: { "set-cookie": "bb_admin=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax" } });
+    return json({ ok: true }, { headers: { "set-cookie": "bb_admin=; HttpOnly; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax" } });
   }
   if (!isAdmin(request)) return fail("Admin authentication required.", 401);
   if (path === "/api/admin/me") return json({ ok: true });

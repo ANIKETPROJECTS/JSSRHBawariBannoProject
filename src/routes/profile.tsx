@@ -13,6 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { clearCachedCustomer } from "@/components/site/CustomerGate";
 import { SiteShell } from "@/components/site/SiteShell";
 import { formatPrice, sarees } from "@/data/sarees";
 
@@ -64,7 +65,15 @@ function Profile() {
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save profile."); }
     finally { setSaving(false); }
   }
-  async function signOut() { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/"; }
+  async function signOut() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    } finally {
+      clearCachedCustomer();
+      window.dispatchEvent(new Event("customer-logout"));
+      window.location.assign("/profile");
+    }
+  }
   const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
   const saved = sarees.filter((saree) => customer.wishlist?.map(String).includes(saree.id));
   return <CustomerProfileNoWishlist customer={customer} orders={customerOrders} saved={saved} editing={editing} saving={saving} onSave={save} onEditing={() => setEditing(!editing)} onSignOut={signOut} />;
