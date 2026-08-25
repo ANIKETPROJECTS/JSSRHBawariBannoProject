@@ -268,20 +268,29 @@ async function ordersHistory(request: Request) {
   const productsById = new Map(catalogProducts.map((product) => [String(product.id), product]));
   return json(orderRows.map((order) => {
     const customer = (order.customerId && customersById.get(String(order.customerId))) || customersByPhone.get(String(order.customerPhone));
+    const normalizedItems = Array.isArray(order.items) ? order.items.map((item: JsonRecord) => {
+      const product = productsById.get(String(item.productId));
+      return {
+        ...item,
+        name: item.name || product?.name,
+        image: item.image || product?.image,
+        price: Number(item.price ?? 0) > 0 ? item.price : Number(product?.price ?? 0),
+      };
+    }) : [];
+    const itemSubtotal = normalizedItems.reduce((sum, item) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0);
+    const shipping = Number(order.shipping ?? 0);
+    const total = Number(order.total ?? 0);
+    const subtotal = Number(order.subtotal ?? 0) || itemSubtotal;
+    const discount = Number(order.discount ?? 0) || Math.max(0, subtotal + shipping - total);
     return {
       ...order,
       customerName: order.customerName || customer?.name || "",
       customerEmail: order.customerEmail || customer?.email || "",
       customerPhone: order.customerPhone || customer?.phone || "",
-      items: Array.isArray(order.items) ? order.items.map((item: JsonRecord) => {
-        const product = productsById.get(String(item.productId));
-        return {
-          ...item,
-          name: item.name || product?.name,
-          image: item.image || product?.image,
-          price: Number(item.price ?? 0) > 0 ? item.price : Number(product?.price ?? 0),
-        };
-      }) : order.items,
+      items: normalizedItems,
+      subtotal,
+      shipping,
+      discount,
     };
   }));
 }
