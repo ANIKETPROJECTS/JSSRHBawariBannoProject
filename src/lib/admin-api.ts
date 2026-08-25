@@ -217,6 +217,21 @@ async function ordersHistory(request: Request) {
   return json(await (await db()).collection("orders").find(query).sort({ createdAt: -1 }).limit(500).toArray());
 }
 
+async function updateOrder(request: Request, id: string) {
+  if (!ObjectId.isValid(id)) return fail("Order not found.", 404);
+  const input = await body(request);
+  const status = String(input.status ?? "");
+  const allowed = ["pending", "processing", "shipped", "delivered", "cancelled"];
+  if (!allowed.includes(status)) return fail("Invalid order status.");
+  const database = await db();
+  const result = await database.collection("orders").findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: { status, updatedAt: new Date() } },
+    { returnDocument: "after" },
+  );
+  return result ? json(result) : fail("Order not found.", 404);
+}
+
 async function customersHistory(request: Request, customerId?: string) {
   const database = await db();
   if (customerId) {
@@ -395,6 +410,8 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
   if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
   if (path === "/api/admin/orders" && request.method === "GET") return await ordersHistory(request);
+  const orderMatch = path.match(/^\/api\/admin\/orders\/([^/]+)$/);
+  if (orderMatch && (request.method === "PUT" || request.method === "PATCH")) return await updateOrder(request, orderMatch[1]);
   const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);
   if (customerMatch && request.method === "GET") return await customersHistory(request, customerMatch[1]);
   if (path === "/api/admin/settings") return await storeSettings(request);
