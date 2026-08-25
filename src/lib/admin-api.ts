@@ -116,6 +116,55 @@ async function remove(resource: Resource, id: string) {
   return result.deletedCount > 0;
 }
 
+async function recordPurchase(request: Request) {
+  const input = await body(request);
+  const items = Array.isArray(input.items) ? input.items : [];
+  if (!items.length) return fail("Your cart is empty.");
+  const database = await db();
+  const orderId = `BB-${Date.now().toString(36).toUpperCase()}`;
+  const events = [];
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as JsonRecord;
+    const productId = typeof row.productId === "string" ? row.productId : "";
+    const quantity = Math.max(1, Math.floor(Number(row.quantity) || 0));
+    if (!productId || !quantity) continue;
+    const product = await database.collection("products").findOne({ id: productId });
+    if (!product || Number(product.stock ?? 0) < quantity) return fail(`${String(product?.name ?? productId)} is not available in that quantity.`, 409);
+    const result = await database.collection("products").findOneAndUpdate(
+      { id: productId, stock: { $gte: quantity } },
+      { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+    if (!result) return fail(`${String(product.name ?? productId)} sold out while checking out.`, 409);
+    events.push({
+      orderId,
+      eventType: "purchase",
+      productId,
+      productName: product.name,
+      quantity: -quantity,
+      previousStock: Number(product.stock ?? 0),
+      nextStock: Number(result.stock ?? 0),
+      createdAt: new Date(),
+    });
+  }
+  if (events.length) await database.collection("inventory_movements").insertMany(events);
+  return json({ ok: true, orderId });
+}
+
+async function inventoryHistory(request: Request) {
+  const url = new URL(request.url);
+  const query: JsonRecord = {};
+  const productId = url.searchParams.get("productId");
+  const eventType = url.searchParams.get("eventType");
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  if (productId) query.productId = productId;
+  if (eventType && eventType !== "all") query.eventType = eventType;
+  if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
+  return json(await (await db()).collection("inventory_movements").find(query).sort({ createdAt: -1 }).limit(500).toArray());
+}
+
 async function seedCatalog() {
   const database = await db();
   const now = new Date();
@@ -185,6 +234,7 @@ async function handleAdmin(request: Request, path: string) {
 export async function handleAdminApi(request: Request) {
   const url = new URL(request.url);
   try {
+    if (url.pathname === "/api/inventory/purchase" && request.method === "POST") return await recordPurchase(request);
     if (url.pathname.startsWith("/api/admin/")) return await handleAdmin(request, url.pathname);
     if (url.pathname === "/api/catalog" && request.method === "GET") {
       const database = await db();
