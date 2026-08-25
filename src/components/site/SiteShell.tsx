@@ -3,13 +3,14 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { CartProvider } from "./CartDrawer";
 import whatsappIcon from "../../../attached_assets/apple_1787301622693.png";
+import { CustomerGate } from "./CustomerGate";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
     <CartProvider>
       <div className="flex min-h-screen flex-col bg-background">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1"><CustomerGate>{children}</CustomerGate></main>
         <a
           href="https://wa.me/919619523254"
           target="_blank"

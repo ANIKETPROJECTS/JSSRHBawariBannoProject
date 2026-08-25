@@ -55,6 +55,28 @@ function isAdmin(request: Request) {
   }
 }
 
+function customerToken(userId: string) {
+  const payload = Buffer.from(JSON.stringify({ userId, exp: Date.now() + 1000 * 60 * 60 * 24 * 30 })).toString("base64url");
+  const signature = createHmac("sha256", secret("SESSION_SECRET")).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
+}
+
+async function customerFromRequest(request: Request) {
+  const cookie = request.headers.get("cookie")?.match(/bb_customer=([^;]+)/)?.[1];
+  if (!cookie) return null;
+  const [payload, signature] = cookie.split(".");
+  if (!payload || !signature) return null;
+  const expected = createHmac("sha256", secret("SESSION_SECRET")).update(payload).digest("base64url");
+  if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { userId?: string; exp?: number };
+    if (!data.userId || !data.exp || data.exp <= Date.now() || !ObjectId.isValid(data.userId)) return null;
+    return await (await db()).collection("customers").findOne({ _id: new ObjectId(data.userId) });
+  } catch {
+    return null;
+  }
+}
+
 function json(data: unknown, init?: ResponseInit) {
   return Response.json(data, { headers: { "cache-control": "no-store" }, ...init });
 }
@@ -203,6 +225,43 @@ async function storeSettings(request: Request) {
   return fail("Method not allowed.", 405);
 }
 
+async function handleAuth(request: Request, path: string) {
+  const database = await db();
+  if (path === "/api/auth/send-otp" && request.method === "POST") {
+    const input = await body(request);
+    const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
+    if (phone.length !== 10) return fail("Enter a valid 10-digit mobile number.");
+    return json({ ok: true, demoOtp: "123456" });
+  }
+  if (path === "/api/auth/verify" && request.method === "POST") {
+    const input = await body(request);
+    const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
+    if (phone.length !== 10 || input.otp !== "123456") return fail("Invalid mobile number or demo OTP.", 401);
+    let customer = await database.collection("customers").findOne({ phone });
+    if (!customer) {
+      const result = await database.collection("customers").insertOne({ phone, name: "", email: "", createdAt: new Date(), updatedAt: new Date(), wishlist: [], addresses: [] });
+      customer = await database.collection("customers").findOne({ _id: result.insertedId });
+    }
+    return json({ ok: true, customer }, { headers: { "set-cookie": `bb_customer=${customerToken(String(customer?._id))}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000` } });
+  }
+  if (path === "/api/auth/profile" && request.method === "PUT") {
+    const customer = await customerFromRequest(request);
+    if (!customer) return fail("Customer login required.", 401);
+    const input = await body(request);
+    const name = String(input.name ?? "").trim();
+    const email = String(input.email ?? "").trim();
+    if (!name || !email.includes("@")) return fail("Enter your name and a valid email.");
+    await database.collection("customers").updateOne({ _id: customer._id }, { $set: { name, email, updatedAt: new Date() } });
+    return json(await database.collection("customers").findOne({ _id: customer._id }));
+  }
+  if (path === "/api/auth/me" && request.method === "GET") {
+    const customer = await customerFromRequest(request);
+    return customer ? json({ authenticated: true, customer }) : fail("Customer login required.", 401);
+  }
+  if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, { headers: { "set-cookie": "bb_customer=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax" } });
+  return fail("Not found.", 404);
+}
+
 async function seedCatalog() {
   const database = await db();
   const now = new Date();
@@ -275,6 +334,7 @@ async function handleAdmin(request: Request, path: string) {
 export async function handleAdminApi(request: Request) {
   const url = new URL(request.url);
   try {
+    if (url.pathname.startsWith("/api/auth/")) return await handleAuth(request, url.pathname);
     if (url.pathname === "/api/inventory/purchase" && request.method === "POST") return await recordPurchase(request);
     if (url.pathname.startsWith("/api/admin/")) return await handleAdmin(request, url.pathname);
     if (url.pathname === "/api/catalog" && request.method === "GET") {
