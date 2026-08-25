@@ -156,6 +156,15 @@ async function recordPurchase(request: Request) {
     });
   }
   if (events.length) await database.collection("inventory_movements").insertMany(events);
+  await database.collection("orders").insertOne({
+    orderId,
+    status: "pending",
+    paymentStatus: "demo",
+    items,
+    total: Number(input.total ?? 0),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
   return json({ ok: true, orderId });
 }
 
@@ -170,6 +179,16 @@ async function inventoryHistory(request: Request) {
   if (eventType && eventType !== "all") query.eventType = eventType;
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
   return json(await (await db()).collection("inventory_movements").find(query).sort({ createdAt: -1 }).limit(500).toArray());
+}
+
+async function ordersHistory(request: Request) {
+  const url = new URL(request.url);
+  const query: JsonRecord = {};
+  const status = url.searchParams.get("status");
+  const search = url.searchParams.get("search");
+  if (status && status !== "all") query.status = status;
+  if (search) query.orderId = { $regex: search, $options: "i" };
+  return json(await (await db()).collection("orders").find(query).sort({ createdAt: -1 }).limit(500).toArray());
 }
 
 async function seedCatalog() {
@@ -229,6 +248,7 @@ async function handleAdmin(request: Request, path: string) {
   }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
   if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
+  if (path === "/api/admin/orders" && request.method === "GET") return await ordersHistory(request);
   const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
   const resource = match[1] as Resource;

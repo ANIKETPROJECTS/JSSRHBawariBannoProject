@@ -101,7 +101,7 @@ function CartDrawer() {
       const response = await fetch("/api/inventory/purchase", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })) }),
+        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })), total }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
