@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
@@ -18,6 +19,10 @@ const nav = [
 export function Header() {
   const { openCart, items } = useCart();
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const closeTimer = useRef<number | undefined>(undefined);
+  const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
+  const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
 
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur">
@@ -31,11 +36,11 @@ export function Header() {
         <nav className="hidden items-center gap-8 md:flex">
           {nav.map((item) => (
             item.label === "Categories" ? (
-              <details key={`${item.label}-${item.to}`} className="group relative">
-                <summary className="list-none cursor-pointer py-1 text-lg tracking-wide text-foreground transition-colors hover:text-primary">
+              <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
+                <button type="button" onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center py-1 text-lg tracking-wide text-foreground transition-colors hover:text-primary">
                   Categories <span className="ml-1 text-[0.65rem]">⌄</span>
-                </summary>
-                <div className="absolute left-1/2 top-full z-50 mt-3 w-48 -translate-x-1/2 border border-border bg-background p-2 shadow-xl">
+                </button>
+                {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-3"><div className="border border-border bg-background p-2 shadow-xl">
                   {[
                     { label: "Silk Sarees", href: "/categories/silk-sarees" },
                     { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
@@ -46,12 +51,13 @@ export function Header() {
                       key={category.label}
                       to={category.href}
                       className="block px-3 py-2.5 text-lg text-foreground transition-colors hover:bg-secondary hover:text-primary"
+                      onClick={() => setCategoriesOpen(false)}
                     >
                       {category.label}
                     </Link>
                   ))}
-                </div>
-              </details>
+                </div></div>}
+              </div>
             ) : (
               <Link
                 key={`${item.label}-${item.to}`}

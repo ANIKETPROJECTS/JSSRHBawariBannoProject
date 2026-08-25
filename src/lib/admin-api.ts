@@ -280,6 +280,20 @@ async function handleAuth(request: Request, path: string) {
     await database.collection("customers").updateOne({ _id: customer._id }, { $set: { name, email, updatedAt: new Date() } });
     return json(await database.collection("customers").findOne({ _id: customer._id }));
   }
+  if (path === "/api/auth/wishlist" && (request.method === "GET" || request.method === "POST")) {
+    const customer = await customerFromRequest(request);
+    if (!customer) return fail("Customer login required.", 401);
+    if (request.method === "POST") {
+      const input = await body(request);
+      const productId = String(input.productId ?? "");
+      if (!productId) return fail("Product ID is required.");
+      const wishlist = Array.isArray(customer.wishlist) ? customer.wishlist.map(String) : [];
+      const nextWishlist = wishlist.includes(productId) ? wishlist.filter((id) => id !== productId) : [...wishlist, productId];
+      await database.collection("customers").updateOne({ _id: customer._id }, { $set: { wishlist: nextWishlist, updatedAt: new Date() } });
+      return json({ wishlist: nextWishlist });
+    }
+    return json({ wishlist: Array.isArray(customer.wishlist) ? customer.wishlist : [] });
+  }
   if (path === "/api/auth/me" && request.method === "GET") {
     const customer = await customerFromRequest(request);
     return customer ? json({ authenticated: true, customer }) : fail("Customer login required.", 401);

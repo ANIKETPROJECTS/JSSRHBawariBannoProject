@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
@@ -17,6 +17,11 @@ export function ProductCard({
 }) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const { addItem } = useCart();
+  useEffect(() => {
+    fetch("/api/auth/wishlist").then((response) => response.ok ? response.json() : null).then((result) => {
+      if (result?.wishlist?.includes(saree.id)) setIsWishlisted(true);
+    }).catch(() => undefined);
+  }, [saree.id]);
 
   return (
     <Link
@@ -40,7 +45,11 @@ export function ProductCard({
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            setIsWishlisted((current) => !current);
+            setIsWishlisted((current) => {
+              const next = !current;
+              fetch("/api/auth/wishlist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productId: saree.id }) }).catch(() => undefined);
+              return next;
+            });
           }}
           className={`absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-background/90 backdrop-blur-sm transition-colors ${
             isWishlisted ? "text-red-600" : "text-foreground/75 hover:text-red-600"
