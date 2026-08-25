@@ -151,3 +151,8 @@
     display: none;
   }
 }
+
+/* Saved items are shown on the dedicated Wishlist page, not Account details. */
+#wishlist {
+  display: none;
+}
