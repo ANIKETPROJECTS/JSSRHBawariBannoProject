@@ -93,6 +93,7 @@ function CartDrawer() {
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [orderConfirmation, setOrderConfirmation] = useState<string | null>(null);
 
   async function checkout() {
     setCheckingOut(true);
@@ -106,7 +107,7 @@ function CartDrawer() {
       if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
       clearCart();
       closeCart();
-      toast.success(`Demo order ${result.orderId} placed successfully.`);
+      setOrderConfirmation(result.orderId);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Checkout could not be completed.");
     } finally {
@@ -289,6 +290,32 @@ function CartDrawer() {
           </div>
         )}
       </aside>
+      {orderConfirmation && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/45 p-5" role="dialog" aria-modal="true" aria-labelledby="order-confirmation-title">
+          <div className="w-full max-w-md border border-gold/40 bg-white p-8 text-center shadow-2xl">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-gold bg-gold/10 text-2xl text-gold">✓</div>
+            <p className="mt-6 text-eyebrow text-gold">Order confirmed</p>
+            <h2 id="order-confirmation-title" className="mt-2 font-display text-4xl text-primary">Thank you for buying from us.</h2>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Your demo order has been recorded successfully. We expect it to be delivered within <strong className="font-medium text-foreground">3–5 business days</strong>.
+            </p>
+            <div className="mt-6 border-y border-border py-4 text-sm">
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Order number</p>
+              <p className="mt-1 font-medium tracking-wide text-primary">{orderConfirmation}</p>
+            </div>
+            <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
+              This is a demo checkout for now. Payment collection and delivery partner updates will be added in the next phase.
+            </p>
+            <button
+              type="button"
+              onClick={() => setOrderConfirmation(null)}
+              className="mt-7 w-full bg-primary px-6 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
+            >
+              Continue shopping
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
