@@ -343,6 +343,41 @@ async function handleAdmin(request: Request, path: string) {
     ]);
     return json({ products, categories, heroes, lowStock, outOfStock });
   }
+  if (path === "/api/admin/analytics" && request.method === "GET") {
+    const database = await db();
+    const [orders, products, customers, categories] = await Promise.all([
+      database.collection("orders").find({}).sort({ createdAt: -1 }).limit(500).toArray(),
+      database.collection("products").find({}).project({ id: 1, name: 1, stock: 1, category: 1 }).toArray(),
+      database.collection("customers").countDocuments(),
+      database.collection("categories").find({}).project({ slug: 1, label: 1, name: 1 }).toArray(),
+    ]);
+    const months = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - (5 - index), 1);
+      return { key: `${date.getFullYear()}-${date.getMonth()}`, label: date.toLocaleDateString("en-IN", { month: "short" }), revenue: 0, orders: 0 };
+    });
+    const monthMap = new Map(months.map((month) => [month.key, month]));
+    const status = { pending: 0, processing: 0, delivered: 0, cancelled: 0 };
+    const categoryMap = new Map<string, number>();
+    for (const order of orders) {
+      const currentStatus = String(order.status ?? "pending");
+      if (currentStatus in status) status[currentStatus as keyof typeof status] += 1;
+      const date = new Date(order.createdAt ?? Date.now());
+      const month = monthMap.get(`${date.getFullYear()}-${date.getMonth()}`);
+      if (month) { month.revenue += Number(order.total ?? 0); month.orders += 1; }
+    }
+    for (const product of products) categoryMap.set(String(product.category ?? "other"), (categoryMap.get(String(product.category ?? "other")) ?? 0) + 1);
+    const categoryLabels = new Map(categories.map((category) => [String(category.slug ?? category._id), String(category.label ?? category.name ?? category.slug)]));
+    const categoryBreakdown = [...categoryMap.entries()].map(([key, count]) => ({ label: categoryLabels.get(key) ?? key, count })).sort((a, b) => b.count - a.count);
+    return json({
+      kpis: { revenue: orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0), orders: orders.length, customers, pending: status.pending },
+      trend: months,
+      status,
+      recentOrders: orders.slice(0, 6),
+      alerts: products.filter((product) => Number(product.stock ?? 0) <= 5).sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0)).slice(0, 6),
+      categoryBreakdown,
+    });
+  }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
   if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
   if (path === "/api/admin/orders" && request.method === "GET") return await ordersHistory(request);
