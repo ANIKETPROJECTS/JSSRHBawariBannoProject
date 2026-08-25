@@ -217,6 +217,28 @@ async function ordersHistory(request: Request) {
   return json(await (await db()).collection("orders").find(query).sort({ createdAt: -1 }).limit(500).toArray());
 }
 
+async function customersHistory(request: Request, customerId?: string) {
+  const database = await db();
+  if (customerId) {
+    if (!ObjectId.isValid(customerId)) return fail("Customer not found.", 404);
+    const customer = await database.collection("customers").findOne({ _id: new ObjectId(customerId) });
+    if (!customer) return fail("Customer not found.", 404);
+    const orders = await database.collection("orders").find({ customerId: new ObjectId(customerId) }).sort({ createdAt: -1 }).toArray();
+    return json({ customer, orders });
+  }
+  const url = new URL(request.url);
+  const search = url.searchParams.get("search")?.trim();
+  const query = search ? { $or: [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }, { phone: { $regex: search, $options: "i" } }] } : {};
+  const customers = await database.collection("customers").find(query).sort({ createdAt: -1 }).limit(500).toArray();
+  const customerIds = customers.map((customer) => customer._id);
+  const orderCounts = await database.collection("orders").aggregate([
+    { $match: { customerId: { $in: customerIds } } },
+    { $group: { _id: "$customerId", orders: { $sum: 1 }, total: { $sum: "$total" } } },
+  ]).toArray();
+  const summary = new Map(orderCounts.map((item) => [String(item._id), item]));
+  return json(customers.map((customer) => ({ ...customer, orderCount: Number(summary.get(String(customer._id))?.orders ?? 0), orderTotal: Number(summary.get(String(customer._id))?.total ?? 0) })));
+}
+
 async function storeSettings(request: Request) {
   const database = await db();
   const collection = database.collection("settings");
@@ -324,6 +346,8 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
   if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
   if (path === "/api/admin/orders" && request.method === "GET") return await ordersHistory(request);
+  const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);
+  if (customerMatch && request.method === "GET") return await customersHistory(request, customerMatch[1]);
   if (path === "/api/admin/settings") return await storeSettings(request);
   const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
