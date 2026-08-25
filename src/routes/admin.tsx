@@ -164,7 +164,7 @@ function InventoryPage() {
   </div>;
 }
 
-type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; subtotal?: number; shipping?: number; customerName?: string; customerPhone?: string; customerEmail?: string; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string };
+type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; subtotal?: number; shipping?: number; discount?: number; customerName?: string; customerPhone?: string; customerEmail?: string; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string };
 
 function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
