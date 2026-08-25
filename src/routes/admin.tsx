@@ -186,6 +186,28 @@ function ComingSoonPage({ tab }: { tab: "customers" | "reviews" }) {
   return <div className="border border-[#ded5c9] bg-white p-8"><Settings className="size-6 text-gold" /><h2 className="mt-5 font-display text-3xl text-primary">{details[0]}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{details[1]}</p><span className="mt-6 inline-block bg-[#f4efe8] px-3 py-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">Ready for the next commerce phase</span></div>;
 }
 
+function SettingsPage() {
+  const [form, setForm] = useState({ shippingCharges: 250, freeShippingThreshold: 15000 });
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api("/api/admin/settings").then((data) => setForm({ shippingCharges: Number(data.shippingCharges ?? 250), freeShippingThreshold: Number(data.freeShippingThreshold ?? 15000) })).catch((error) => toast.error(error.message)); }, []);
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try { await api("/api/admin/settings", { method: "PUT", body: JSON.stringify(form) }); toast.success("Store settings saved."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not save settings."); }
+    finally { setBusy(false); }
+  }
+  return <form onSubmit={save} className="max-w-2xl border border-[#ded5c9] bg-white p-6">
+    <p className="text-[10px] uppercase tracking-[0.2em] text-gold">Store configuration</p>
+    <h2 className="mt-2 font-display text-3xl text-primary">Shipping settings</h2>
+    <p className="mt-2 text-sm text-muted-foreground">Control the demo shipping values shown to customers at checkout.</p>
+    <label className="mt-7 block text-xs text-muted-foreground">Shipping charge (₹)<input type="number" min="0" value={form.shippingCharges} onChange={(e) => setForm({ ...form, shippingCharges: Number(e.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label>
+    <label className="mt-5 block text-xs text-muted-foreground">Free shipping threshold (₹)<input type="number" min="0" value={form.freeShippingThreshold} onChange={(e) => setForm({ ...form, freeShippingThreshold: Number(e.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label>
+    <div className="mt-6 bg-[#fbf4f7] p-4 text-sm leading-relaxed text-muted-foreground"><strong className="font-medium text-primary">Current configuration</strong><br />Shipping: ₹{form.shippingCharges.toLocaleString("en-IN")}<br />Free shipping on orders above: ₹{form.freeShippingThreshold.toLocaleString("en-IN")}</div>
+    <button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : "Save settings"}</button>
+  </form>;
+}
+
 const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
