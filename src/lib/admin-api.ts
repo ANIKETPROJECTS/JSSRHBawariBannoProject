@@ -183,6 +183,7 @@ async function recordPurchase(request: Request) {
     orderId,
     customerId: customer?._id,
     customerName: customer?.name || undefined,
+    customerEmail: customer?.email || undefined,
     customerPhone: customer?.phone || undefined,
     status: "pending",
     paymentStatus: "demo",
@@ -242,7 +243,27 @@ async function ordersHistory(request: Request) {
   if (search) query.$or = [{ orderId: { $regex: search, $options: "i" } }, { customerName: { $regex: search, $options: "i" } }, { customerEmail: { $regex: search, $options: "i" } }];
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
   const sort = url.searchParams.get("sort") === "oldest" ? { createdAt: 1 } : url.searchParams.get("sort") === "amount" ? { total: -1 } : { createdAt: -1 };
-  return json(await (await db()).collection("orders").find(query).sort(sort).limit(500).toArray());
+  const database = await db();
+  const orderRows = await database.collection("orders").find(query).sort(sort).limit(500).toArray();
+  const customerIds = orderRows.map((order) => order.customerId).filter(Boolean);
+  const customerPhones = orderRows.map((order) => order.customerPhone).filter(Boolean);
+  const customers = await database.collection("customers").find({
+    $or: [
+      ...(customerIds.length ? [{ _id: { $in: customerIds } }] : []),
+      ...(customerPhones.length ? [{ phone: { $in: customerPhones } }] : []),
+    ],
+  }).toArray();
+  const customersById = new Map(customers.map((customer) => [String(customer._id), customer]));
+  const customersByPhone = new Map(customers.map((customer) => [String(customer.phone), customer]));
+  return json(orderRows.map((order) => {
+    const customer = (order.customerId && customersById.get(String(order.customerId))) || customersByPhone.get(String(order.customerPhone));
+    return {
+      ...order,
+      customerName: order.customerName || customer?.name || "",
+      customerEmail: order.customerEmail || customer?.email || "",
+      customerPhone: order.customerPhone || customer?.phone || "",
+    };
+  }));
 }
 
 async function updateOrder(request: Request, id: string) {
