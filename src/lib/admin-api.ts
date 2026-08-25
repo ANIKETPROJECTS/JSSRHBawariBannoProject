@@ -212,9 +212,15 @@ async function ordersHistory(request: Request) {
   const query: JsonRecord = {};
   const status = url.searchParams.get("status");
   const search = url.searchParams.get("search");
+  const payment = url.searchParams.get("payment");
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
   if (status && status !== "all") query.status = status;
-  if (search) query.orderId = { $regex: search, $options: "i" };
-  return json(await (await db()).collection("orders").find(query).sort({ createdAt: -1 }).limit(500).toArray());
+  if (payment && payment !== "all") query.paymentStatus = payment;
+  if (search) query.$or = [{ orderId: { $regex: search, $options: "i" } }, { customerName: { $regex: search, $options: "i" } }, { customerEmail: { $regex: search, $options: "i" } }];
+  if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
+  const sort = url.searchParams.get("sort") === "oldest" ? { createdAt: 1 } : url.searchParams.get("sort") === "amount" ? { total: -1 } : { createdAt: -1 };
+  return json(await (await db()).collection("orders").find(query).sort(sort).limit(500).toArray());
 }
 
 async function updateOrder(request: Request, id: string) {
