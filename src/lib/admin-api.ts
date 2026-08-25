@@ -122,7 +122,13 @@ async function recordPurchase(request: Request) {
   const items = Array.isArray(input.items) ? input.items : [];
   if (!items.length) return fail("Your cart is empty.");
   const database = await db();
-  const orderId = `BB-${Date.now().toString(36).toUpperCase()}`;
+  const counter = await database.collection("counters").findOneAndUpdate(
+    { _id: "orders" },
+    { $inc: { value: 1 } },
+    { upsert: true, returnDocument: "after" },
+  );
+  const orderNumber = Number(counter?.value ?? 1);
+  const orderId = `BawriBanno${String(orderNumber).padStart(2, "0")}`;
   const events = [];
   for (const item of items) {
     if (!item || typeof item !== "object") continue;

@@ -78,7 +78,12 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
 
 function Dashboard() {
   const [summary, setSummary] = useState<Record<string, number> | null>(null);
-  useEffect(() => { api("/api/admin/summary").then(setSummary).catch((error) => toast.error(error.message)); }, []);
+  useEffect(() => {
+    const refresh = () => api("/api/admin/summary").then(setSummary).catch((error) => toast.error(error.message));
+    void refresh();
+    const timer = window.setInterval(refresh, 5000);
+    return () => window.clearInterval(timer);
+  }, []);
   const cards = useMemo(() => summary ? [{ label: "Products", value: summary.products, icon: Package }, { label: "Categories", value: summary.categories, icon: Tags }, { label: "Hero slides", value: summary.heroes, icon: Image }, { label: "Low stock", value: summary.lowStock + summary.outOfStock, icon: Boxes }] : [], [summary]);
   async function seed() { if (!window.confirm("Import the current demo products, categories, and hero slides into MongoDB? Existing records with the same IDs will be updated.")) return; try { const result = await api("/api/admin/seed", { method: "POST" }); toast.success(`Imported ${result.products} products, ${result.categories} categories, and ${result.heroes} hero slides.`); const next = await api("/api/admin/summary"); setSummary(next); } catch (error) { toast.error(error instanceof Error ? error.message : "Import failed."); } }
   return <><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ label, value, icon: Icon }) => <div key={label} className="border border-[#ded5c9] bg-white p-5"><Icon className="size-5 text-gold" /><p className="mt-6 text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-1 font-display text-4xl text-primary">{value}</p></div>)}</div><div className="mt-8 border border-[#ded5c9] bg-white p-6"><BarChart3 className="size-5 text-gold" /><h2 className="mt-4 font-display text-2xl text-primary">Your content workspace</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">Manage what shoppers see on the homepage and collections. Products with stock at five or below are flagged for attention.</p><button type="button" onClick={() => void seed()} className="mt-6 border border-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-primary hover:bg-primary hover:text-white">Import existing demo catalog</button></div></>;
@@ -117,7 +122,11 @@ function InventoryPage() {
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load inventory history."); }
     finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, [productId, eventType, from, to]);
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => window.clearInterval(timer);
+  }, [productId, eventType, from, to]);
   return <div>
     <div className="border border-[#ded5c9] bg-white p-5">
       <div className="flex flex-wrap items-end gap-3">
@@ -143,7 +152,12 @@ const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory">, Record<st
 function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory"> }) {
   const [items, setItems] = useState<RecordItem[]>([]); const [editing, setEditing] = useState<RecordItem | null>(null); const [loading, setLoading] = useState(true);
   async function refresh() { setLoading(true); try { setItems(await api(`/api/admin/${resource}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load records."); } finally { setLoading(false); } }
-  useEffect(() => { setEditing(null); void refresh(); }, [resource]);
+  useEffect(() => {
+    setEditing(null);
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 5000);
+    return () => window.clearInterval(timer);
+  }, [resource]);
   async function remove(id: string) { if (!window.confirm("Delete this record? This cannot be undone.")) return; try { await api(`/api/admin/${resource}/${id}`, { method: "DELETE" }); toast.success("Deleted."); void refresh(); } catch (error) { toast.error(error instanceof Error ? error.message : "Delete failed."); } }
   return <><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{items.length} records</p><h2 className="mt-1 font-display text-3xl text-primary">Manage {resource === "heroes" ? "hero slides" : resource}</h2></div><button type="button" onClick={() => setEditing({ ...emptyByResource[resource] })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><div className="mt-7 grid gap-4 xl:grid-cols-[1fr_380px]"><div className="space-y-3">{loading ? <p className="text-sm text-muted-foreground">Loading…</p> : items.map((item) => <div key={item._id} className="flex items-center justify-between gap-4 border border-[#ded5c9] bg-white p-4"><div className="flex min-w-0 items-center gap-4">{typeof item.image === "string" && item.image ? <img src={item.image} alt="" className="size-14 shrink-0 object-cover" /> : <div className="size-14 shrink-0 bg-[#f0e9df]" />}<div className="min-w-0"><p className="truncate font-medium">{String(item.name ?? item.title ?? item.label ?? item.slug ?? "Untitled")}</p><p className="mt-1 text-xs text-muted-foreground">{resource === "products" ? `₹${Number(item.price ?? 0).toLocaleString("en-IN")} · Stock ${Number(item.stock ?? 0)}` : item.published === false ? "Draft" : "Published"}</p></div></div><div className="flex shrink-0 gap-2"><button type="button" onClick={() => setEditing(item)} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => item._id && void remove(item._id)} className="p-2 text-muted-foreground hover:text-red-700" aria-label="Delete"><Trash2 className="size-4" /></button></div></div>)}</div>{editing && <Editor resource={resource} initial={editing} onDone={() => { setEditing(null); void refresh(); }} />}</div></>;
 }
