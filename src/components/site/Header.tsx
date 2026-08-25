@@ -96,13 +96,13 @@ export function Header() {
               </span>
             )}
           </button>
-          <button
-            type="button"
+          <Link
+            to="/profile"
             aria-label="Wishlist"
             className="p-1 transition-transform hover:scale-110"
           >
             <img src={wishlistIcon} alt="" className="size-6 object-contain" />
-          </button>
+          </Link>
           <Link
             to="/profile"
             aria-label="Account"
