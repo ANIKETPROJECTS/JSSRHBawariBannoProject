@@ -263,6 +263,9 @@ async function ordersHistory(request: Request) {
   }).toArray();
   const customersById = new Map(customers.map((customer) => [String(customer._id), customer]));
   const customersByPhone = new Map(customers.map((customer) => [String(customer.phone), customer]));
+  const productIds = orderRows.flatMap((order) => Array.isArray(order.items) ? order.items.map((item: JsonRecord) => item.productId).filter(Boolean) : []);
+  const catalogProducts = await database.collection("products").find({ id: { $in: [...new Set(productIds)] } }).toArray();
+  const productsById = new Map(catalogProducts.map((product) => [String(product.id), product]));
   return json(orderRows.map((order) => {
     const customer = (order.customerId && customersById.get(String(order.customerId))) || customersByPhone.get(String(order.customerPhone));
     return {
@@ -270,6 +273,15 @@ async function ordersHistory(request: Request) {
       customerName: order.customerName || customer?.name || "",
       customerEmail: order.customerEmail || customer?.email || "",
       customerPhone: order.customerPhone || customer?.phone || "",
+      items: Array.isArray(order.items) ? order.items.map((item: JsonRecord) => {
+        const product = productsById.get(String(item.productId));
+        return {
+          ...item,
+          name: item.name || product?.name,
+          image: item.image || product?.image,
+          price: Number(item.price ?? 0) > 0 ? item.price : Number(product?.price ?? 0),
+        };
+      }) : order.items,
     };
   }));
 }
