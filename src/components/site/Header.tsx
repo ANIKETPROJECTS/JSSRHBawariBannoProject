@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { sarees } from "@/data/sarees";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
@@ -20,6 +21,8 @@ export function Header() {
   const { openCart, items } = useCart();
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const closeTimer = useRef<number | undefined>(undefined);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
@@ -79,6 +82,7 @@ export function Header() {
           <button
             type="button"
             aria-label="Search"
+            onClick={() => setSearchOpen((open) => !open)}
             className="p-1 transition-transform hover:scale-110"
           >
             <img src={searchIcon} alt="" className="size-6 object-contain" />
@@ -97,7 +101,7 @@ export function Header() {
             )}
           </button>
           <Link
-            to="/profile"
+            to="/wishlist"
             aria-label="Wishlist"
             className="p-1 transition-transform hover:scale-110"
           >
@@ -112,6 +116,7 @@ export function Header() {
           </Link>
         </div>
       </div>
+      {searchOpen && <div className="border-t border-border bg-background px-5 py-4 shadow-sm"><div className="mx-auto max-w-7xl"><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search sarees, fabrics, collections…" className="w-full border-b border-primary bg-transparent px-1 py-3 text-base outline-none placeholder:text-muted-foreground" />{query.trim() && <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => <Link key={saree.id} to="/products/$productId" params={{ productId: saree.id }} onClick={() => { setSearchOpen(false); setQuery(""); }} className="flex items-center gap-3 border border-border p-2 hover:bg-secondary"><img src={saree.image} alt="" className="size-12 object-cover" /><span className="text-sm text-primary">{saree.name}</span></Link>)}</div>}</div></div>}
 
       <nav className="flex items-center gap-6 overflow-x-auto px-5 py-2.5 text-lg md:hidden no-scrollbar">
         {nav.map((item) => (

@@ -17,6 +17,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as NewArrivalRouteImport } from './routes/new-arrival'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as TrendingRouteImport } from './routes/trending'
+import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
@@ -61,6 +62,11 @@ const TrendingRoute = TrendingRouteImport.update({
   path: '/trending',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WishlistRoute = WishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CategoriesCategoryRoute = CategoriesCategoryRouteImport.update({
   id: '/categories/$category',
   path: '/categories/$category',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
   '/trending': typeof TrendingRoute
+  '/wishlist': typeof WishlistRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products/': typeof ProductsIndexRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
   '/trending': typeof TrendingRoute
+  '/wishlist': typeof WishlistRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products': typeof ProductsIndexRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
   '/trending': typeof TrendingRoute
+  '/wishlist': typeof WishlistRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/products/': typeof ProductsIndexRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/new-arrival'
     | '/profile'
     | '/trending'
+    | '/wishlist'
     | '/categories/$category'
     | '/products/$productId'
     | '/products/'
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/new-arrival'
     | '/profile'
     | '/trending'
+    | '/wishlist'
     | '/categories/$category'
     | '/products/$productId'
     | '/products'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/new-arrival'
     | '/profile'
     | '/trending'
+    | '/wishlist'
     | '/categories/$category'
     | '/products/$productId'
     | '/products/'
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   NewArrivalRoute: typeof NewArrivalRoute
   ProfileRoute: typeof ProfileRoute
   TrendingRoute: typeof TrendingRoute
+  WishlistRoute: typeof WishlistRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   ProductsProductIdRoute: typeof ProductsProductIdRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrendingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wishlist': {
+      id: '/wishlist'
+      path: '/wishlist'
+      fullPath: '/wishlist'
+      preLoaderRoute: typeof WishlistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/categories/$category': {
       id: '/categories/$category'
       path: '/categories/$category'
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewArrivalRoute: NewArrivalRoute,
   ProfileRoute: ProfileRoute,
   TrendingRoute: TrendingRoute,
+  WishlistRoute: WishlistRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   ProductsProductIdRoute: ProductsProductIdRoute,
   ProductsIndexRoute: ProductsIndexRoute,
