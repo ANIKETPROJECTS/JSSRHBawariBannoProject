@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Package, Plus, Save, Tags, Trash2 } from "lucide-react";
+import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Package, Plus, Save, Settings, ShoppingCart, Star, Tags, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -8,15 +8,19 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "heroes" | "categories" | "products" | "inventory";
+type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
-  { id: "heroes", label: "Hero slides", icon: Image },
-  { id: "categories", label: "Categories", icon: Tags },
   { id: "products", label: "Products & stock", icon: Package },
   { id: "inventory", label: "Inventory history", icon: BarChart3 },
+  { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "reviews", label: "Reviews", icon: Star },
+  { id: "categories", label: "Categories", icon: Tags },
+  { id: "heroes", label: "Hero slides", icon: Image },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 async function api(path: string, init?: RequestInit) {
@@ -63,7 +67,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : ["customers", "reviews", "settings"].includes(tab) ? <ComingSoonPage tab={tab} /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -141,6 +145,43 @@ function InventoryPage() {
       <table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Date & time</th><th className="px-4 py-4">Product</th><th className="px-4 py-4">Event</th><th className="px-4 py-4">Change</th><th className="px-4 py-4">Stock after</th><th className="px-4 py-4">Order</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading history…</td></tr> : events.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No inventory events match these filters.</td></tr> : events.map((event) => <tr key={event._id} className="border-b border-border last:border-0"><td className="whitespace-nowrap px-4 py-4 text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td><td className="px-4 py-4 font-medium">{event.productName ?? event.productId}</td><td className="px-4 py-4 capitalize">{event.eventType ?? "adjustment"}</td><td className={`px-4 py-4 font-medium ${Number(event.quantity) < 0 ? "text-red-700" : "text-emerald-700"}`}>{Number(event.quantity) > 0 ? "+" : ""}{event.quantity}</td><td className="px-4 py-4">{event.nextStock ?? "—"}</td><td className="px-4 py-4 text-xs text-muted-foreground">{event.orderId ?? "—"}</td></tr>)}</tbody></table>
     </div>
   </div>;
+}
+
+type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; total?: number; items?: { productId: string; quantity: number }[]; createdAt?: string };
+
+function OrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [loading, setLoading] = useState(true);
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ search, status });
+      setOrders(await api(`/api/admin/orders?${params}`));
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load orders."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => window.clearInterval(timer);
+  }, [search, status]);
+  const revenue = orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
+  return <div>
+    <div className="grid gap-4 sm:grid-cols-3"><MetricCard label="Total orders" value={orders.length} icon={ShoppingCart} /><MetricCard label="Pending" value={orders.filter((order) => order.status === "pending").length} icon={BarChart3} /><MetricCard label="Demo revenue" value={`₹${revenue.toLocaleString("en-IN")}`} icon={Package} /></div>
+    <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="flex flex-wrap gap-3"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search order number…" className="min-w-64 flex-1 border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All statuses</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="delivered">Delivered</option></select></div></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Order #</th><th className="px-4 py-4">Items</th><th className="px-4 py-4">Amount</th><th className="px-4 py-4">Order status</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4">Date</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading orders…</td></tr> : orders.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No orders yet. Demo purchases will appear here.</td></tr> : orders.map((order) => <tr key={order._id} className="border-b border-border last:border-0"><td className="px-4 py-4 font-medium text-primary">{order.orderId}</td><td className="px-4 py-4">{order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0}</td><td className="px-4 py-4">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4"><span className="bg-amber-50 px-2 py-1 text-xs capitalize text-amber-800">{order.status}</span></td><td className="px-4 py-4 text-xs capitalize text-muted-foreground">{order.paymentStatus}</td><td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td></tr>)}</tbody></table></div>
+  </div>;
+}
+
+function MetricCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof Package }) {
+  return <div className="border border-[#ded5c9] bg-white p-5"><Icon className="size-5 text-gold" /><p className="mt-5 text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl text-primary">{value}</p></div>;
+}
+
+function ComingSoonPage({ tab }: { tab: "customers" | "reviews" | "settings" }) {
+  const details = { customers: ["Customer management", "Customer profiles and order history will appear here when customer accounts are connected."], reviews: ["Product reviews", "Moderate and publish customer reviews here once reviews are enabled on the storefront."], settings: ["Store settings", "Commerce settings for shipping, payments, notifications, and store preferences will live here."] }[tab];
+  return <div className="border border-[#ded5c9] bg-white p-8"><Settings className="size-6 text-gold" /><h2 className="mt-5 font-display text-3xl text-primary">{details[0]}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{details[1]}</p><span className="mt-6 inline-block bg-[#f4efe8] px-3 py-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">Ready for the next commerce phase</span></div>;
 }
 
 const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory">, Record<string, unknown>> = {
