@@ -204,7 +204,29 @@ async function inventoryHistory(request: Request) {
   if (productId) query.productId = productId;
   if (eventType && eventType !== "all") query.eventType = eventType;
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
-  return json(await (await db()).collection("inventory_movements").find(query).sort({ createdAt: -1 }).limit(500).toArray());
+  const database = await db();
+  const movements = await database.collection("inventory_movements").find(query).sort({ createdAt: -1 }).limit(500).toArray();
+  const orderIds = [...new Set(movements.map((movement) => movement.orderId).filter(Boolean))];
+  const orders = await database.collection("orders").find({ orderId: { $in: orderIds } }).toArray();
+  const customerIds = orders.map((order) => order.customerId).filter(Boolean);
+  const customers = await database.collection("customers").find({ _id: { $in: customerIds } }).toArray();
+  const ordersById = new Map(orders.map((order) => [String(order.orderId), order]));
+  const customersById = new Map(customers.map((customer) => [String(customer._id), customer]));
+  return json(movements.map((movement) => {
+    const order = ordersById.get(String(movement.orderId));
+    const customer = order?.customerId ? customersById.get(String(order.customerId)) : undefined;
+    return {
+      ...movement,
+      buyerName: order?.customerName || customer?.name || "",
+      buyerPhone: order?.customerPhone || customer?.phone || "",
+      buyerEmail: order?.customerEmail || customer?.email || "",
+      orderStatus: order?.status || "",
+      paymentStatus: order?.paymentStatus || "",
+      paymentMethod: order?.paymentMethod || "",
+      orderTotal: order?.total,
+      itemPrice: order?.items?.find((item: JsonRecord) => String(item.productId) === String(movement.productId))?.price,
+    };
+  }));
 }
 
 async function ordersHistory(request: Request) {
