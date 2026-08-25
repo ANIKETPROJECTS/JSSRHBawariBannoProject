@@ -144,6 +144,7 @@ async function recordPurchase(request: Request) {
   const items = Array.isArray(input.items) ? input.items : [];
   if (!items.length) return fail("Your cart is empty.");
   const database = await db();
+  const customer = await customerFromRequest(request);
   const counter = await database.collection("counters").findOneAndUpdate(
     { _id: "orders" },
     { $inc: { value: 1 } },
@@ -180,6 +181,9 @@ async function recordPurchase(request: Request) {
   if (events.length) await database.collection("inventory_movements").insertMany(events);
   await database.collection("orders").insertOne({
     orderId,
+    customerId: customer?._id,
+    customerName: customer?.name || undefined,
+    customerPhone: customer?.phone || undefined,
     status: "pending",
     paymentStatus: "demo",
     items,

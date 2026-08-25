@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Check,
@@ -44,48 +44,25 @@ const orders = [
 ];
 
 function Profile() {
-  const [registrationStep, setRegistrationStep] = useState<RegistrationStep>("phone");
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [activeLink, setActiveLink] = useState("Account details");
+  const [customer, setCustomer] = useState<{ name: string; email: string; phone: string } | null>(null);
   const [editing, setEditing] = useState(false);
-
-  if (!showDashboard) {
-    return (
-      <SiteShell>
-        <RegistrationFlow
-          step={registrationStep}
-          phone={phone}
-          otp={otp}
-          onPhoneChange={setPhone}
-          onOtpChange={setOtp}
-          onStepChange={setRegistrationStep}
-          onComplete={() => setShowDashboard(true)}
-          onViewDemo={() => setShowDashboard(true)}
-        />
-      </SiteShell>
-    );
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { fetch("/api/auth/me").then((response) => response.json()).then((result) => setCustomer(result.customer)).catch(() => undefined); }, []);
+  if (!customer) return <SiteShell><div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">Loading your profile…</div></SiteShell>;
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSaving(true);
+    const data = new FormData(event.currentTarget);
+    try {
+      const response = await fetch("/api/auth/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: data.get("name"), email: data.get("email") }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Could not save profile.");
+      setCustomer(result); setEditing(false); toast.success("Profile details saved.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save profile."); }
+    finally { setSaving(false); }
   }
-
-  return (
-    <SiteShell>
-      <ProfileDashboard
-        activeLink={activeLink}
-        editing={editing}
-        onActiveLinkChange={(label) => {
-          setActiveLink(label);
-          if (label !== "Account details") toast.info(`${label} is shown in this demo account.`);
-        }}
-        onEditingChange={setEditing}
-        onSignOut={() => {
-          setShowDashboard(false);
-          setRegistrationStep("phone");
-          toast.success("You have been signed out of this demo account.");
-        }}
-      />
-    </SiteShell>
-  );
+  async function signOut() { await fetch("/api/auth/logout", { method: "POST" }); window.location.href = "/"; }
+  const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
+  return <SiteShell><section className="fabric-texture border-b border-border"><div className="mx-auto max-w-7xl px-5 py-14"><p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p><h1 className="mt-3 font-display text-5xl font-light text-primary">Welcome back, {customer.name || "to your account"}</h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">Your personal space for heirlooms, orders and the little details that make every drape feel yours.</p></div></section><section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[260px_1fr] lg:gap-14"><aside><div className="border border-border bg-card p-6"><div className="flex items-center gap-4"><div className="flex size-16 items-center justify-center rounded-full bg-primary text-2xl text-white">{initials}</div><div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">+91 {customer.phone}</p></div></div><div className="mt-6 border-t border-border pt-5"><p className="text-eyebrow text-muted-foreground">Verified mobile</p><p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p></div></div><button type="button" onClick={signOut} className="mt-5 flex items-center gap-2 px-2 text-sm text-muted-foreground hover:text-primary"><LogOut className="size-4" /> Sign out</button></aside><div><section className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div><button type="button" onClick={() => setEditing(!editing)} className="inline-flex items-center gap-2 text-sm text-primary"><Pencil className="size-3.5" />{editing ? "Cancel" : "Edit details"}</button></div><form onSubmit={save} className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2"><label className="block"><span className="text-eyebrow text-muted-foreground">Full name</span><input name="name" defaultValue={customer.name} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label className="block"><span className="text-eyebrow text-muted-foreground">Email address</span><input name="email" type="email" defaultValue={customer.email} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label className="block"><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={`+91 ${customer.phone}`} readOnly className="mt-2 w-full cursor-default border-b border-border bg-transparent py-2 text-sm outline-none" /></label>{editing && <button disabled={saving} className="w-fit bg-primary px-7 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}</form></section><div className="mt-8 grid gap-4 sm:grid-cols-3"><div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">0</p><p className="mt-2 text-eyebrow text-muted-foreground">Orders</p></div><div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">0</p><p className="mt-2 text-eyebrow text-muted-foreground">Saved favourites</p></div><div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">0</p><p className="mt-2 text-eyebrow text-muted-foreground">Saved addresses</p></div></div></div></section></SiteShell>;
 }
 
 function RegistrationFlow({
