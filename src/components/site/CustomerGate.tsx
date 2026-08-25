@@ -33,16 +33,20 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     try { await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone }) }); setStep("otp"); toast.success("Demo OTP sent."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not send OTP."); } finally { setBusy(false); }
   }
+  function finish(customer: Customer) {
+    onComplete(customer);
+    if (window.location.pathname !== "/") window.location.assign("/");
+  }
   async function verify(event: React.FormEvent) {
     event.preventDefault(); setBusy(true);
     try {
       const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone, otp }) });
-      if (result.customer?.name) onComplete(result.customer); else setStep("details");
+      if (result.customer?.name) finish(result.customer); else setStep("details");
     } catch (error) { toast.error(error instanceof Error ? error.message : "Verification failed."); } finally { setBusy(false); }
   }
   async function saveDetails(event: React.FormEvent) {
     event.preventDefault(); setBusy(true);
-    try { const customer = await authApi("/api/auth/profile", { method: "PUT", body: JSON.stringify({ name, email }) }); onComplete(customer); toast.success("Your account has been created."); }
+    try { const customer = await authApi("/api/auth/profile", { method: "PUT", body: JSON.stringify({ name, email }) }); toast.success("Your account has been created."); finish(customer); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not save your details."); } finally { setBusy(false); }
   }
   const stepNumber = step === "phone" ? 1 : step === "otp" ? 2 : 3;
