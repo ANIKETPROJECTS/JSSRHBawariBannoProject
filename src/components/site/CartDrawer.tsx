@@ -15,6 +15,7 @@ type CartContextValue = {
   addItem: (product: Saree, quantity?: number) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
+  clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
 };
@@ -66,6 +67,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeItem: (productId: string) => {
         setItems((current) => current.filter((item) => item.product.id !== productId));
       },
+      clearCart: () => setItems([]),
       openCart: () => setIsOpen(true),
       closeCart: () => setIsOpen(false),
     }),
@@ -87,9 +89,30 @@ export function useCart() {
 }
 
 function CartDrawer() {
-  const { items, isOpen, closeCart, updateQuantity, removeItem } = useCart();
+  const { items, isOpen, closeCart, updateQuantity, removeItem, clearCart } = useCart();
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  async function checkout() {
+    setCheckingOut(true);
+    try {
+      const response = await fetch("/api/inventory/purchase", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })) }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
+      clearCart();
+      closeCart();
+      toast.success(`Demo order ${result.orderId} placed successfully.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Checkout could not be completed.");
+    } finally {
+      setCheckingOut(false);
+    }
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -256,10 +279,11 @@ function CartDrawer() {
           <div className="border-t border-border bg-white px-6 py-5">
             <button
               type="button"
-              onClick={() => toast.success("Checkout is ready for the next step in this demo.")}
+              onClick={() => void checkout()}
+              disabled={checkingOut}
               className="flex w-full items-center justify-center gap-2 bg-primary px-6 py-4 text-eyebrow text-primary-foreground hover:bg-ink"
             >
-              Proceed to checkout <ChevronRight className="size-4" strokeWidth={1.5} />
+              {checkingOut ? "Processing…" : "Proceed to checkout"} <ChevronRight className="size-4" strokeWidth={1.5} />
             </button>
             <p className="mt-3 text-center text-[0.7rem] text-muted-foreground">Secure checkout · Easy returns · Personal assistance</p>
           </div>

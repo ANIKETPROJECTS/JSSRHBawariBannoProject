@@ -100,6 +100,7 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
         previousStock: previous.stock,
         nextStock: document.stock,
         change: document.stock - previous.stock,
+        eventType: "manual",
         reason: "Admin stock update",
         createdAt: new Date(),
       });
@@ -221,6 +222,7 @@ async function handleAdmin(request: Request, path: string) {
     return json({ products, categories, heroes, lowStock, outOfStock });
   }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
+  if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
   const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
   const resource = match[1] as Resource;

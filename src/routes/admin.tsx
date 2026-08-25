@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "heroes" | "categories" | "products";
+type Tab = "dashboard" | "heroes" | "categories" | "products" | "inventory";
 type RecordItem = Record<string, unknown> & { _id?: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
@@ -16,6 +16,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "heroes", label: "Hero slides", icon: Image },
   { id: "categories", label: "Categories", icon: Tags },
   { id: "products", label: "Products & stock", icon: Package },
+  { id: "inventory", label: "Inventory history", icon: BarChart3 },
 ];
 
 async function api(path: string, init?: RequestInit) {
@@ -62,7 +63,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -83,13 +84,63 @@ function Dashboard() {
   return <><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ label, value, icon: Icon }) => <div key={label} className="border border-[#ded5c9] bg-white p-5"><Icon className="size-5 text-gold" /><p className="mt-6 text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-1 font-display text-4xl text-primary">{value}</p></div>)}</div><div className="mt-8 border border-[#ded5c9] bg-white p-6"><BarChart3 className="size-5 text-gold" /><h2 className="mt-4 font-display text-2xl text-primary">Your content workspace</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">Manage what shoppers see on the homepage and collections. Products with stock at five or below are flagged for attention.</p><button type="button" onClick={() => void seed()} className="mt-6 border border-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-primary hover:bg-primary hover:text-white">Import existing demo catalog</button></div></>;
 }
 
-const emptyByResource: Record<Exclude<Tab, "dashboard">, Record<string, unknown>> = {
+type InventoryEvent = {
+  _id?: string;
+  orderId?: string;
+  eventType?: string;
+  productId?: string;
+  productName?: string;
+  quantity?: number;
+  previousStock?: number;
+  nextStock?: number;
+  createdAt?: string;
+};
+
+function InventoryPage() {
+  const [events, setEvents] = useState<InventoryEvent[]>([]);
+  const [products, setProducts] = useState<RecordItem[]>([]);
+  const [productId, setProductId] = useState("");
+  const [eventType, setEventType] = useState("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [loading, setLoading] = useState(true);
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ eventType });
+      if (productId) params.set("productId", productId);
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+      const [history, productRows] = await Promise.all([api(`/api/admin/inventory?${params}`), api("/api/admin/products")]);
+      setEvents(history);
+      setProducts(productRows);
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load inventory history."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void load(); }, [productId, eventType, from, to]);
+  return <div>
+    <div className="border border-[#ded5c9] bg-white p-5">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-48 flex-1 text-xs text-muted-foreground">Product<select value={productId} onChange={(e) => setProductId(e.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">All products</option>{products.map((product) => <option key={product.id as string} value={product.id as string}>{String(product.name ?? product.id)}</option>)}</select></label>
+        <label className="text-xs text-muted-foreground">Event type<select value={eventType} onChange={(e) => setEventType(e.target.value)} className="mt-1 border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All events</option><option value="purchase">Purchases</option><option value="manual">Manual adjustments</option></select></label>
+        <label className="text-xs text-muted-foreground">From<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="mt-1 border border-border px-3 py-2.5 text-sm" /></label>
+        <label className="text-xs text-muted-foreground">To<input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="mt-1 border border-border px-3 py-2.5 text-sm" /></label>
+        <button type="button" onClick={() => { setProductId(""); setEventType("all"); setFrom(""); setTo(""); }} className="border border-border px-3 py-2.5 text-xs text-muted-foreground">Clear filters</button>
+      </div>
+    </div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white">
+      <table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Date & time</th><th className="px-4 py-4">Product</th><th className="px-4 py-4">Event</th><th className="px-4 py-4">Change</th><th className="px-4 py-4">Stock after</th><th className="px-4 py-4">Order</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading history…</td></tr> : events.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No inventory events match these filters.</td></tr> : events.map((event) => <tr key={event._id} className="border-b border-border last:border-0"><td className="whitespace-nowrap px-4 py-4 text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td><td className="px-4 py-4 font-medium">{event.productName ?? event.productId}</td><td className="px-4 py-4 capitalize">{event.eventType ?? "adjustment"}</td><td className={`px-4 py-4 font-medium ${Number(event.quantity) < 0 ? "text-red-700" : "text-emerald-700"}`}>{Number(event.quantity) > 0 ? "+" : ""}{event.quantity}</td><td className="px-4 py-4">{event.nextStock ?? "—"}</td><td className="px-4 py-4 text-xs text-muted-foreground">{event.orderId ?? "—"}</td></tr>)}</tbody></table>
+    </div>
+  </div>;
+}
+
+const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
   products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", blouse: "", length: "", care: "", description: "", stock: 0, published: true, featured: false },
 };
 
-function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard"> }) {
+function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory"> }) {
   const [items, setItems] = useState<RecordItem[]>([]); const [editing, setEditing] = useState<RecordItem | null>(null); const [loading, setLoading] = useState(true);
   async function refresh() { setLoading(true); try { setItems(await api(`/api/admin/${resource}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load records."); } finally { setLoading(false); } }
   useEffect(() => { setEditing(null); void refresh(); }, [resource]);
