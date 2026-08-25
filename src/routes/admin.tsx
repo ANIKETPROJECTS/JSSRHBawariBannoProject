@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Package, Plus, Save, Settings, ShoppingCart, Star, Tags, Trash2, Users } from "lucide-react";
+import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Megaphone, Package, Plus, Save, Settings, ShoppingCart, Star, Tags, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "settings";
+type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
@@ -20,6 +20,8 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "reviews", label: "Reviews", icon: Star },
   { id: "categories", label: "Categories", icon: Tags },
   { id: "heroes", label: "Hero slides", icon: Image },
+  { id: "announcements", label: "Announcement bar", icon: Megaphone },
+  { id: "coupons", label: "Coupons", icon: Tags },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -67,7 +69,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : ["customers", "reviews", "settings"].includes(tab) ? <ComingSoonPage tab={tab} /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : tab === "settings" ? <SettingsPage /> : ["customers", "reviews"].includes(tab) ? <ComingSoonPage tab={tab} /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -179,18 +181,20 @@ function MetricCard({ label, value, icon: Icon }: { label: string; value: string
   return <div className="border border-[#ded5c9] bg-white p-5"><Icon className="size-5 text-gold" /><p className="mt-5 text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p><p className="mt-1 font-display text-3xl text-primary">{value}</p></div>;
 }
 
-function ComingSoonPage({ tab }: { tab: "customers" | "reviews" | "settings" }) {
-  const details = { customers: ["Customer management", "Customer profiles and order history will appear here when customer accounts are connected."], reviews: ["Product reviews", "Moderate and publish customer reviews here once reviews are enabled on the storefront."], settings: ["Store settings", "Commerce settings for shipping, payments, notifications, and store preferences will live here."] }[tab];
+function ComingSoonPage({ tab }: { tab: "customers" | "reviews" }) {
+  const details = { customers: ["Customer management", "Customer profiles and order history will appear here when customer accounts are connected."], reviews: ["Product reviews", "Moderate and publish customer reviews here once reviews are enabled on the storefront."] }[tab];
   return <div className="border border-[#ded5c9] bg-white p-8"><Settings className="size-6 text-gold" /><h2 className="mt-5 font-display text-3xl text-primary">{details[0]}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{details[1]}</p><span className="mt-6 inline-block bg-[#f4efe8] px-3 py-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">Ready for the next commerce phase</span></div>;
 }
 
-const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory">, Record<string, unknown>> = {
+const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
   products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", blouse: "", length: "", care: "", description: "", stock: 0, published: true, featured: false },
+  announcements: { message: "", order: 0, active: true },
+  coupons: { code: "", label: "", type: "percent", amount: 10, minimumSubtotal: 0, active: true },
 };
 
-function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory"> }) {
+function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews"> }) {
   const [items, setItems] = useState<RecordItem[]>([]); const [editing, setEditing] = useState<RecordItem | null>(null); const [loading, setLoading] = useState(true);
   async function refresh() { setLoading(true); try { setItems(await api(`/api/admin/${resource}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load records."); } finally { setLoading(false); } }
   useEffect(() => {
@@ -205,7 +209,7 @@ function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "i
 
 function Editor({ resource, initial, onDone }: { resource: Exclude<Tab, "dashboard">; initial: RecordItem; onDone: () => void }) {
   const [form, setForm] = useState<RecordItem>(initial); const [busy, setBusy] = useState(false);
-  const fields = resource === "heroes" ? [["title", "Title"], ["subtitle", "Subtitle"], ["image", "Image URL"], ["href", "Button link"], ["order", "Display order"]] : resource === "categories" ? [["label", "Name"], ["slug", "Slug"], ["description", "Description"], ["image", "Image URL"], ["order", "Display order"]] : [["id", "Product ID"], ["name", "Name"], ["fabric", "Fabric"], ["price", "Price (₹)"], ["category", "Category ID"], ["subcategory", "Subcategory"], ["image", "Image URL"], ["stock", "Stock quantity"], ["blouse", "Blouse"], ["length", "Length"], ["care", "Care"], ["description", "Description"]];
+  const fields = resource === "heroes" ? [["title", "Title"], ["subtitle", "Subtitle"], ["image", "Image URL"], ["href", "Button link"], ["order", "Display order"]] : resource === "categories" ? [["label", "Name"], ["slug", "Slug"], ["description", "Description"], ["image", "Image URL"], ["order", "Display order"]] : resource === "announcements" ? [["message", "Announcement text"], ["order", "Display order"]] : resource === "coupons" ? [["code", "Coupon code"], ["label", "Customer-facing offer"], ["type", "Discount type"], ["amount", "Discount amount"], ["minimumSubtotal", "Minimum subtotal (₹)"]] : [["id", "Product ID"], ["name", "Name"], ["fabric", "Fabric"], ["price", "Price (₹)"], ["category", "Category ID"], ["subcategory", "Subcategory"], ["image", "Image URL"], ["stock", "Stock quantity"], ["blouse", "Blouse"], ["length", "Length"], ["care", "Care"], ["description", "Description"]];
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); try { const { _id, ...payload } = form; await api(`/api/admin/${resource}${_id ? `/${_id}` : ""}`, { method: _id ? "PUT" : "POST", body: JSON.stringify(payload) }); toast.success("Saved."); onDone(); } catch (error) { toast.error(error instanceof Error ? error.message : "Save failed."); } finally { setBusy(false); } }
-  return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-5"><div className="flex items-center justify-between"><h3 className="font-display text-2xl text-primary">{form._id ? "Edit record" : "New record"}</h3><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-5 space-y-3">{fields.map(([key, label]) => <label key={key} className="block text-xs text-muted-foreground">{label}<input required={["title", "label", "name", "id", "slug"].includes(key)} type={["price", "stock", "order"].includes(key) ? "number" : "text"} value={String(form[key] ?? "")} onChange={(e) => setForm({ ...form, [key]: ["price", "stock", "order"].includes(key) ? Number(e.target.value) : e.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>)}</div><label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.published !== false} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Published on storefront</label>{resource === "products" && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured === true} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured product</label>}<button disabled={busy} className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" /> {busy ? "Saving…" : "Save changes"}</button></form>;
+  return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-5"><div className="flex items-center justify-between"><h3 className="font-display text-2xl text-primary">{form._id ? "Edit record" : "New record"}</h3><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-5 space-y-3">{fields.map(([key, label]) => <label key={key} className="block text-xs text-muted-foreground">{label}<input required={["title", "label", "name", "id", "slug", "message", "code"].includes(key)} type={["price", "stock", "order", "amount", "minimumSubtotal"].includes(key) ? "number" : "text"} value={String(form[key] ?? "")} onChange={(e) => setForm({ ...form, [key]: ["price", "stock", "order", "amount", "minimumSubtotal"].includes(key) ? Number(e.target.value) : e.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>)}</div>{["heroes", "categories", "products"].includes(resource) ? <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.published !== false} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Published on storefront</label> : <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active</label>}{resource === "products" && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured === true} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured product</label>}<button disabled={busy} className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" /> {busy ? "Saving…" : "Save changes"}</button></form>;
 }

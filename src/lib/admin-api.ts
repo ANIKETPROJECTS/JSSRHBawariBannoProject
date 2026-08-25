@@ -5,7 +5,7 @@ import heroImage from "@/assets/hero.jpg";
 import storyImage from "@/assets/story.jpg";
 import craftImage from "@/assets/craft.jpg";
 
-type Resource = "heroes" | "categories" | "products";
+type Resource = "heroes" | "categories" | "products" | "announcements" | "coupons";
 type JsonRecord = Record<string, unknown>;
 
 let clientPromise: Promise<MongoClient> | undefined;
@@ -191,6 +191,18 @@ async function ordersHistory(request: Request) {
   return json(await (await db()).collection("orders").find(query).sort({ createdAt: -1 }).limit(500).toArray());
 }
 
+async function storeSettings(request: Request) {
+  const database = await db();
+  const collection = database.collection("settings");
+  if (request.method === "GET") return json((await collection.findOne({ _id: "store" })) ?? { _id: "store", shippingCharges: 250, freeShippingThreshold: 15000 });
+  if (request.method === "PUT") {
+    const input = cleanDocument(await body(request));
+    await collection.updateOne({ _id: "store" }, { $set: { ...input, updatedAt: new Date() } }, { upsert: true });
+    return json(await collection.findOne({ _id: "store" }));
+  }
+  return fail("Method not allowed.", 405);
+}
+
 async function seedCatalog() {
   const database = await db();
   const now = new Date();
@@ -249,6 +261,7 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
   if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
   if (path === "/api/admin/orders" && request.method === "GET") return await ordersHistory(request);
+  if (path === "/api/admin/settings") return await storeSettings(request);
   const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
   const resource = match[1] as Resource;
@@ -272,6 +285,15 @@ export async function handleAdminApi(request: Request) {
         database.collection("products").find({ published: { $ne: false } }).sort({ createdAt: -1 }).toArray(),
       ]);
       return json({ heroes, categories, products });
+    }
+    if (url.pathname === "/api/store-config" && request.method === "GET") {
+      const database = await db();
+      const [announcements, coupons, settings] = await Promise.all([
+        database.collection("announcements").find({ active: true }).sort({ order: 1 }).toArray(),
+        database.collection("coupons").find({ active: true }).sort({ createdAt: -1 }).toArray(),
+        database.collection("settings").findOne({ _id: "store" }),
+      ]);
+      return json({ announcements, coupons, settings });
     }
     return null;
   } catch (error) {
