@@ -16,7 +16,7 @@ export function CustomerGate({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [checking, setChecking] = useState(true);
   useEffect(() => { authApi("/api/auth/me").then((result) => setCustomer(result.customer)).catch(() => setCustomer(null)).finally(() => setChecking(false)); }, []);
-  if (checking) return <div className="flex min-h-[70vh] items-center justify-center text-sm text-muted-foreground">Preparing your private space…</div>;
+  if (checking) return <>{children}</>;
   if (customer) return <>{children}</>;
   return <AccountAccess onComplete={setCustomer} />;
 }
