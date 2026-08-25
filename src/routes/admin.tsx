@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
+type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
@@ -21,7 +21,6 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "categories", label: "Categories", icon: Tags },
   { id: "heroes", label: "Hero slides", icon: Image },
   { id: "announcements", label: "Announcement bar", icon: Megaphone },
-  { id: "coupons", label: "Coupons", icon: Tags },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -71,7 +70,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : tab === "settings" ? <SettingsPage /> : ["customers", "reviews"].includes(tab) ? <ComingSoonPage tab={tab} /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : tab === "settings" ? <SettingsPage /> : tab === "announcements" ? <AnnouncementsPage /> : ["customers", "reviews"].includes(tab) ? <ComingSoonPage tab={tab} /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -188,6 +187,40 @@ function ComingSoonPage({ tab }: { tab: "customers" | "reviews" }) {
   return <div className="border border-[#ded5c9] bg-white p-8"><Settings className="size-6 text-gold" /><h2 className="mt-5 font-display text-3xl text-primary">{details[0]}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{details[1]}</p><span className="mt-6 inline-block bg-[#f4efe8] px-3 py-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">Ready for the next commerce phase</span></div>;
 }
 
+function AnnouncementsPage() {
+  const [items, setItems] = useState<RecordItem[]>([]);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function load() {
+    try { setItems(await api("/api/admin/announcements")); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load announcements."); }
+  }
+  useEffect(() => { void load(); }, []);
+  async function add(event: React.FormEvent) {
+    event.preventDefault();
+    if (!message.trim()) return;
+    setBusy(true);
+    try { await api("/api/admin/announcements", { method: "POST", body: JSON.stringify({ message: message.trim(), order: items.length, active: true }) }); setMessage(""); await load(); toast.success("Announcement added."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not add announcement."); }
+    finally { setBusy(false); }
+  }
+  async function toggle(item: RecordItem) {
+    try { const { _id, ...payload } = item; await api(`/api/admin/announcements/${_id}`, { method: "PUT", body: JSON.stringify({ ...payload, active: item.active !== true }) }); await load(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not update announcement."); }
+  }
+  async function remove(item: RecordItem) {
+    if (!item._id) return;
+    try { await api(`/api/admin/announcements/${item._id}`, { method: "DELETE" }); await load(); toast.success("Announcement removed."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not remove announcement."); }
+  }
+  const preview = items.find((item) => item.active === true)?.message ?? "Welcome to Bawari Banno · Handpicked sarees for every beautiful occasion";
+  return <div className="max-w-5xl">
+    <div className="flex items-start gap-3"><div className="flex size-10 items-center justify-center bg-secondary text-primary"><Megaphone className="size-5" /></div><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Storefront messaging</p><h2 className="mt-1 font-display text-3xl text-primary">Announcement Bar</h2><p className="mt-1 text-sm text-muted-foreground">Manage the scrolling text that appears at the top of your website.</p></div></div>
+    <section className="mt-7 border border-[#ded5c9] bg-white p-5"><p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Live preview</p><div className="mt-3 overflow-hidden bg-primary px-4 py-3 text-center text-xs tracking-wide text-white"><div className="whitespace-nowrap">{preview} &nbsp; · &nbsp; {preview}</div></div></section>
+    <form onSubmit={add} className="mt-5 border border-[#ded5c9] bg-white p-5"><h3 className="font-medium text-primary">Add new announcement</h3><div className="mt-4 flex flex-col gap-3 sm:flex-row"><input required value={message} onChange={(e) => setMessage(e.target.value)} placeholder="e.g. Free shipping on orders above ₹999" className="min-w-0 flex-1 border border-border px-3 py-3 text-sm outline-none focus:border-gold" /><button disabled={busy} className="inline-flex items-center justify-center gap-2 bg-primary px-5 py-3 text-xs uppercase tracking-[0.12em] text-white disabled:opacity-50"><Plus className="size-4" /> Add</button></div></form>
+    <section className="mt-5 border border-[#ded5c9] bg-white p-5"><div className="flex items-center justify-between"><h3 className="font-medium text-primary">All announcements <span className="text-xs font-normal text-muted-foreground">({items.length})</span></h3><span className="text-xs text-muted-foreground">Drag order can be added later</span></div><div className="mt-4 divide-y divide-border border-y border-border">{items.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">No announcements yet.</p> : items.map((item) => <div key={item._id} className="flex items-center gap-3 py-4"><span className="cursor-grab text-muted-foreground">⠿</span><p className={`min-w-0 flex-1 text-sm ${item.active === false ? "text-muted-foreground line-through" : "text-foreground"}`}>{String(item.message ?? "")}</p><button type="button" onClick={() => void toggle(item)} className="flex items-center gap-2 text-xs text-muted-foreground">{item.active === false ? "Inactive" : "Active"}<span className={`relative h-5 w-9 rounded-full ${item.active === false ? "bg-border" : "bg-primary"}`}><span className={`absolute top-0.5 size-4 rounded-full bg-white transition-transform ${item.active === false ? "left-0.5" : "left-[18px]"}`} /></span></button><button type="button" onClick={() => void remove(item)} className="p-2 text-muted-foreground hover:text-red-700" aria-label="Delete announcement"><Trash2 className="size-4" /></button></div>)}</div></section>
+  </div>;
+}
+
 function SettingsPage() {
   const [form, setForm] = useState({ shippingCharges: 250, freeShippingThreshold: 15000 });
   const [busy, setBusy] = useState(false);
@@ -215,7 +248,6 @@ const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
   products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", blouse: "", length: "", care: "", description: "", stock: 0, published: true, featured: false },
   announcements: { message: "", order: 0, active: true },
-  coupons: { code: "", label: "", type: "percent", amount: 10, minimumSubtotal: 0, active: true },
 };
 
 function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews"> }) {
@@ -233,7 +265,7 @@ function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "i
 
 function Editor({ resource, initial, onDone }: { resource: Exclude<Tab, "dashboard">; initial: RecordItem; onDone: () => void }) {
   const [form, setForm] = useState<RecordItem>(initial); const [busy, setBusy] = useState(false);
-  const fields = resource === "heroes" ? [["title", "Title"], ["subtitle", "Subtitle"], ["image", "Image URL"], ["href", "Button link"], ["order", "Display order"]] : resource === "categories" ? [["label", "Name"], ["slug", "Slug"], ["description", "Description"], ["image", "Image URL"], ["order", "Display order"]] : resource === "announcements" ? [["message", "Announcement text"], ["order", "Display order"]] : resource === "coupons" ? [["code", "Coupon code"], ["label", "Customer-facing offer"], ["type", "Discount type"], ["amount", "Discount amount"], ["minimumSubtotal", "Minimum subtotal (₹)"]] : [["id", "Product ID"], ["name", "Name"], ["fabric", "Fabric"], ["price", "Price (₹)"], ["category", "Category ID"], ["subcategory", "Subcategory"], ["image", "Image URL"], ["stock", "Stock quantity"], ["blouse", "Blouse"], ["length", "Length"], ["care", "Care"], ["description", "Description"]];
+  const fields = resource === "heroes" ? [["title", "Title"], ["subtitle", "Subtitle"], ["image", "Image URL"], ["href", "Button link"], ["order", "Display order"]] : resource === "categories" ? [["label", "Name"], ["slug", "Slug"], ["description", "Description"], ["image", "Image URL"], ["order", "Display order"]] : [["id", "Product ID"], ["name", "Name"], ["fabric", "Fabric"], ["price", "Price (₹)"], ["category", "Category ID"], ["subcategory", "Subcategory"], ["image", "Image URL"], ["stock", "Stock quantity"], ["blouse", "Blouse"], ["length", "Length"], ["care", "Care"], ["description", "Description"]];
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); try { const { _id, ...payload } = form; await api(`/api/admin/${resource}${_id ? `/${_id}` : ""}`, { method: _id ? "PUT" : "POST", body: JSON.stringify(payload) }); toast.success("Saved."); onDone(); } catch (error) { toast.error(error instanceof Error ? error.message : "Save failed."); } finally { setBusy(false); } }
   return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-5"><div className="flex items-center justify-between"><h3 className="font-display text-2xl text-primary">{form._id ? "Edit record" : "New record"}</h3><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-5 space-y-3">{fields.map(([key, label]) => <label key={key} className="block text-xs text-muted-foreground">{label}<input required={["title", "label", "name", "id", "slug", "message", "code"].includes(key)} type={["price", "stock", "order", "amount", "minimumSubtotal"].includes(key) ? "number" : "text"} value={String(form[key] ?? "")} onChange={(e) => setForm({ ...form, [key]: ["price", "stock", "order", "amount", "minimumSubtotal"].includes(key) ? Number(e.target.value) : e.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>)}</div>{["heroes", "categories", "products"].includes(resource) ? <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.published !== false} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Published on storefront</label> : <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active</label>}{resource === "products" && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured === true} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured product</label>}<button disabled={busy} className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" /> {busy ? "Saving…" : "Save changes"}</button></form>;
 }
