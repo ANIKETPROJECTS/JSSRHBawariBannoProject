@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Boxes, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { getProductColor, productColors } from "@/data/colors";
+import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
@@ -837,14 +837,15 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         const image = String(variant.image ?? "").trim();
         const variantImages = [image, ...String(variant.extraImages ?? "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean).filter((item) => item !== image)];
         if (!color) throw new Error(`Add a color name for variant ${index + 1}.`);
-        if (!productColors.some((option) => option.key === color)) throw new Error(`Choose a color from the approved palette for variant ${index + 1}.`);
-        if (variantColors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
-        variantColors.add(color.toLowerCase());
-        if (!image) throw new Error(`Add a cover image for the ${color} variant.`);
-        if (variantImages.length > 5) throw new Error(`The ${color} variant can have no more than four extra images.`);
+        const normalizedColor = normalizeProductColor(color === otherColorKey ? "" : color);
+        if (!normalizedColor) throw new Error(`Add a color name for variant ${index + 1}.`);
+        if (variantColors.has(normalizedColor.toLowerCase())) throw new Error(`Each color variant must be unique. "${normalizedColor}" is repeated.`);
+        variantColors.add(normalizedColor.toLowerCase());
+        if (!image) throw new Error(`Add a cover image for the ${normalizedColor} variant.`);
+        if (variantImages.length > 5) throw new Error(`The ${normalizedColor} variant can have no more than four extra images.`);
         const stock = Number(variant.stock);
-        if (!Number.isInteger(stock) || stock < 0) throw new Error(`Enter a valid stock quantity for the ${color} variant.`);
-        return { id: String(variant.id ?? "").trim() || undefined, color, stock, image, images: variantImages };
+        if (!Number.isInteger(stock) || stock < 0) throw new Error(`Enter a valid stock quantity for the ${normalizedColor} variant.`);
+        return { id: String(variant.id ?? "").trim() || undefined, color: normalizedColor, stock, image, images: variantImages };
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Enter valid color variant details.");
@@ -910,7 +911,10 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
             <div className="mt-4 border border-dashed border-[#cfc3b5] bg-[#fbf9f6] p-4 text-sm text-muted-foreground">No color variants yet. This product will use the default gallery and stock above.</div>
           ) : (
             <div className="mt-4 space-y-4">
-              {variants.map((variant, index) => (
+              {variants.map((variant, index) => {
+                const colorOption = getProductColor(variant.color);
+                const isCustomColor = variant.color === otherColorKey || (!!variant.color && !colorOption);
+                return (
                 <article key={variant.id || index} className="border border-border bg-[#fbf9f6] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <h4 className="text-sm font-medium text-primary">Color variant {index + 1}</h4>
@@ -963,7 +967,8 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant extra image URLs <span>(optional, maximum 4)</span><textarea value={variant.extraImages} onChange={(event) => setVariant(index, "extraImages", event.target.value)} rows={3} placeholder={"https://…/yellow-detail-1.jpg\nhttps://…/yellow-detail-2.jpg"} className="mt-1 w-full resize-y border border-border bg-white px-3 py-2.5 text-sm" /></label>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

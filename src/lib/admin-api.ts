@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
-import { productColors } from "@/data/colors";
+import { normalizeProductColor, otherColorKey } from "@/data/colors";
 import heroImage from "@/assets/hero.jpg";
 import storyImage from "@/assets/story.jpg";
 import craftImage from "@/assets/craft.jpg";
@@ -148,12 +148,13 @@ function normalizeProductVariants(value: unknown, productId: string) {
   const colors = new Set<string>();
   return value.map((entry, index) => {
     const row = entry && typeof entry === "object" ? entry as JsonRecord : {};
-    const color = String(row.color ?? "").trim();
+    const rawColor = String(row.color ?? "").trim();
+    const color = normalizeProductColor(rawColor);
     const rawImages = Array.isArray(row.images) ? row.images.map(String).map((image) => image.trim()).filter(Boolean) : [];
     const image = String(row.image ?? rawImages[0] ?? "").trim();
     const images = [image, ...rawImages.filter((item) => item !== image)].filter(Boolean).slice(0, 5);
     const stock = Number(row.stock ?? 0);
-    if (!color) throw new Error(`Color variant ${index + 1} needs a color name.`);
+    if (!color || rawColor === otherColorKey) throw new Error(`Color variant ${index + 1} needs a color name.`);
     if (colors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
     if (!productColors.some((option) => option.key === color)) throw new Error(`Choose a color from the approved color palette for variant ${index + 1}.`);
     if (!image) throw new Error(`Color variant "${color}" needs a cover image.`);

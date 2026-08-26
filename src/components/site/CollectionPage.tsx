@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CategorySidebar, type Filters, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
+import { getColorFilterKey, productColors, type ProductColorOption } from "@/data/colors";
 
 type Sort = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -161,6 +162,18 @@ export function CollectionPage({
   const activeProducts = products ?? liveProducts ?? sarees;
   const collectionProducts = productFilter ? activeProducts.filter(productFilter) : activeProducts;
   const activeCategories = liveCategories ?? categories;
+  const availableColors = useMemo<ProductColorOption[]>(() => {
+    const seen = new Set(productColors.map((color) => color.key));
+    const customColors: ProductColorOption[] = [];
+    activeProducts.flatMap((product) => product.variants ?? []).forEach((variant) => {
+      const label = String(variant.color ?? "").trim();
+      const key = getColorFilterKey(label);
+      if (!label || seen.has(key)) return;
+      seen.add(key);
+      customColors.push({ key, label, hex: "#b5aaa0" });
+    });
+    return [...productColors, ...customColors];
+  }, [activeProducts]);
 
   const list = useMemo(() => {
     const filtered = collectionProducts.filter((s) => {
@@ -175,7 +188,7 @@ export function CollectionPage({
         (filters.price === "15000-30000" && s.price > 15000 && s.price <= 30000) ||
         (filters.price === "over-30000" && s.price > 30000);
        const variantColors = s.variants?.map((variant) => variant.color).filter(Boolean) ?? [];
-       const colorMatch = filters.colors.length === 0 || (variantColors.length ? variantColors.some((color) => filters.colors.includes(color)) : filters.colors.includes(getSareeColor(s.id)));
+       const colorMatch = filters.colors.length === 0 || (variantColors.length ? variantColors.some((color) => filters.colors.includes(getColorFilterKey(color))) : filters.colors.includes(getSareeColor(s.id)));
       const fabricMatch = filters.fabrics.length === 0 || filters.fabrics.some((fabric) => s.fabric.toLowerCase().includes(fabric.toLowerCase()));
       return priceMatch && colorMatch && fabricMatch;
     });
@@ -207,6 +220,7 @@ export function CollectionPage({
             filters={filters}
             onFiltersChange={setFilters}
             categoryData={activeCategories}
+            availableColors={availableColors}
           />
 
           <div className="flex-1">

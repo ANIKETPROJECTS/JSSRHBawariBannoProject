@@ -18,11 +18,13 @@ type Props = {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
   categoryData?: CategoryNode[];
+  availableColors?: ReadonlyArray<{ key: string; label: string; hex: string }>;
 };
 
-export function CategorySidebar({ selection, onSelect, filters, onFiltersChange, categoryData }: Props) {
+export function CategorySidebar({ selection, onSelect, filters, onFiltersChange, categoryData, availableColors }: Props) {
   const [open, setOpen] = useState<string[]>(["silk"]);
   const categoryItems = categoryData ?? categories;
+  const colorOptions = availableColors ?? productColors;
 
   useEffect(() => {
     if (!selection.category) return;
@@ -161,7 +163,7 @@ export function CategorySidebar({ selection, onSelect, filters, onFiltersChange,
         <fieldset className="mt-6">
           <legend className="text-sm text-primary">Colour</legend>
           <div className="mt-3 flex flex-wrap gap-2">
-            {productColors.map(({ key: color, hex, label }) => {
+            {colorOptions.map(({ key: color, hex, label }) => {
               const checked = filters.colors.includes(color);
               return (
                 <label key={color} title={label} className={cn("flex size-7 cursor-pointer items-center justify-center rounded-full border", checked ? "border-primary p-0.5" : "border-transparent")}>
