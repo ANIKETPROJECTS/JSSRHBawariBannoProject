@@ -162,3 +162,22 @@ form[class*="max-h-"] {
   max-height: none !important;
   overflow: visible !important;
 }
+
+@keyframes hero-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-fade-in {
+  animation: hero-fade-in 700ms ease-in-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-fade-in {
+    animation-duration: 1ms;
+  }
+}

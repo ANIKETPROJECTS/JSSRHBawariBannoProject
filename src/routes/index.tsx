@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
@@ -45,10 +45,16 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const [activeHero, setActiveHero] = useState(0);
+  const [transitioningFrom, setTransitioningFrom] = useState<number | null>(null);
+  const activeHeroRef = useRef(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setActiveHero((current) => (current + 1) % heroSlides.length);
+      const nextHero = (activeHeroRef.current + 1) % heroSlides.length;
+      setTransitioningFrom(activeHeroRef.current);
+      activeHeroRef.current = nextHero;
+      setActiveHero(nextHero);
+      window.setTimeout(() => setTransitioningFrom(null), 750);
     }, 5500);
 
     return () => window.clearInterval(timer);
@@ -60,12 +66,31 @@ function Home() {
       <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden">
           <img
-            src={heroSlides[activeHero].image}
-            alt={heroSlides[activeHero].alt}
+            src={heroSlides[transitioningFrom ?? activeHero].image}
+            alt={heroSlides[transitioningFrom ?? activeHero].alt}
             width={1920}
             height={1088}
-            className="h-[68vh] min-h-[420px] w-full object-cover transition-opacity duration-700"
+            className="absolute inset-0 h-full w-full object-cover"
           />
+          {transitioningFrom !== null && (
+            <img
+              key={activeHero}
+              src={heroSlides[activeHero].image}
+              alt={heroSlides[activeHero].alt}
+              width={1920}
+              height={1088}
+              className="relative h-[68vh] min-h-[420px] w-full object-cover hero-fade-in"
+            />
+          )}
+          {transitioningFrom === null && (
+            <img
+              src={heroSlides[activeHero].image}
+              alt={heroSlides[activeHero].alt}
+              width={1920}
+              height={1088}
+              className="relative h-[68vh] min-h-[420px] w-full object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/55 to-transparent" />
           <div className="absolute inset-0 flex items-center">
             <div className="mx-auto w-full max-w-7xl px-5">
