@@ -262,6 +262,7 @@ async function recordPurchase(request: Request) {
     customerPhone: customer?.phone || undefined,
     status: "pending",
     paymentStatus: "demo",
+    inventoryAdjusted: true,
     items: orderItems,
     total: Number(input.total ?? 0),
     createdAt: new Date(),
@@ -400,8 +401,8 @@ async function ordersHistory(request: Request) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
   if (status && status !== "all") query.status = status;
-  if (payment && payment !== "all") query.paymentStatus = payment;
-  if (search) query.$or = [{ orderId: { $regex: search, $options: "i" } }, { customerName: { $regex: search, $options: "i" } }, { customerEmail: { $regex: search, $options: "i" } }];
+  if (payment && payment !== "all") query.paymentStatus = payment === "paid" ? { $in: ["paid", "success", "completed"] } : payment;
+  if (search) query.$or = [{ orderId: { $regex: search, $options: "i" } }, { customerName: { $regex: search, $options: "i" } }, { customerEmail: { $regex: search, $options: "i" } }, { customerPhone: { $regex: search, $options: "i" } }];
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
   const sort = url.searchParams.get("sort") === "oldest" ? { createdAt: 1 } : url.searchParams.get("sort") === "amount" ? { total: -1 } : { createdAt: -1 };
   const database = await db();
@@ -454,6 +455,33 @@ async function adminOrders(request: Request, orderId?: string) {
   if (orderId && !ObjectId.isValid(orderId)) return fail("Order not found.", 404);
 
   if (orderId && request.method === "DELETE") {
+    const existingOrder = await collection.findOne({ _id: new ObjectId(orderId) });
+    if (!existingOrder) return fail("Order not found.", 404);
+    if (existingOrder.inventoryAdjusted === true && Array.isArray(existingOrder.items)) {
+      for (const item of existingOrder.items) {
+        const productId = String(item?.productId ?? "");
+        const quantity = Math.max(0, Math.trunc(Number(item?.quantity) || 0));
+        if (!productId || !quantity) continue;
+        const product = await database.collection("products").findOneAndUpdate(
+          { id: productId },
+          { $inc: { stock: quantity }, $set: { updatedAt: new Date() } },
+          { returnDocument: "after" },
+        );
+        if (product) {
+          await database.collection("inventory_movements").insertOne({
+            orderId: existingOrder.orderId,
+            eventType: "order_deleted",
+            productId,
+            productName: product.name,
+            quantity,
+            previousStock: Number(product.stock ?? 0) - quantity,
+            nextStock: Number(product.stock ?? 0),
+            reason: "Order deleted; reserved stock restored",
+            createdAt: new Date(),
+          });
+        }
+      }
+    }
     const result = await collection.deleteOne({ _id: new ObjectId(orderId) });
     if (!result.deletedCount) return fail("Order not found.", 404);
     return json({ ok: true });
@@ -466,7 +494,7 @@ async function adminOrders(request: Request, orderId?: string) {
     const source = existing ? { ...existing, ...input } : input;
     const status = String(source.status ?? "pending");
     const paymentStatus = String(source.paymentStatus ?? "demo");
-    const allowedStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
+    const allowedStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled"];
     if (!allowedStatuses.includes(status)) return fail("Invalid order status.");
     if (!paymentStatus || paymentStatus.length > 40) return fail("Invalid payment status.");
     const items = Array.isArray(source.items) ? source.items.filter((item) => item && typeof item === "object").map((item) => {
@@ -487,6 +515,11 @@ async function adminOrders(request: Request, orderId?: string) {
       status,
       paymentStatus,
       paymentMethod: String(source.paymentMethod ?? "Demo").trim().slice(0, 60),
+      ...(source.paymentDetails !== undefined ? { paymentDetails: String(source.paymentDetails).trim().slice(0, 200) } : {}),
+      ...(source.transactionId !== undefined ? { transactionId: String(source.transactionId).trim().slice(0, 120) } : {}),
+      ...(source.shippingAddress !== undefined ? { shippingAddress: source.shippingAddress } : {}),
+      ...(source.address !== undefined ? { address: source.address } : {}),
+      ...(source.inventoryAdjusted !== undefined ? { inventoryAdjusted: source.inventoryAdjusted === true } : {}),
       items,
       subtotal: Math.max(0, Number(source.subtotal) || 0),
       shipping: Math.max(0, Number(source.shipping) || 0),
@@ -512,7 +545,7 @@ async function updateOrder(request: Request, id: string) {
   if (!ObjectId.isValid(id)) return fail("Order not found.", 404);
   const input = await body(request);
   const status = String(input.status ?? "");
-  const allowed = ["pending", "processing", "shipped", "delivered", "cancelled"];
+  const allowed = ["pending", "approved", "processing", "shipped", "delivered", "cancelled"];
   if (!allowed.includes(status)) return fail("Invalid order status.");
   const database = await db();
   const result = await database.collection("orders").findOneAndUpdate(

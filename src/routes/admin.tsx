@@ -252,7 +252,6 @@ function OrdersPage() {
     try { await navigator.clipboard.writeText(value); toast.success(`${label} copied.`); }
     catch { toast.error(`Could not copy ${label.toLowerCase()}.`); }
   }
-  const revenue = orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to orders</button><OrderEditor initial={editing} onDone={() => { setEditing(null); void load(); }} /></div>;
   return <div>
     <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Commerce operations</p><h2 className="mt-1 font-display text-3xl text-primary">Order management</h2><p className="mt-1 text-sm text-muted-foreground">Track, review, and move every customer order through fulfillment.</p></div><div className="flex flex-wrap gap-3"><button type="button" onClick={() => setEditing({ ...emptyOrder })} className="border border-primary px-4 py-3 text-xs uppercase tracking-[0.12em] text-primary hover:bg-primary hover:text-white"><Plus className="mr-2 inline size-4" /> Add order</button><button type="button" onClick={exportPaidOrders} className="bg-emerald-600 px-4 py-3 text-xs uppercase tracking-[0.12em] text-white hover:bg-emerald-700">↓ Export paid orders (Excel)</button></div></div>
