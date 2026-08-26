@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight, RotateCcw } from "lucide-react";
-import { categories } from "@/data/sarees";
+import { categories, type CategoryNode } from "@/data/sarees";
 import { cn } from "@/lib/utils";
 
 export type Selection = { category: string | null; subcategory: string | null };
@@ -16,10 +16,20 @@ type Props = {
   onSelect: (selection: Selection) => void;
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
+  categoryData?: CategoryNode[];
 };
 
-export function CategorySidebar({ selection, onSelect, filters, onFiltersChange }: Props) {
+export function CategorySidebar({ selection, onSelect, filters, onFiltersChange, categoryData }: Props) {
   const [open, setOpen] = useState<string[]>(["silk"]);
+  const categoryItems = categoryData ?? categories;
+
+  useEffect(() => {
+    if (!selection.category) return;
+    const selected = categoryItems.find((category) => category.id === selection.category);
+    if (selected?.children?.length) {
+      setOpen((current) => current.includes(selected.id) ? current : [...current, selected.id]);
+    }
+  }, [categoryItems, selection.category]);
 
   const toggle = (id: string) =>
     setOpen((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -45,7 +55,7 @@ export function CategorySidebar({ selection, onSelect, filters, onFiltersChange 
             </button>
           </li>
 
-          {categories.map((cat) => {
+          {categoryItems.map((cat) => {
             const isOpen = open.includes(cat.id);
             const active = selection.category === cat.id;
             return (

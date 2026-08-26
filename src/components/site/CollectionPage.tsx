@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CategorySidebar, type Filters, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
-import { categories, sarees, type Saree } from "@/data/sarees";
+import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
 
 type Sort = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -55,11 +55,54 @@ export type CollectionPageProps = {
   initialSelection?: Selection;
 };
 
+function categoryTreeFromRecords(records: unknown[]): CategoryNode[] {
+  const items = records
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .filter((item) => item.published !== false && String(item.slug ?? "").trim());
+  return items
+    .filter((item) => !item.parentSlug)
+    .map((parent) => {
+      const id = String(parent.slug);
+      const children = items
+        .filter((item) => String(item.parentSlug ?? "") === id)
+        .map((child) => ({ id: String(child.slug), label: String(child.label ?? child.name ?? child.slug) }));
+      return {
+        id,
+        label: String(parent.label ?? parent.name ?? id),
+        ...(children.length ? { children } : {}),
+      };
+    });
+}
+
+function sareesFromRecords(records: unknown[]): Saree[] {
+  return records
+    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    .filter((item) => item.published !== false && String(item.id ?? "").trim())
+    .map((item) => {
+      const images = Array.isArray(item.images) ? item.images.map(String).filter(Boolean) : [];
+      return {
+        id: String(item.id),
+        name: String(item.name ?? item.id),
+        fabric: String(item.fabric ?? ""),
+        price: Number(item.price ?? 0),
+        category: String(item.category ?? ""),
+        ...(item.subcategory ? { subcategory: String(item.subcategory) } : {}),
+        image: String(item.image ?? images[0] ?? ""),
+        blouse: String(item.blouse ?? ""),
+        length: String(item.length ?? ""),
+        care: String(item.care ?? ""),
+        description: String(item.description ?? ""),
+        addedOn: String(item.addedOn ?? item.createdAt ?? ""),
+        ...(item.featured ? { featured: true } : {}),
+      };
+    });
+}
+
 export function CollectionPage({
   eyebrow = "The Collection",
   title,
   description,
-  products = sarees,
+  products,
   initialSelection = { category: null, subcategory: null },
 }: CollectionPageProps) {
   const [selection, setSelection] = useState<Selection>(initialSelection);
@@ -70,9 +113,27 @@ export function CollectionPage({
     fabrics: [],
     inStock: false,
   });
+  const [liveCategories, setLiveCategories] = useState<CategoryNode[] | null>(null);
+  const [liveProducts, setLiveProducts] = useState<Saree[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/catalog")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
+      .then((catalog: { categories?: unknown[]; products?: unknown[] }) => {
+        if (Array.isArray(catalog.categories)) {
+          const nextCategories = categoryTreeFromRecords(catalog.categories);
+          if (nextCategories.length) setLiveCategories(nextCategories);
+        }
+        if (!products && Array.isArray(catalog.products)) setLiveProducts(sareesFromRecords(catalog.products));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const activeProducts = products ?? liveProducts ?? sarees;
+  const activeCategories = liveCategories ?? categories;
 
   const list = useMemo(() => {
-    const filtered = products.filter((s) => {
+    const filtered = activeProducts.filter((s) => {
       if (selection.subcategory) return s.subcategory === selection.subcategory;
       if (selection.category) return s.category === selection.category;
       return true;
@@ -93,7 +154,7 @@ export function CollectionPage({
     if (sort === "newest") sorted.sort((a, b) => b.addedOn.localeCompare(a.addedOn));
     if (sort === "featured") sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
-  }, [filters, products, selection, sort]);
+  }, [activeProducts, filters, selection, sort]);
 
   return (
     <>
@@ -114,6 +175,7 @@ export function CollectionPage({
             onSelect={setSelection}
             filters={filters}
             onFiltersChange={setFilters}
+            categoryData={activeCategories}
           />
 
           <div className="flex-1">

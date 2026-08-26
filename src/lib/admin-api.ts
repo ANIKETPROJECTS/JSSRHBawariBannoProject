@@ -141,9 +141,21 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
   const database = await db();
   const collection = database.collection(resource);
   const document = { ...cleanDocument(input), updatedAt: new Date() };
+  let clearSubcategory = false;
+  if (resource === "products") {
+    const parentSlug = String(document.category ?? "").trim();
+    const childSlug = String(document.subcategory ?? "").trim();
+    if (childSlug) {
+      const child = await database.collection("categories").findOne({ slug: childSlug, parentSlug });
+      if (!child) throw new Error("Choose a subcategory that belongs to the selected parent category.");
+    } else if ("subcategory" in document) {
+      delete document.subcategory;
+      clearSubcategory = true;
+    }
+  }
   if (id && ObjectId.isValid(id)) {
     const previous = await collection.findOne({ _id: new ObjectId(id) });
-    await collection.updateOne({ _id: new ObjectId(id) }, { $set: document });
+    await collection.updateOne({ _id: new ObjectId(id) }, clearSubcategory ? { $set: document, $unset: { subcategory: "" } } : { $set: document });
     if (resource === "products" && previous && typeof previous.stock === "number" && typeof document.stock === "number" && previous.stock !== document.stock) {
       await database.collection("inventory_movements").insertOne({
         productId: String(previous.id ?? id),
