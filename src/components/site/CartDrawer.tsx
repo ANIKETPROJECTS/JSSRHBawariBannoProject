@@ -99,6 +99,13 @@ function CartDrawer() {
   async function checkout() {
     setCheckingOut(true);
     try {
+      const sessionResponse = await fetch("/api/auth/me", { credentials: "same-origin" });
+      if (!sessionResponse.ok) {
+        closeCart();
+        toast.error("Please log in before proceeding to checkout.");
+        window.setTimeout(() => window.location.assign("/profile"), 450);
+        return;
+      }
       const response = await fetch("/api/inventory/purchase", {
         method: "POST",
         headers: { "content-type": "application/json" },

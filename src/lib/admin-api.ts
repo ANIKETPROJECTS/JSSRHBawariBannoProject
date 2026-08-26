@@ -145,6 +145,7 @@ async function recordPurchase(request: Request) {
   if (!items.length) return fail("Your cart is empty.");
   const database = await db();
   const customer = await customerFromRequest(request);
+  if (!customer) return fail("Please log in before proceeding to checkout.", 401);
   const counter = await database.collection("counters").findOneAndUpdate(
     { _id: "orders" },
     { $inc: { value: 1 } },
