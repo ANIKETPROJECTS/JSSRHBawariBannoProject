@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, RotateCcw } from "lucide-react";
 import { categories, type CategoryNode } from "@/data/sarees";
+import { productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
 
 export type Selection = { category: string | null; subcategory: string | null };
@@ -160,19 +161,10 @@ export function CategorySidebar({ selection, onSelect, filters, onFiltersChange,
         <fieldset className="mt-6">
           <legend className="text-sm text-primary">Colour</legend>
           <div className="mt-3 flex flex-wrap gap-2">
-            {[
-              ["maroon", "#78152a"],
-              ["blue", "#254aa5"],
-              ["green", "#2c7a52"],
-              ["ivory", "#e8dfc9"],
-              ["pink", "#e3a1ae"],
-              ["indigo", "#364273"],
-              ["plum", "#693d68"],
-              ["mustard", "#c7952d"],
-            ].map(([color, hex]) => {
+            {productColors.map(({ key: color, hex, label }) => {
               const checked = filters.colors.includes(color);
               return (
-                <label key={color} title={color} className={cn("flex size-7 cursor-pointer items-center justify-center rounded-full border", checked ? "border-primary p-0.5" : "border-transparent")}>
+                <label key={color} title={label} className={cn("flex size-7 cursor-pointer items-center justify-center rounded-full border", checked ? "border-primary p-0.5" : "border-transparent")}>
                   <input
                     type="checkbox"
                     checked={checked}

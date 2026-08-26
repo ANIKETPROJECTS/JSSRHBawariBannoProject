@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
+import { productColors } from "@/data/colors";
 import heroImage from "@/assets/hero.jpg";
 import storyImage from "@/assets/story.jpg";
 import craftImage from "@/assets/craft.jpg";
@@ -154,6 +155,7 @@ function normalizeProductVariants(value: unknown, productId: string) {
     const stock = Number(row.stock ?? 0);
     if (!color) throw new Error(`Color variant ${index + 1} needs a color name.`);
     if (colors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
+    if (!productColors.some((option) => option.key === color)) throw new Error(`Choose a color from the approved color palette for variant ${index + 1}.`);
     if (!image) throw new Error(`Color variant "${color}" needs a cover image.`);
     if (rawImages.filter((item) => item !== image).length > 4) throw new Error(`Color variant "${color}" can have no more than four extra images.`);
     if (!Number.isInteger(stock) || stock < 0) throw new Error(`Color variant "${color}" needs a valid stock quantity.`);

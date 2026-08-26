@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CategorySidebar, type Filters, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
+import { getProductColor } from "@/data/colors";
 
 type Sort = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -174,7 +175,8 @@ export function CollectionPage({
         (filters.price === "5000-15000" && s.price >= 5000 && s.price <= 15000) ||
         (filters.price === "15000-30000" && s.price > 15000 && s.price <= 30000) ||
         (filters.price === "over-30000" && s.price > 30000);
-      const colorMatch = filters.colors.length === 0 || filters.colors.includes(getSareeColor(s.id));
+       const variantColors = s.variants?.map((variant) => variant.color).filter(Boolean) ?? [];
+       const colorMatch = filters.colors.length === 0 || (variantColors.length ? variantColors.some((color) => filters.colors.includes(color)) : filters.colors.includes(getSareeColor(s.id)));
       const fabricMatch = filters.fabrics.length === 0 || filters.fabrics.some((fabric) => s.fabric.toLowerCase().includes(fabric.toLowerCase()));
       return priceMatch && colorMatch && fabricMatch;
     });
