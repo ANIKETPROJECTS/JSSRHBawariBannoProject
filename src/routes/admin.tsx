@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Boxes, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getProductColor, productColors } from "@/data/colors";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin Panel | Bawari Banno" }] }),
