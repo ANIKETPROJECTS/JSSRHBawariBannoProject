@@ -16,11 +16,13 @@ export type Saree = {
   category: string; // top-level category id
   subcategory?: string; // subcategory id
   image: string;
+  images?: string[];
   blouse: string;
   length: string;
   care: string;
   description: string;
   productDetails?: string;
+  productDescription?: string;
   productSpecification?: string;
   addedOn: string;
   featured?: boolean;

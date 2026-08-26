@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -14,11 +14,10 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/products/$productId")({
   loader: ({ params }) => {
     const saree = sarees.find((s) => s.id === params.productId);
-    if (!saree) throw notFound();
-    return { saree };
+    return { saree: saree ?? null };
   },
   head: ({ loaderData }) => {
-    if (!loaderData) {
+    if (!loaderData?.saree) {
       return {
         meta: [{ title: "Saree unavailable | Bawari Banno" }, { name: "robots", content: "noindex" }],
       };
@@ -37,12 +36,48 @@ export const Route = createFileRoute("/products/$productId")({
 });
 
 function ProductDetail() {
-  const { saree } = Route.useLoaderData();
+  const { saree: initialSaree } = Route.useLoaderData();
+  const { productId } = Route.useParams();
+  const [saree, setSaree] = useState(initialSaree);
+  const [loading, setLoading] = useState(!initialSaree);
+  useEffect(() => {
+    fetch("/api/catalog")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
+      .then((catalog: { products?: Array<Record<string, unknown>> }) => {
+        const liveProduct = (catalog.products ?? []).find((product) => String(product.id ?? "") === productId);
+        if (liveProduct) setSaree(normalizeProduct(liveProduct, initialSaree));
+      })
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [initialSaree, productId]);
+  if (!saree) return <SiteShell><div className="mx-auto max-w-7xl px-5 py-24 text-center"><h1 className="font-display text-4xl text-primary">Product unavailable</h1><p className="mt-3 text-sm text-muted-foreground">{loading ? "Loading product details…" : "This product could not be found."}</p><Link to="/products" className="mt-7 inline-flex bg-primary px-5 py-3 text-eyebrow text-white">Back to products</Link></div></SiteShell>;
   return (
     <SiteShell>
       <ProductDetailContent saree={saree} />
     </SiteShell>
   );
+}
+
+function normalizeProduct(raw: Record<string, unknown>, fallback: (typeof sarees)[number] | null): (typeof sarees)[number] {
+  return {
+    id: String(raw.id ?? fallback?.id ?? ""),
+    name: String(raw.name ?? fallback?.name ?? "Untitled product"),
+    fabric: String(raw.fabric ?? fallback?.fabric ?? ""),
+    price: Number(raw.price ?? fallback?.price ?? 0),
+    category: String(raw.category ?? fallback?.category ?? ""),
+    subcategory: raw.subcategory == null ? fallback?.subcategory : String(raw.subcategory),
+    image: String(raw.image ?? fallback?.image ?? ""),
+    images: Array.isArray(raw.images) ? raw.images.map(String).filter(Boolean).slice(0, 5) : fallback?.images,
+    blouse: String(raw.blouse ?? fallback?.blouse ?? ""),
+    length: String(raw.length ?? fallback?.length ?? ""),
+    care: String(raw.care ?? fallback?.care ?? ""),
+    description: String(raw.productDescription ?? raw.description ?? fallback?.description ?? ""),
+    productDetails: raw.productDetails == null ? fallback?.productDetails : String(raw.productDetails),
+    productDescription: raw.productDescription == null ? fallback?.productDescription : String(raw.productDescription),
+    productSpecification: raw.productSpecification == null ? fallback?.productSpecification : String(raw.productSpecification),
+    addedOn: String(raw.addedOn ?? fallback?.addedOn ?? ""),
+    featured: raw.featured === true,
+  };
 }
 
 function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
@@ -52,6 +87,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
   const [sharing, setSharing] = useState(false);
+  const [openInfo, setOpenInfo] = useState("details");
   const isWishlisted = wishlistIds.includes(saree.id);
 
   async function shareProduct() {
@@ -90,7 +126,16 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
     }
   }
 
-  const gallery = [saree.image, saree.image, saree.image];
+  const gallery = (saree.images?.length ? saree.images : [saree.image]).filter(Boolean).slice(0, 5);
+  const productDetails = saree.productDetails?.trim() || [
+    `Fabric: ${saree.fabric}`,
+    `Category: ${saree.category}`,
+    `Length: ${saree.length}`,
+  ].join("\n");
+  const productSpecification = saree.productSpecification?.trim() || [
+    `Blouse: ${saree.blouse}`,
+    `Care instructions: ${saree.care}`,
+  ].join("\n");
   const related = sarees
     .filter((s) => s.id !== saree.id && s.category === saree.category)
     .concat(sarees.filter((s) => s.id !== saree.id && s.category !== saree.category))
@@ -160,23 +205,30 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
           <div className="mt-6 h-px bg-border" />
 
-          <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-            {saree.description}
-          </p>
-
-          <dl className="mt-7 space-y-3 text-sm">
+          <div className="mt-8 border-y border-border">
             {[
-              ["Fabric", saree.fabric],
-              ["Blouse", saree.blouse],
-              ["Length", saree.length],
-              ["Care", saree.care],
-            ].map(([label, value]) => (
-              <div key={label} className="flex gap-4">
-                <dt className="w-24 shrink-0 text-eyebrow text-muted-foreground">{label}</dt>
-                <dd className="text-foreground/85">{value}</dd>
+              ["details", "PRODUCT DETAILS", productDetails],
+              ["description", "PRODUCT DESCRIPTION", saree.description],
+              ["specification", "PRODUCT SPECIFICATION", productSpecification],
+            ].map(([id, title, content]) => (
+              <div key={id} className="border-b border-border last:border-b-0">
+                <button
+                  type="button"
+                  aria-expanded={openInfo === id}
+                  onClick={() => setOpenInfo(openInfo === id ? "" : id)}
+                  className="flex w-full items-center justify-between gap-4 py-4 text-left text-xs font-medium tracking-[0.08em] text-primary"
+                >
+                  <span>{title}</span>
+                  <span className="text-base font-normal">{openInfo === id ? "⌃" : "⌄"}</span>
+                </button>
+                {openInfo === id && (
+                  <div className="whitespace-pre-line pb-5 text-sm leading-relaxed text-muted-foreground">
+                    {content || "Product information will be added soon."}
+                  </div>
+                )}
               </div>
             ))}
-          </dl>
+          </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <div className="flex items-center border border-border">

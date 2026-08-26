@@ -159,6 +159,9 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
     document.image = coverImage;
     document.images = images;
+    const productDescription = String(document.productDescription ?? document.description ?? "").trim();
+    document.productDescription = productDescription;
+    document.description = productDescription;
   }
   if (resource === "coupons") {
     const code = String(document.code ?? "").trim().toUpperCase();
