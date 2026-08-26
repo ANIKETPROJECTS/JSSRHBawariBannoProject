@@ -153,6 +153,30 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
       clearSubcategory = true;
     }
   }
+  if (resource === "coupons") {
+    const code = String(document.code ?? "").trim().toUpperCase();
+    const discountType = String(document.discountType ?? "percentage") === "fixed" ? "fixed" : "percentage";
+    const discountValue = Number(document.discountValue ?? 0);
+    const minimumSubtotal = Math.max(0, Number(document.minimumSubtotal ?? 0));
+    const maxDiscount = document.maxDiscount === "" || document.maxDiscount == null ? null : Math.max(0, Number(document.maxDiscount));
+    const productScope = String(document.productScope ?? "all") === "specific" ? "specific" : "all";
+    const productIds = Array.isArray(document.productIds) ? document.productIds.map(String).filter(Boolean) : [];
+    if (!/^[A-Z0-9_-]{3,40}$/.test(code)) throw new Error("Coupon code must be 3–40 characters using letters, numbers, hyphens, or underscores.");
+    if (!Number.isFinite(discountValue) || discountValue <= 0 || (discountType === "percentage" && discountValue > 100)) throw new Error("Enter a valid discount value.");
+    if (!Number.isFinite(minimumSubtotal) || !Number.isFinite(maxDiscount ?? 0)) throw new Error("Enter valid coupon limits.");
+    if (productScope === "specific" && !productIds.length) throw new Error("Choose at least one product for a specific-product coupon.");
+    const duplicate = await collection.findOne({ code, ...(id && ObjectId.isValid(id) ? { _id: { $ne: new ObjectId(id) } } : {}) });
+    if (duplicate) throw new Error("A coupon with this code already exists.");
+    document.code = code;
+    document.discountType = discountType;
+    document.discountValue = discountValue;
+    document.minimumSubtotal = minimumSubtotal;
+    document.maxDiscount = maxDiscount;
+    document.productScope = productScope;
+    document.productIds = productScope === "specific" ? productIds : [];
+    document.label = String(document.label ?? "").trim().slice(0, 120);
+    document.active = document.active !== false;
+  }
   if (id && ObjectId.isValid(id)) {
     const previous = await collection.findOne({ _id: new ObjectId(id) });
     await collection.updateOne({ _id: new ObjectId(id) }, clearSubcategory ? { $set: document, $unset: { subcategory: "" } } : { $set: document });
@@ -171,6 +195,41 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
   }
   const result = await collection.insertOne({ ...document, published: document.published !== false, createdAt: new Date() });
   return collection.findOne({ _id: result.insertedId });
+}
+
+type CouponCalculation = { ok: true; coupon: JsonRecord; discount: number; eligibleSubtotal: number } | { ok: false; message: string };
+
+async function calculateCoupon(database: Db, code: string, items: { productId: string; quantity: number; price: number }[]): Promise<CouponCalculation> {
+  const normalizedCode = code.trim().toUpperCase();
+  if (!normalizedCode) return { ok: true, coupon: {}, discount: 0, eligibleSubtotal: 0 };
+  const coupon = await database.collection("coupons").findOne({ code: normalizedCode, active: { $ne: false } }) as JsonRecord | null;
+  if (!coupon) return { ok: false, message: "Coupon not recognised." };
+  const productIds = Array.isArray(coupon.productIds) ? coupon.productIds.map(String) : [];
+  const eligibleItems = coupon.productScope === "specific" ? items.filter((item) => productIds.includes(item.productId)) : items;
+  const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const minimumSubtotal = Math.max(0, Number(coupon.minimumSubtotal ?? 0));
+  if (eligibleSubtotal < minimumSubtotal) return { ok: false, message: `${normalizedCode} applies above ₹${minimumSubtotal.toLocaleString("en-IN")}.` };
+  const value = Math.max(0, Number(coupon.discountValue ?? 0));
+  const rawDiscount = coupon.discountType === "fixed" ? value : Math.round(eligibleSubtotal * value / 100);
+  const cappedDiscount = coupon.maxDiscount == null ? rawDiscount : Math.min(rawDiscount, Math.max(0, Number(coupon.maxDiscount)));
+  return { ok: true, coupon, discount: Math.min(eligibleSubtotal, Math.max(0, cappedDiscount)), eligibleSubtotal };
+}
+
+async function validateCoupon(request: Request) {
+  const input = await body(request);
+  const code = String(input.code ?? "");
+  const rawItems = Array.isArray(input.items) ? input.items : [];
+  const productIds = rawItems.map((item) => String((item as JsonRecord)?.productId ?? "")).filter(Boolean);
+  const database = await db();
+  const products = await database.collection("products").find({ id: { $in: productIds } }).project({ id: 1, price: 1 }).toArray();
+  const productMap = new Map(products.map((product) => [String(product.id), Number(product.price ?? 0)]));
+  const items = rawItems.map((item) => {
+    const row = item as JsonRecord;
+    return { productId: String(row.productId ?? ""), quantity: Math.max(1, Math.trunc(Number(row.quantity) || 1)), price: productMap.get(String(row.productId ?? "")) ?? 0 };
+  }).filter((item) => item.productId && productMap.has(item.productId));
+  const result = await calculateCoupon(database, code, items);
+  if (!result.ok) return fail(result.message);
+  return json({ ok: true, code: String(result.coupon.code ?? code).toUpperCase(), label: String(result.coupon.label ?? ""), discount: result.discount, eligibleSubtotal: result.eligibleSubtotal });
 }
 
 async function remove(resource: Resource, id: string) {
