@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { MongoClient, type Db, ObjectId } from "mongodb";
+import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import heroImage from "@/assets/hero.jpg";
 import storyImage from "@/assets/story.jpg";
@@ -7,6 +7,32 @@ import craftImage from "@/assets/craft.jpg";
 
 type Resource = "heroes" | "categories" | "products" | "announcements" | "coupons";
 type JsonRecord = Record<string, unknown>;
+type ReviewMedia = { id: string; name: string; type: "image" | "video"; contentType: string; size: number; url: string };
+type ReviewRecord = {
+  _id?: ObjectId;
+  productId: string;
+  customerId?: ObjectId;
+  reviewerName: string;
+  rating: number;
+  title: string;
+  body: string;
+  status: "pending" | "approved" | "rejected";
+  media: ReviewMedia[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+const reviewMediaBucketName = "review_media";
+const reviewMediaLimits = { image: 8 * 1024 * 1024, video: 20 * 1024 * 1024 };
+const reviewMediaTypes = new Map<string, "image" | "video">([
+  ["image/jpeg", "image"],
+  ["image/png", "image"],
+  ["image/webp", "image"],
+  ["image/gif", "image"],
+  ["video/mp4", "video"],
+  ["video/webm", "video"],
+  ["video/quicktime", "video"],
+]);
 
 let clientPromise: Promise<MongoClient> | undefined;
 
@@ -24,6 +50,8 @@ async function db(): Promise<Db> {
     database.collection("products").createIndex({ id: 1 }, { unique: true, sparse: true }),
     database.collection("categories").createIndex({ slug: 1 }, { unique: true, sparse: true }),
     database.collection("products").createIndex({ published: 1, category: 1, createdAt: -1 }),
+    database.collection("reviews").createIndex({ productId: 1, status: 1, createdAt: -1 }),
+    database.collection("reviews").createIndex({ customerId: 1, createdAt: -1 }),
   ]);
   return database;
 }
@@ -331,6 +359,211 @@ async function customersHistory(request: Request, customerId?: string) {
   ]).toArray();
   const summary = new Map(orderCounts.map((item) => [String(item._id), item]));
   return json(customers.map((customer) => ({ ...customer, orderCount: Number(summary.get(String(customer._id))?.orders ?? 0), orderTotal: Number(summary.get(String(customer._id))?.total ?? 0) })));
+}
+
+function isUpload(value: FormDataEntryValue): value is File {
+  return typeof value === "object" && value !== null && "arrayBuffer" in value && "size" in value && "type" in value;
+}
+
+function reviewMediaUrl(id: string) {
+  return `/api/review-media/${id}`;
+}
+
+function serializeReview(review: ReviewRecord) {
+  return {
+    ...review,
+    _id: review._id ? String(review._id) : undefined,
+    customerId: review.customerId ? String(review.customerId) : undefined,
+    media: (Array.isArray(review.media) ? review.media : []).map((media) => ({ ...media, url: media.url || reviewMediaUrl(media.id) })),
+  };
+}
+
+function publicReview(review: ReviewRecord) {
+  const serialized = serializeReview(review);
+  const { customerId: _customerId, ...safeReview } = serialized;
+  return safeReview;
+}
+
+async function uploadReviewMedia(database: Db, file: File): Promise<ReviewMedia> {
+  const category = reviewMediaTypes.get(file.type);
+  if (!category) throw new Error("Only JPG, PNG, WEBP, GIF, MP4, WEBM, and MOV files are supported.");
+  if (file.size > reviewMediaLimits[category]) {
+    throw new Error(`${category === "image" ? "Images" : "Videos"} must be smaller than ${category === "image" ? "8 MB" : "20 MB"}.`);
+  }
+  const bucket = new GridFSBucket(database, { bucketName: reviewMediaBucketName });
+  const fileId = await new Promise<ObjectId>((resolve, reject) => {
+    const stream = bucket.openUploadStream(file.name.slice(0, 180) || "review-upload", {
+      metadata: { contentType: file.type, category },
+    });
+    stream.once("finish", () => resolve(stream.id as ObjectId));
+    stream.once("error", reject);
+    file.arrayBuffer().then((buffer) => stream.end(Buffer.from(buffer))).catch(reject);
+  });
+  return {
+    id: String(fileId),
+    name: file.name.slice(0, 180) || "Review media",
+    type: category,
+    contentType: file.type,
+    size: file.size,
+    url: reviewMediaUrl(String(fileId)),
+  };
+}
+
+async function deleteReviewMedia(database: Db, mediaIds: string[]) {
+  const bucket = new GridFSBucket(database, { bucketName: reviewMediaBucketName });
+  await Promise.all(mediaIds.filter(ObjectId.isValid).map(async (id) => {
+    try {
+      await bucket.delete(new ObjectId(id));
+    } catch {
+      // The review can still be removed when a file was already deleted.
+    }
+  }));
+}
+
+function reviewSummaryShape() {
+  return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+}
+
+async function reviewSummaries(request: Request) {
+  const url = new URL(request.url);
+  const requestedIds = (url.searchParams.get("productIds") ?? "").split(",").map((id) => id.trim()).filter(Boolean);
+  const match = { status: "approved", ...(requestedIds.length ? { productId: { $in: requestedIds } } : {}) };
+  const rows = await (await db()).collection("reviews").aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: "$productId",
+        average: { $avg: "$rating" },
+        count: { $sum: 1 },
+        one: { $sum: { $cond: [{ $eq: ["$rating", 1] }, 1, 0] } },
+        two: { $sum: { $cond: [{ $eq: ["$rating", 2] }, 1, 0] } },
+        three: { $sum: { $cond: [{ $eq: ["$rating", 3] }, 1, 0] } },
+        four: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } },
+        five: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
+      },
+    },
+  ]).toArray();
+  const summaries: Record<string, ReturnType<typeof reviewSummaryShape>> = {};
+  for (const row of rows) {
+    summaries[String(row._id)] = {
+      average: Math.round(Number(row.average ?? 0) * 10) / 10,
+      count: Number(row.count ?? 0),
+      distribution: { 1: Number(row.one ?? 0), 2: Number(row.two ?? 0), 3: Number(row.three ?? 0), 4: Number(row.four ?? 0), 5: Number(row.five ?? 0) },
+    };
+  }
+  for (const id of requestedIds) summaries[id] ??= reviewSummaryShape();
+  return json({ summaries });
+}
+
+async function createReview(request: Request) {
+  const database = await db();
+  const customer = await customerFromRequest(request);
+  if (!customer) return fail("Please log in before writing a review.", 401);
+  const form = await request.formData();
+  const productId = String(form.get("productId") ?? "").trim();
+  const product = await database.collection("products").findOne({ id: productId, published: { $ne: false } });
+  if (!product) return fail("Product not found.", 404);
+  const rating = Number(form.get("rating"));
+  const title = String(form.get("title") ?? "").trim();
+  const reviewBody = String(form.get("body") ?? "").trim();
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail("Choose a rating from 1 to 5.");
+  if (!title || title.length > 120) return fail("Add a review title of 1–120 characters.");
+  if (!reviewBody || reviewBody.length > 5000) return fail("Add review details of 1–5000 characters.");
+  const files = form.getAll("media").filter(isUpload).filter((file) => file.size > 0);
+  if (files.length > 5) return fail("You can attach up to 5 images or videos.");
+  const media: ReviewMedia[] = [];
+  try {
+    for (const file of files) media.push(await uploadReviewMedia(database, file));
+    const now = new Date();
+    const review: ReviewRecord = {
+      productId,
+      customerId: customer._id,
+      reviewerName: String(customer.name ?? "").trim() || "Bawari customer",
+      rating,
+      title,
+      body: reviewBody,
+      status: "pending",
+      media,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const result = await database.collection("reviews").insertOne(review);
+    return json(publicReview({ ...review, _id: result.insertedId }), { status: 201 });
+  } catch (error) {
+    await deleteReviewMedia(database, media.map((item) => item.id));
+    return fail(error instanceof Error ? error.message : "Could not upload your review media.");
+  }
+}
+
+async function productReviews(request: Request) {
+  const url = new URL(request.url);
+  if (url.pathname === "/api/reviews/summaries") return await reviewSummaries(request);
+  if (request.method === "POST") return await createReview(request);
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  const productId = url.searchParams.get("productId")?.trim();
+  if (!productId) return fail("Product ID is required.");
+  const database = await db();
+  const reviews = await database.collection("reviews").find({ productId, status: "approved" }).sort({ createdAt: -1 }).limit(100).toArray();
+  return json({ reviews: reviews.map((review) => publicReview(review as ReviewRecord)), summary: (await reviewSummaries(new Request(`${url.origin}/api/reviews/summaries?productIds=${encodeURIComponent(productId)}`))).body });
+}
+
+async function reviewMedia(request: Request, id: string) {
+  if (!ObjectId.isValid(id)) return fail("Review media not found.", 404);
+  const bucket = new GridFSBucket(await db(), { bucketName: reviewMediaBucketName });
+  const file = await bucket.find({ _id: new ObjectId(id) }).next();
+  if (!file) return fail("Review media not found.", 404);
+  const chunks: Buffer[] = [];
+  const stream = bucket.openDownloadStream(new ObjectId(id));
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return new Response(Buffer.concat(chunks), { headers: { "cache-control": "public, max-age=31536000, immutable", "content-type": String(file.metadata?.contentType ?? file.contentType ?? "application/octet-stream") } });
+}
+
+async function adminReviews(request: Request, reviewId?: string) {
+  const database = await db();
+  if (reviewId && !ObjectId.isValid(reviewId)) return fail("Review not found.", 404);
+  const collection = database.collection("reviews");
+  if (reviewId && request.method === "DELETE") {
+    const review = await collection.findOne({ _id: new ObjectId(reviewId) }) as ReviewRecord | null;
+    if (!review) return fail("Review not found.", 404);
+    await collection.deleteOne({ _id: new ObjectId(reviewId) });
+    await deleteReviewMedia(database, (review.media ?? []).map((item) => item.id));
+    return json({ ok: true });
+  }
+  if (reviewId && (request.method === "PATCH" || request.method === "PUT")) {
+    const review = await collection.findOne({ _id: new ObjectId(reviewId) }) as ReviewRecord | null;
+    if (!review) return fail("Review not found.", 404);
+    const input = await body(request);
+    const rating = Number(input.rating ?? review.rating);
+    const status = String(input.status ?? review.status);
+    const title = String(input.title ?? review.title).trim();
+    const reviewBody = String(input.body ?? review.body).trim();
+    const reviewerName = String(input.reviewerName ?? review.reviewerName).trim();
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail("Rating must be between 1 and 5.");
+    if (!["pending", "approved", "rejected"].includes(status)) return fail("Invalid review status.");
+    if (!title || title.length > 120 || !reviewBody || reviewBody.length > 5000 || !reviewerName || reviewerName.length > 80) return fail("Review text or reviewer name is invalid.");
+    const currentMedia = Array.isArray(review.media) ? review.media : [];
+    const nextMedia = Array.isArray(input.media) ? input.media.filter((item): item is JsonRecord => Boolean(item && typeof item === "object")).map((item) => ({
+      id: String(item.id ?? ""),
+      name: String(item.name ?? "Review media"),
+      type: item.type === "video" ? "video" as const : "image" as const,
+      contentType: String(item.contentType ?? "application/octet-stream"),
+      size: Number(item.size ?? 0),
+      url: reviewMediaUrl(String(item.id ?? "")),
+    })).filter((item) => ObjectId.isValid(item.id)) : currentMedia;
+    const removedMedia = currentMedia.filter((media) => !nextMedia.some((item) => item.id === media.id)).map((media) => media.id);
+    await collection.updateOne({ _id: new ObjectId(reviewId) }, { $set: { rating, status, title, body: reviewBody, reviewerName, media: nextMedia, updatedAt: new Date() } });
+    await deleteReviewMedia(database, removedMedia);
+    return json(serializeReview({ ...review, rating, status: status as ReviewRecord["status"], title, body: reviewBody, reviewerName, media: nextMedia, updatedAt: new Date() }));
+  }
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  const url = new URL(request.url);
+  const status = url.searchParams.get("status");
+  const rating = Number(url.searchParams.get("rating") ?? 0);
+  const search = (url.searchParams.get("search") ?? "").trim().toLowerCase();
+  const products = await database.collection("products").find({}).project({ id: 1, name: 1 }).toArray();
+  const productNames = new Map(products.map((product) => [String(product.id), String(product.name ?? product.id)]));
+  const rows = await collection.find({ ...(status && status !== "all" ? { status } : {}), ...(rating >= 1 && rating <= 5 ? { rating } : {}) }).sort({ createdAt: -1 }).limit(500).toArray();
+  return json(rows.map((review) => ({ ...serializeReview(review as ReviewRecord), productName: productNames.get(String(review.productId)) ?? String(review.productId) })).filter((review) => !search || [review.productName, review.reviewerName, review.title, review.body].some((value) => String(value ?? "").toLowerCase().includes(search))));
 }
 
 async function storeSettings(request: Request) {
