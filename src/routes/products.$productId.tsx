@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { Minus, Plus, ShoppingBag } from "lucide-react";
+import { Check, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { useCart } from "@/components/site/CartDrawer";
+import { useWishlist } from "@/components/site/WishlistContext";
 import { formatPrice, sarees } from "@/data/sarees";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,45 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const { addItem } = useCart();
+  const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
+  const [sharing, setSharing] = useState(false);
+  const isWishlisted = wishlistIds.includes(saree.id);
+
+  async function shareProduct() {
+    if (sharing) return;
+    setSharing(true);
+    const url = typeof window === "undefined" ? `/products/${saree.id}` : window.location.href;
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: saree.name,
+          text: `${saree.name} — ${formatPrice(saree.price)}`,
+          url,
+        });
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const input = document.createElement("textarea");
+        input.value = url;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        input.remove();
+      }
+      window.alert("Product link copied to your clipboard.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      window.alert("Could not share this product right now.");
+    } finally {
+      setSharing(false);
+    }
+  }
 
   const gallery = [saree.image, saree.image, saree.image];
   const related = sarees
@@ -158,6 +198,36 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               className="inline-flex flex-1 items-center justify-center gap-2 bg-primary px-8 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
             >
               <ShoppingBag className="size-4" strokeWidth={1.6} /> Add to Cart
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              aria-pressed={isWishlisted}
+              onClick={() => void toggleWishlist(saree.id)}
+              className={cn(
+                "inline-flex items-center justify-center gap-2 border px-5 py-3 text-eyebrow transition-colors",
+                isWishlisted
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border text-primary hover:border-gold hover:bg-gold/5",
+              )}
+            >
+              {isWishlisted ? (
+                <Check className="size-4" strokeWidth={1.8} />
+              ) : (
+                <Heart className="size-4" strokeWidth={1.6} />
+              )}
+              {isWishlisted ? "Saved to Wishlist" : "Add to Wishlist"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void shareProduct()}
+              disabled={sharing}
+              className="inline-flex items-center justify-center gap-2 border border-border px-5 py-3 text-eyebrow text-primary transition-colors hover:border-gold hover:bg-gold/5 disabled:cursor-wait disabled:opacity-60"
+            >
+              <Share2 className="size-4" strokeWidth={1.6} />
+              {sharing ? "Sharing…" : "Share Product"}
             </button>
           </div>
 
