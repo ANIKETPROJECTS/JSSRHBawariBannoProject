@@ -47,10 +47,26 @@ function Home() {
   const [activeHero, setActiveHero] = useState(0);
   const [transitioningFrom, setTransitioningFrom] = useState<number | null>(null);
   const activeHeroRef = useRef(0);
+  const [liveHeroSlides, setLiveHeroSlides] = useState<typeof heroSlides | null>(null);
+  const slides = liveHeroSlides ?? heroSlides;
+  const currentHero = activeHero % slides.length;
+  const previousHero = transitioningFrom === null ? currentHero : transitioningFrom % slides.length;
+
+  useEffect(() => {
+    fetch("/api/catalog")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
+      .then((catalog: { heroes?: Array<{ image?: string; alt?: string }> }) => {
+        const nextSlides = (catalog.heroes ?? [])
+          .filter((slide) => slide.image)
+          .map((slide) => ({ image: String(slide.image), alt: String(slide.alt ?? "Bawari Banno saree collection") }));
+        if (nextSlides.length) setLiveHeroSlides(nextSlides as typeof heroSlides);
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      const nextHero = (activeHeroRef.current + 1) % heroSlides.length;
+      const nextHero = (activeHeroRef.current + 1) % slides.length;
       setTransitioningFrom(activeHeroRef.current);
       activeHeroRef.current = nextHero;
       setActiveHero(nextHero);
@@ -58,7 +74,7 @@ function Home() {
     }, 5500);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
   return (
     <SiteShell>
@@ -66,17 +82,17 @@ function Home() {
       <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
         <div className="relative overflow-hidden">
           <img
-            src={heroSlides[transitioningFrom ?? activeHero].image}
-            alt={heroSlides[transitioningFrom ?? activeHero].alt}
+            src={slides[previousHero].image}
+            alt={slides[previousHero].alt}
             width={1920}
             height={1088}
             className="absolute inset-0 h-full w-full object-cover"
           />
           {transitioningFrom !== null && (
             <img
-              key={activeHero}
-              src={heroSlides[activeHero].image}
-              alt={heroSlides[activeHero].alt}
+              key={currentHero}
+              src={slides[currentHero].image}
+              alt={slides[currentHero].alt}
               width={1920}
               height={1088}
               className="relative h-[68vh] min-h-[420px] w-full object-cover hero-fade-in"
@@ -84,8 +100,8 @@ function Home() {
           )}
           {transitioningFrom === null && (
             <img
-              src={heroSlides[activeHero].image}
-              alt={heroSlides[activeHero].alt}
+              src={slides[currentHero].image}
+              alt={slides[currentHero].alt}
               width={1920}
               height={1088}
               className="relative h-[68vh] min-h-[420px] w-full object-cover"

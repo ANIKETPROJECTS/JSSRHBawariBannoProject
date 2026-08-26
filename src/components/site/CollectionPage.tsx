@@ -61,10 +61,12 @@ function categoryTreeFromRecords(records: unknown[]): CategoryNode[] {
     .filter((item) => item.published !== false && String(item.slug ?? "").trim());
   return items
     .filter((item) => !item.parentSlug)
+    .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
     .map((parent) => {
       const id = String(parent.slug);
       const children = items
         .filter((item) => String(item.parentSlug ?? "") === id)
+        .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0))
         .map((child) => ({ id: String(child.slug), label: String(child.label ?? child.name ?? child.slug) }));
       return {
         id,

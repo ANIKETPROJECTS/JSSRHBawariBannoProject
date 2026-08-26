@@ -416,6 +416,54 @@ const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings
   announcements: { message: "", order: 0, active: true },
 };
 
+function reorderItems(items: RecordItem[], draggedId: string, targetId: string) {
+  const next = [...items];
+  const from = next.findIndex((item) => item._id === draggedId);
+  const to = next.findIndex((item) => item._id === targetId);
+  if (from < 0 || to < 0 || from === to) return items;
+  const [dragged] = next.splice(from, 1);
+  next.splice(to, 0, dragged);
+  return next;
+}
+
+function HeroSlidesManager() {
+  const [items, setItems] = useState<RecordItem[]>([]);
+  const [editing, setEditing] = useState<RecordItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  async function refresh() {
+    setLoading(true);
+    try { setItems(await api("/api/admin/heroes")); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not load hero slides."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void refresh(); }, []);
+  async function remove(item: RecordItem) {
+    if (!item._id || !window.confirm(`Delete ${String(item.title ?? "this hero slide")}? This cannot be undone.`)) return;
+    try { await api(`/api/admin/heroes/${item._id}`, { method: "DELETE" }); await refresh(); toast.success("Hero slide deleted."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete hero slide."); }
+  }
+  async function drop(targetId: string) {
+    if (!draggedId || draggedId === targetId) return;
+    const ordered = reorderItems(items, draggedId, targetId);
+    setDraggedId(null);
+    setDragOverId(null);
+    setItems(ordered);
+    setSavingOrder(true);
+    try {
+      await api("/api/admin/heroes/reorder", { method: "PUT", body: JSON.stringify({ ids: ordered.map((item) => item._id).filter(Boolean) }) });
+      toast.success("Hero slide order saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save hero slide order.");
+      await refresh();
+    } finally { setSavingOrder(false); }
+  }
+  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to hero slides</button><div className="max-w-xl"><Editor resource="heroes" initial={editing} onDone={() => { setEditing(null); void refresh(); }} /></div></div>;
+  return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{items.length} slides</p><h2 className="mt-1 font-display text-3xl text-primary">Hero slides</h2><p className="mt-2 text-sm text-muted-foreground">Drag the handle to set the homepage sequence.{savingOrder && " Saving order…"}</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.heroes, order: items.length })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><div className="mt-7 space-y-3">{loading ? <p className="text-sm text-muted-foreground">Loading…</p> : items.length === 0 ? <div className="border border-dashed border-[#cfc3b5] bg-white p-10 text-center text-sm text-muted-foreground">No hero slides yet.</div> : items.map((item, index) => <div key={item._id} draggable onDragStart={() => setDraggedId(item._id ?? null)} onDragOver={(event) => { event.preventDefault(); setDragOverId(item._id ?? null); }} onDragLeave={() => setDragOverId(null)} onDrop={(event) => { event.preventDefault(); void drop(item._id ?? ""); }} onDragEnd={() => { setDraggedId(null); setDragOverId(null); }} className={`flex items-center gap-4 border bg-white p-4 transition-colors ${dragOverId === item._id ? "border-gold bg-gold/5" : "border-[#ded5c9]"} ${draggedId === item._id ? "opacity-50" : ""}`}><button type="button" draggable aria-label={`Drag ${String(item.title ?? "hero slide")} to reorder`} className="cursor-grab text-muted-foreground active:cursor-grabbing"><GripVertical className="size-5" /></button><span className="w-5 text-center text-xs text-muted-foreground">{index + 1}</span>{typeof item.image === "string" && item.image ? <img src={item.image} alt="" className="h-16 w-28 shrink-0 object-cover" /> : <div className="h-16 w-28 shrink-0 bg-[#f0e9df]" />}<div className="min-w-0 flex-1"><p className="truncate font-medium text-primary">{String(item.title ?? "Untitled slide")}</p><p className="mt-1 truncate text-xs text-muted-foreground">{String(item.subtitle ?? (item.published === false ? "Draft" : "Published"))}</p></div><button type="button" onClick={() => setEditing({ ...item })} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => void remove(item)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(item.title ?? "hero slide")}`}><Trash2 className="size-4" /></button></div>)}</div></div>;
+}
+
 function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews"> }) {
   const [items, setItems] = useState<RecordItem[]>([]); const [editing, setEditing] = useState<RecordItem | null>(null); const [loading, setLoading] = useState(true);
   async function refresh() { setLoading(true); try { setItems(await api(`/api/admin/${resource}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load records."); } finally { setLoading(false); } }
@@ -426,7 +474,8 @@ function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "i
     return () => window.clearInterval(timer);
   }, [resource]);
   async function remove(id: string) { if (!window.confirm("Delete this record? This cannot be undone.")) return; try { await api(`/api/admin/${resource}/${id}`, { method: "DELETE" }); toast.success("Deleted."); void refresh(); } catch (error) { toast.error(error instanceof Error ? error.message : "Delete failed."); } }
-  if (resource === "categories") return <CategoryViewCrudPage />;
+  if (resource === "heroes") return <HeroSlidesManager />;
+  if (resource === "categories") return <SortableCategoryPage />;
   if (resource === "products") return <ProductViewCrudPage />;
   if (editing && resource === "products") return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to products</button><div className="max-w-4xl"><ProductEditor initial={editing} onDone={() => { setEditing(null); void refresh(); }} /></div></div>;
   return <><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{items.length} records</p><h2 className="mt-1 font-display text-3xl text-primary">Manage {resource === "heroes" ? "hero slides" : resource}</h2></div><button type="button" onClick={() => setEditing({ ...emptyByResource[resource] })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><div className="mt-7 grid gap-4 xl:grid-cols-[1fr_380px]"><div className="space-y-3">{loading ? <p className="text-sm text-muted-foreground">Loading…</p> : items.map((item) => <div key={item._id} className="flex items-center justify-between gap-4 border border-[#ded5c9] bg-white p-4"><div className="flex min-w-0 items-center gap-4">{typeof item.image === "string" && item.image ? <img src={item.image} alt="" className="size-14 shrink-0 object-cover" /> : <div className="size-14 shrink-0 bg-[#f0e9df]" />}<div className="min-w-0"><p className="truncate font-medium">{String(item.name ?? item.title ?? item.label ?? item.slug ?? "Untitled")}</p><p className="mt-1 text-xs text-muted-foreground">{resource === "products" ? `₹${Number(item.price ?? 0).toLocaleString("en-IN")} · Stock ${Number(item.stock ?? 0)}` : item.published === false ? "Draft" : "Published"}</p></div></div><div className="flex shrink-0 gap-2"><button type="button" onClick={() => setEditing(item)} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => item._id && void remove(item._id)} className="p-2 text-muted-foreground hover:text-red-700" aria-label="Delete"><Trash2 className="size-4" /></button></div></div>)}</div>{editing && <Editor resource={resource} initial={editing} onDone={() => { setEditing(null); void refresh(); }} />}</div></>;
@@ -676,6 +725,7 @@ function ProductViewCrudPage() {
   async function load() { try { const [productItems, categoryItems] = await Promise.all([api("/api/admin/products"), api("/api/admin/categories")]); setProducts(productItems); setCategories(categoryItems); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load products."); } }
   useEffect(() => { void load(); }, []);
   const categoryParents = useMemo(() => categories.filter((category) => !category.parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)), [categories]);
+  const childrenFor = (parentSlug: string) => categories.filter((category) => String(category.parentSlug ?? "") === parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
   const categoryOptions = useMemo(() => categoryParents.flatMap((parent) => {
     const parentSlug = String(parent.slug ?? "");
     const parentLabel = String(parent.label ?? parent.name ?? parentSlug);
@@ -685,7 +735,6 @@ function ProductViewCrudPage() {
     ];
   }), [categoryParents, categories]);
   const categoryBySlug = useMemo(() => new Map(categories.map((category) => [String(category.slug ?? ""), String(category.label ?? category.name ?? category.slug ?? "")])), [categories]);
-  const childrenFor = (parentSlug: string) => categories.filter((category) => String(category.parentSlug ?? "") === parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
   const categoryName = (value: unknown) => categoryBySlug.get(String(value ?? "")) ?? String(value ?? "Unassigned");
   const visible = products.filter((product) => { const query = search.trim().toLowerCase(); const stock = Number(product.stock ?? 0); const selectedCategory = categoryFilter.startsWith("parent:") ? String(product.category ?? "") === categoryFilter.slice(7) : categoryFilter.startsWith("child:") ? String(product.subcategory ?? "") === categoryFilter.slice(6) : true; return (!query || [product.name, product.id, product.fabric, product.category, product.subcategory, categoryName(product.category), categoryName(product.subcategory)].map((value) => String(value ?? "").toLowerCase()).join(" ").includes(query)) && selectedCategory && (stockFilter === "all" || (stockFilter === "in-stock" && stock > 0) || (stockFilter === "low-stock" && stock > 0 && stock <= 3) || (stockFilter === "out-of-stock" && stock === 0)); });
   async function remove(product: RecordItem) { if (!product._id || !window.confirm(`Delete ${String(product.name ?? product.id ?? "this product")}? This cannot be undone.`)) return; try { await api(`/api/admin/products/${product._id}`, { method: "DELETE" }); await load(); toast.success("Product deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete product."); } }
@@ -713,6 +762,45 @@ function CategoryViewCrudPage() {
   if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to categories</button><div className="max-w-xl"><Editor resource="categories" initial={editing} onDone={() => { setEditing(null); void load(); }} /></div></div>;
   const parents = categories.filter((category) => !category.parentSlug);
   return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{parents.length} main categories · {categories.length} total records</p><h2 className="mt-1 font-display text-3xl text-primary">Category management</h2><p className="mt-2 text-sm text-muted-foreground">Live categories and subcategories from your catalog.</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.categories })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add category</button></div><div className="mt-7 space-y-3">{parents.map((category) => { const slug = String(category.slug ?? ""); const children = categories.filter((item) => String(item.parentSlug ?? "") === slug); const assigned = products.filter((product) => String(product.category ?? "") === slug); return <section key={category._id ?? slug} className="border border-[#ded5c9] bg-white p-4"><div className="flex flex-wrap items-center gap-4"><button type="button" onClick={() => setViewing(category)} className="size-14 shrink-0 overflow-hidden bg-[#f0e9df]" aria-label={`View ${String(category.label ?? slug)}`}>{category.image && <img src={String(category.image)} alt="" className="h-full w-full object-cover" />}</button><div className="min-w-0 flex-1"><button type="button" onClick={() => setViewing(category)} className="text-left font-medium text-primary hover:underline">{String(category.label ?? slug)}</button><p className="mt-1 text-xs text-muted-foreground">{children.length} subcategor{children.length === 1 ? "y" : "ies"} · {assigned.length} product{assigned.length === 1 ? "" : "s"}</p></div><button type="button" onClick={() => setViewing(category)} className="border border-primary px-3 py-2 text-xs text-primary hover:bg-primary hover:text-white">View</button><button type="button" onClick={() => setEditing({ ...category })} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => setEditing({ label: "", slug: "", parentSlug: slug, description: "", image: "", order: children.length, published: true })} className="inline-flex items-center gap-1 border border-primary px-3 py-2 text-xs text-primary"><Plus className="size-3.5" /> Add subcategory</button><button type="button" onClick={() => void remove(category)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(category.label ?? slug)}`}><Trash2 className="size-4" /></button></div>{children.length > 0 && <div className="mt-4 grid gap-2 border-t border-border pt-4 sm:grid-cols-2">{children.map((child) => <div key={child._id} className="flex items-center gap-3 bg-[#fbf9f6] p-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-primary">{String(child.label ?? child.slug)}</p><p className="mt-1 text-xs text-muted-foreground">{products.filter((product) => String(product.subcategory ?? "") === String(child.slug)).length} products</p></div><button type="button" onClick={() => setViewing(child)} className="text-xs text-primary hover:underline">View</button><button type="button" onClick={() => setEditing({ ...child })} className="text-xs text-primary hover:underline">Edit</button><button type="button" onClick={() => void remove(child)} className="p-1.5 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(child.label ?? child.slug)}`}><Trash2 className="size-3.5" /></button></div>)}</div>}</section>; })}</div></div>;
+}
+
+function SortableCategoryPage() {
+  const [categories, setCategories] = useState<RecordItem[]>([]);
+  const [products, setProducts] = useState<RecordItem[]>([]);
+  const [editing, setEditing] = useState<RecordItem | null>(null);
+  const [viewing, setViewing] = useState<RecordItem | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [draggedGroup, setDraggedGroup] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  async function load() {
+    try { const [categoryItems, productItems] = await Promise.all([api("/api/admin/categories"), api("/api/admin/products")]); setCategories(categoryItems); setProducts(productItems); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not load categories."); }
+  }
+  useEffect(() => { void load(); }, []);
+  const parents = useMemo(() => categories.filter((category) => !category.parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)), [categories]);
+  const childrenFor = (parentSlug: string) => categories.filter((category) => String(category.parentSlug ?? "") === parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
+  function startDrag(id: string, group: string) { setDraggedId(id); setDraggedGroup(group); }
+  async function drop(targetId: string, group: string) {
+    if (!draggedId || draggedGroup !== group || draggedId === targetId) { setDraggedId(null); setDraggedGroup(null); setDragOverId(null); return; }
+    const source = group === "__parents" ? parents : childrenFor(group);
+    const ordered = reorderItems(source, draggedId, targetId);
+    setDraggedId(null); setDraggedGroup(null); setDragOverId(null); setSavingOrder(true);
+    try {
+      const updated = await api("/api/admin/categories/reorder", { method: "PUT", body: JSON.stringify({ ids: ordered.map((item) => item._id).filter(Boolean) }) });
+      setCategories(updated);
+      toast.success("Category order saved.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save category order."); await load(); }
+    finally { setSavingOrder(false); }
+  }
+  async function remove(category: RecordItem) {
+    if (!category._id || !window.confirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`)) return;
+    try { await api(`/api/admin/categories/${category._id}`, { method: "DELETE" }); await load(); toast.success("Category deleted."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete category."); }
+  }
+  if (viewing) return <CategoryViewPanel category={viewing} categories={categories} products={products} onClose={() => setViewing(null)} />;
+  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to categories</button><div className="max-w-xl"><Editor resource="categories" initial={editing} onDone={() => { setEditing(null); void load(); }} /></div></div>;
+  return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{parents.length} main categories · {categories.length} total records</p><h2 className="mt-1 font-display text-3xl text-primary">Category management</h2><p className="mt-2 text-sm text-muted-foreground">Drag the handle to set the storefront sequence.{savingOrder && " Saving order…"}</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.categories })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add category</button></div><div className="mt-7 space-y-3">{parents.map((category) => { const slug = String(category.slug ?? ""); const children = childrenFor(slug); const assigned = products.filter((product) => String(product.category ?? "") === slug || String(product.subcategory ?? "") === slug); return <section key={category._id ?? slug} draggable onDragStart={() => startDrag(category._id ?? "", "__parents")} onDragOver={(event) => { if (draggedGroup === "__parents") { event.preventDefault(); setDragOverId(category._id ?? null); } }} onDragLeave={() => setDragOverId(null)} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); void drop(category._id ?? "", "__parents"); }} onDragEnd={() => { setDraggedId(null); setDraggedGroup(null); setDragOverId(null); }} className={`border bg-white transition-colors ${dragOverId === category._id ? "border-gold bg-gold/5" : "border-[#ded5c9]"} ${draggedId === category._id ? "opacity-50" : ""}`}><div className="flex flex-wrap items-center gap-4 p-4"><button type="button" draggable aria-label={`Drag ${String(category.label ?? slug)} to reorder`} className="cursor-grab text-muted-foreground active:cursor-grabbing"><GripVertical className="size-5" /></button>{category.image ? <img src={String(category.image)} alt="" className="size-14 shrink-0 object-cover" /> : <div className="size-14 shrink-0 bg-[#f0e9df]" />}<div className="min-w-0 flex-1"><button type="button" onClick={() => setViewing(category)} className="text-left font-medium text-primary hover:underline">{String(category.label ?? slug)}</button><p className="mt-1 text-xs text-muted-foreground">{children.length} subcategor{children.length === 1 ? "y" : "ies"} · {assigned.length} product{assigned.length === 1 ? "" : "s"}</p></div><button type="button" onClick={() => setViewing(category)} className="border border-primary px-3 py-2 text-xs text-primary hover:bg-primary hover:text-white">View</button><button type="button" onClick={() => setEditing({ ...category })} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => setEditing({ label: "", slug: "", parentSlug: slug, description: "", image: "", order: children.length, published: true })} className="inline-flex items-center gap-1 border border-primary px-3 py-2 text-xs text-primary"><Plus className="size-3.5" /> Add subcategory</button><button type="button" onClick={() => void remove(category)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(category.label ?? slug)}`}><Trash2 className="size-4" /></button></div>{children.length > 0 && <div className="border-t border-border bg-[#fbf9f6] p-4"><div className="grid gap-2 sm:grid-cols-2">{children.map((child) => <div key={child._id} draggable onDragStart={(event) => { event.stopPropagation(); startDrag(child._id ?? "", slug); }} onDragOver={(event) => { event.stopPropagation(); if (draggedGroup === slug) { event.preventDefault(); setDragOverId(child._id ?? null); } }} onDragLeave={() => setDragOverId(null)} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); void drop(child._id ?? "", slug); }} onDragEnd={() => { setDraggedId(null); setDraggedGroup(null); setDragOverId(null); }} className={`flex items-center gap-3 border bg-white p-3 transition-colors ${dragOverId === child._id ? "border-gold bg-gold/5" : "border-border"} ${draggedId === child._id ? "opacity-50" : ""}`}><button type="button" draggable aria-label={`Drag ${String(child.label ?? child.slug)} to reorder`} className="cursor-grab text-muted-foreground active:cursor-grabbing"><GripVertical className="size-4" /></button><div className="min-w-0 flex-1"><button type="button" onClick={() => setViewing(child)} className="truncate text-left text-sm font-medium text-primary hover:underline">{String(child.label ?? child.slug)}</button><p className="mt-1 text-xs text-muted-foreground">{products.filter((product) => String(product.subcategory ?? "") === String(child.slug)).length} products</p></div><button type="button" onClick={() => setEditing({ ...child })} className="text-xs text-primary hover:underline">Edit</button><button type="button" onClick={() => void remove(child)} className="p-1.5 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(child.label ?? child.slug)}`}><Trash2 className="size-3.5" /></button></div>)}</div></div>}</section>; })}</div></div>;
 }
 
 function AnnouncementCrudPage() {

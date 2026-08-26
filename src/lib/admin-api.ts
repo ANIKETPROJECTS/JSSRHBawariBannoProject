@@ -190,6 +190,21 @@ async function remove(resource: Resource, id: string) {
   return result.deletedCount > 0;
 }
 
+async function reorder(resource: "heroes" | "categories", input: JsonRecord) {
+  const ids = Array.isArray(input.ids) ? input.ids.map(String) : [];
+  if (!ids.length || ids.some((id) => !ObjectId.isValid(id))) throw new Error("A valid ordered list is required.");
+  const database = await db();
+  const collection = database.collection(resource);
+  const now = new Date();
+  await collection.bulkWrite(ids.map((id, order) => ({
+    updateOne: {
+      filter: { _id: new ObjectId(id) },
+      update: { $set: { order, updatedAt: now } },
+    },
+  })));
+  return collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
+}
+
 async function recordPurchase(request: Request) {
   const input = await body(request);
   const items = Array.isArray(input.items) ? input.items : [];
@@ -970,6 +985,8 @@ async function handleAdmin(request: Request, path: string) {
   const reviewMatch = path.match(/^\/api\/admin\/reviews(?:\/([^/]+))?$/);
   if (reviewMatch) return await adminReviews(request, reviewMatch[1]);
   if (path === "/api/admin/settings") return await storeSettings(request);
+  const reorderMatch = path.match(/^\/api\/admin\/(heroes|categories)\/reorder$/);
+  if (reorderMatch && request.method === "PUT") return json(await reorder(reorderMatch[1] as "heroes" | "categories", await body(request)));
   const match = path.match(/^\/api\/admin\/(heroes|categories|products|announcements|coupons)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
   const resource = match[1] as Resource;
