@@ -109,6 +109,19 @@ function sareesFromRecords(records: unknown[]): Saree[] {
         ...(item.newArrival === true ? { newArrival: true } : {}),
         ...(item.trending === true ? { trending: true } : {}),
         ...(item.bestseller === true ? { bestseller: true } : {}),
+        ...(Array.isArray(item.variants) ? {
+          variants: item.variants.map((variant, index) => {
+            const row = variant && typeof variant === "object" ? variant as Record<string, unknown> : {};
+            const images = Array.isArray(row.images) ? row.images.map(String).filter(Boolean).slice(0, 5) : [];
+            return {
+              id: String(row.id ?? `${String(item.id)}-variant-${index + 1}`),
+              color: String(row.color ?? ""),
+              stock: Math.max(0, Math.trunc(Number(row.stock ?? 0))),
+              image: String(row.image ?? images[0] ?? ""),
+              ...(images.length ? { images } : {}),
+            };
+          }).filter((variant) => variant.color && variant.image),
+        } : {}),
       };
     });
 }

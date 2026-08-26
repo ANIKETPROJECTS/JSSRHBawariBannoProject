@@ -14,8 +14,8 @@ type CartContextValue = {
   items: CartItem[];
   isOpen: boolean;
   addItem: (product: Saree, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
+  removeItem: (productId: string, variantId?: string) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -34,16 +34,25 @@ type StoreCoupon = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+function cartItemKey(product: Saree) {
+  return `${product.id}::${product.selectedVariantId ?? ""}`;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   const addItem = (product: Saree, quantity = 1) => {
+    if (product.variants?.length && !product.selectedVariantId) {
+      toast.error("Choose a color before adding this product to your bag.");
+      return;
+    }
     setItems((current) => {
-      const existing = current.find((item) => item.product.id === product.id);
+      const key = cartItemKey(product);
+      const existing = current.find((item) => cartItemKey(item.product) === key);
       if (existing) {
         return current.map((item) =>
-          item.product.id === product.id
+          cartItemKey(item.product) === key
             ? { ...item, quantity: Math.min(9, item.quantity + quantity) }
             : item,
         );
@@ -59,19 +68,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       isOpen,
       addItem,
-      updateQuantity: (productId: string, quantity: number) => {
+      updateQuantity: (productId: string, quantity: number, variantId?: string) => {
         setItems((current) =>
           current
             .map((item) =>
-              item.product.id === productId
+              item.product.id === productId && (item.product.selectedVariantId ?? "") === (variantId ?? "")
                 ? { ...item, quantity: Math.max(0, Math.min(9, quantity)) }
                 : item,
             )
             .filter((item) => item.quantity > 0),
         );
       },
-      removeItem: (productId: string) => {
-        setItems((current) => current.filter((item) => item.product.id !== productId));
+      removeItem: (productId: string, variantId?: string) => {
+        setItems((current) => current.filter((item) => !(item.product.id === productId && (item.product.selectedVariantId ?? "") === (variantId ?? ""))));
       },
       clearCart: () => setItems([]),
       openCart: () => setIsOpen(true),
@@ -119,7 +128,7 @@ function CartDrawer() {
       const response = await fetch("/api/inventory/purchase", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })), couponCode: appliedCoupon, subtotal, shipping, discount, total }),
+        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, variantId: product.selectedVariantId, quantity })), couponCode: appliedCoupon, subtotal, shipping, discount, total }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
@@ -220,25 +229,26 @@ function CartDrawer() {
 
               <div className="divide-y divide-border">
                 {items.map(({ product, quantity }) => (
-                  <div key={product.id} className="flex gap-4 py-5">
+                  <div key={cartItemKey(product)} className="flex gap-4 py-5">
                     <img src={product.image} alt={product.name} className="aspect-[3/4] w-20 shrink-0 object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-eyebrow text-muted-foreground">{product.fabric}</p>
                           <h3 className="mt-1 text-sm leading-snug text-foreground">{product.name}</h3>
+                          {product.selectedVariantColor && <p className="mt-1 text-xs text-muted-foreground">Color: {product.selectedVariantColor}</p>}
                         </div>
-                        <button type="button" onClick={() => removeItem(product.id)} aria-label={`Remove ${product.name}`} className="text-muted-foreground hover:text-destructive">
+                        <button type="button" onClick={() => removeItem(product.id, product.selectedVariantId)} aria-label={`Remove ${product.name}${product.selectedVariantColor ? ` in ${product.selectedVariantColor}` : ""}`} className="text-muted-foreground hover:text-destructive">
                           <Trash2 className="size-4" strokeWidth={1.4} />
                         </button>
                       </div>
                       <div className="mt-4 flex items-center justify-between">
                         <div className="flex items-center border border-border">
-                          <button type="button" aria-label="Decrease quantity" onClick={() => updateQuantity(product.id, quantity - 1)} className="p-1.5 text-foreground/70 hover:text-primary">
+                          <button type="button" aria-label="Decrease quantity" onClick={() => updateQuantity(product.id, quantity - 1, product.selectedVariantId)} className="p-1.5 text-foreground/70 hover:text-primary">
                             <Minus className="size-3" strokeWidth={1.8} />
                           </button>
                           <span className="w-7 text-center text-xs">{quantity}</span>
-                          <button type="button" aria-label="Increase quantity" onClick={() => updateQuantity(product.id, quantity + 1)} className="p-1.5 text-foreground/70 hover:text-primary">
+                          <button type="button" aria-label="Increase quantity" onClick={() => updateQuantity(product.id, quantity + 1, product.selectedVariantId)} className="p-1.5 text-foreground/70 hover:text-primary">
                             <Plus className="size-3" strokeWidth={1.8} />
                           </button>
                         </div>

@@ -141,6 +141,32 @@ function productSlug(value: unknown) {
     .slice(0, 72);
 }
 
+function normalizeProductVariants(value: unknown, productId: string) {
+  if (!Array.isArray(value)) return [];
+  const ids = new Set<string>();
+  const colors = new Set<string>();
+  return value.map((entry, index) => {
+    const row = entry && typeof entry === "object" ? entry as JsonRecord : {};
+    const color = String(row.color ?? "").trim();
+    const rawImages = Array.isArray(row.images) ? row.images.map(String).map((image) => image.trim()).filter(Boolean) : [];
+    const image = String(row.image ?? rawImages[0] ?? "").trim();
+    const images = [image, ...rawImages.filter((item) => item !== image)].filter(Boolean).slice(0, 5);
+    const stock = Number(row.stock ?? 0);
+    if (!color) throw new Error(`Color variant ${index + 1} needs a color name.`);
+    if (colors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
+    if (!image) throw new Error(`Color variant "${color}" needs a cover image.`);
+    if (rawImages.filter((item) => item !== image).length > 4) throw new Error(`Color variant "${color}" can have no more than four extra images.`);
+    if (!Number.isInteger(stock) || stock < 0) throw new Error(`Color variant "${color}" needs a valid stock quantity.`);
+    colors.add(color.toLowerCase());
+    const baseId = productSlug(row.id || color) || `${productId}-variant-${index + 1}`;
+    let id = baseId;
+    let suffix = 2;
+    while (ids.has(id)) id = `${baseId}-${suffix++}`;
+    ids.add(id);
+    return { id, color, stock, image, images };
+  });
+}
+
 async function list(resource: Resource) {
   const collection = (await db()).collection(resource);
   return collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
@@ -168,13 +194,16 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
       delete document.subcategory;
       clearSubcategory = true;
     }
+    const variants = normalizeProductVariants(document.variants, String(document.id));
     const coverImage = String(document.image ?? "").trim();
     const extraImages = Array.isArray(document.images) ? document.images.map(String).map((image) => image.trim()).filter(Boolean) : [];
     const images = [coverImage, ...extraImages.filter((image) => image !== coverImage)].filter(Boolean).slice(0, 5);
-    if (!coverImage) throw new Error("A cover image is required for every product.");
+    if (!coverImage && !variants.length) throw new Error("A cover image is required when the product has no color variants.");
     if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
-    document.image = coverImage;
-    document.images = images;
+    document.variants = variants;
+    document.image = coverImage || variants[0]?.image || "";
+    document.images = coverImage ? images : (variants[0]?.images ?? []);
+    if (variants.length) document.stock = variants.reduce((total, variant) => total + variant.stock, 0);
     const originalPrice = Number(document.originalPrice ?? document.price);
     const discountType = String(document.discountType ?? "percentage") === "fixed" ? "fixed" : "percentage";
     const discountValue = document.discountValue === "" || document.discountValue == null ? 0 : Number(document.discountValue);
@@ -327,21 +356,28 @@ async function recordPurchase(request: Request) {
   );
   const orderNumber = Number(counter?.value ?? 1);
   const orderId = `BawriBanno${String(orderNumber).padStart(2, "0")}`;
-  const orderItems: { productId: string; name: string; image: string; quantity: number; price: number }[] = [];
-  const selectedProducts: { product: JsonRecord; productId: string; quantity: number }[] = [];
+  const orderItems: { productId: string; variantId?: string; variantColor?: string; name: string; image: string; quantity: number; price: number }[] = [];
+  const selectedProducts: { product: JsonRecord; productId: string; variantId?: string; quantity: number }[] = [];
   for (const item of items) {
     if (!item || typeof item !== "object") continue;
     const row = item as JsonRecord;
     const productId = typeof row.productId === "string" ? row.productId : "";
+    const requestedVariantId = typeof row.variantId === "string" ? row.variantId.trim() : "";
     const quantity = Math.max(1, Math.floor(Number(row.quantity) || 0));
     if (!productId || !quantity) continue;
     const product = await database.collection("products").findOne({ id: productId }) as JsonRecord | null;
-    if (!product || Number(product.stock ?? 0) < quantity) return fail(`${String(product?.name ?? productId)} is not available in that quantity.`, 409);
-    selectedProducts.push({ product, productId, quantity });
+    const productVariants = Array.isArray(product?.variants) ? product.variants as JsonRecord[] : [];
+    const variant = requestedVariantId ? productVariants.find((entry) => String(entry.id ?? "") === requestedVariantId) : undefined;
+    if (!product) return fail(`${productId} is no longer available.`, 409);
+    if (productVariants.length && !variant) return fail(`Choose a valid color for ${String(product.name ?? productId)}.`, 409);
+    const availableStock = variant ? Number(variant.stock ?? 0) : Number(product.stock ?? 0);
+    if (availableStock < quantity) return fail(`${String(product.name ?? productId)}${variant ? ` in ${String(variant.color ?? "that color")}` : ""} is not available in that quantity.`, 409);
+    selectedProducts.push({ product, productId, ...(variant ? { variantId: requestedVariantId } : {}), quantity });
     orderItems.push({
       productId,
+      ...(variant ? { variantId: requestedVariantId, variantColor: String(variant.color ?? "") } : {}),
       name: String(product.name ?? productId),
-      image: String(product.image ?? ""),
+      image: String(variant?.image ?? product.image ?? ""),
       quantity,
       price: Number(product.price ?? 0),
     });
@@ -358,21 +394,29 @@ async function recordPurchase(request: Request) {
   const discount = couponResult.discount;
   const total = Math.max(0, subtotal + shipping - discount);
   const events = [];
-  for (const { product, productId, quantity } of selectedProducts) {
+  for (const { product, productId, variantId, quantity } of selectedProducts) {
     const result = await database.collection("products").findOneAndUpdate(
-      { id: productId, stock: { $gte: quantity } },
-      { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
+      variantId
+        ? { id: productId, variants: { $elemMatch: { id: variantId, stock: { $gte: quantity } } } }
+        : { id: productId, stock: { $gte: quantity } },
+      variantId
+        ? { $inc: { "variants.$.stock": -quantity, stock: -quantity }, $set: { updatedAt: new Date() } }
+        : { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
       { returnDocument: "after" },
     );
     if (!result) return fail(`${String(product.name ?? productId)} sold out while checking out.`, 409);
+    const updatedVariant = variantId && Array.isArray(result.variants)
+      ? (result.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === variantId)
+      : undefined;
     events.push({
       orderId,
       eventType: "purchase",
       productId,
+      ...(variantId ? { variantId, variantColor: String(updatedVariant?.color ?? "") } : {}),
       productName: product.name,
       quantity: -quantity,
       previousStock: Number(product.stock ?? 0),
-      nextStock: Number(result.stock ?? 0),
+      nextStock: Number(updatedVariant?.stock ?? result.stock ?? 0),
       createdAt: new Date(),
     });
   }
@@ -443,21 +487,31 @@ async function inventoryCrud(request: Request, movementId?: string) {
   if (request.method === "POST") {
     const input = await body(request);
     const productId = String(input.productId ?? "").trim();
+    const variantId = String(input.variantId ?? "").trim();
     const quantity = Math.trunc(Number(input.quantity));
     const product = await database.collection("products").findOne({ id: productId });
     if (!product) return fail("Choose an existing product.");
     if (!Number.isFinite(quantity) || quantity === 0) return fail("Inventory change must be a non-zero whole number.");
-    const previousStock = Number(product.stock ?? 0);
+    const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+    const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
+    if (productVariants.length && !variantId) return fail("Choose a color variant for this product.");
+    if (variantId && !variant) return fail("Choose a valid color variant.");
+    const previousStock = Number(variant?.stock ?? product.stock ?? 0);
     const nextStock = previousStock + quantity;
     if (nextStock < 0) return fail("Inventory cannot go below zero.");
     const result = await database.collection("products").findOneAndUpdate(
-      { id: productId, stock: previousStock },
-      { $set: { stock: nextStock, updatedAt: new Date() } },
+      variantId
+        ? { id: productId, variants: { $elemMatch: { id: variantId, stock: previousStock } } }
+        : { id: productId, stock: previousStock },
+      variantId
+        ? { $inc: { "variants.$.stock": quantity, stock: quantity }, $set: { updatedAt: new Date() } }
+        : { $set: { stock: nextStock, updatedAt: new Date() } },
       { returnDocument: "after" },
     );
     if (!result) return fail("Stock changed before this adjustment was saved. Please try again.", 409);
     const movement = {
       productId,
+      ...(variantId ? { variantId, variantColor: String(variant?.color ?? "") } : {}),
       productName: product.name,
       quantity,
       previousStock,
@@ -480,16 +534,24 @@ async function inventoryCrud(request: Request, movementId?: string) {
     const eventType = String(input.eventType ?? current.eventType ?? "manual") === "purchase" ? "purchase" : "manual";
     if (!Number.isFinite(quantity) || quantity === 0) return fail("Inventory change must be a non-zero whole number.");
     const productId = String(current.productId ?? "").trim();
+    const variantId = String(current.variantId ?? "").trim();
     const product = await database.collection("products").findOne({ id: productId });
     if (!product) return fail("The product for this inventory record no longer exists.");
+    const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+    const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
+    if (variantId && !variant) return fail("The color variant for this inventory record no longer exists.");
     const delta = quantity - Number(current.quantity ?? 0);
-    const currentStock = Number(product.stock ?? 0);
+    const currentStock = Number(variant?.stock ?? product.stock ?? 0);
     const nextStock = currentStock + delta;
     if (nextStock < 0) return fail("This edit would make inventory negative.");
     if (delta) {
       const updatedProduct = await database.collection("products").findOneAndUpdate(
-        { id: productId, stock: currentStock },
-        { $set: { stock: nextStock, updatedAt: new Date() } },
+        variantId
+          ? { id: productId, variants: { $elemMatch: { id: variantId, stock: currentStock } } }
+          : { id: productId, stock: currentStock },
+        variantId
+          ? { $inc: { "variants.$.stock": delta, stock: delta }, $set: { updatedAt: new Date() } }
+          : { $set: { stock: nextStock, updatedAt: new Date() } },
         { returnDocument: "after" },
       );
       if (!updatedProduct) return fail("Stock changed before this edit was saved. Please try again.", 409);
@@ -506,12 +568,22 @@ async function inventoryCrud(request: Request, movementId?: string) {
     const current = await collection.findOne({ _id: new ObjectId(movementId) });
     if (!current) return fail("Inventory record not found.", 404);
     const productId = String(current.productId ?? "").trim();
+    const variantId = String(current.variantId ?? "").trim();
     const quantity = Number(current.quantity ?? 0);
     const product = await database.collection("products").findOne({ id: productId });
     if (product) {
-      const nextStock = Number(product.stock ?? 0) - quantity;
+      const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+      const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
+      if (variantId && !variant) return fail("The color variant for this inventory record no longer exists.", 409);
+      const currentStock = Number(variant?.stock ?? product.stock ?? 0);
+      const nextStock = currentStock - quantity;
       if (nextStock < 0) return fail("This deletion would make inventory negative.", 409);
-      await database.collection("products").updateOne({ id: productId }, { $set: { stock: nextStock, updatedAt: new Date() } });
+      await database.collection("products").updateOne(
+        variantId ? { id: productId, variants: { $elemMatch: { id: variantId, stock: currentStock } } } : { id: productId, stock: currentStock },
+        variantId
+          ? { $inc: { "variants.$.stock": -quantity, stock: -quantity }, $set: { updatedAt: new Date() } }
+          : { $set: { stock: nextStock, updatedAt: new Date() } },
+      );
     }
     await collection.deleteOne({ _id: new ObjectId(movementId) });
     return json({ ok: true });

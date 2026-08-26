@@ -10,6 +10,7 @@ export const Route = createFileRoute("/admin")({
 
 type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
+type ProductVariantForm = { id?: string; color: string; stock: number | string; image: string; extraImages: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -125,6 +126,8 @@ type InventoryEvent = {
   orderId?: string;
   eventType?: string;
   productId?: string;
+  variantId?: string;
+  variantColor?: string;
   productName?: string;
   quantity?: number;
   previousStock?: number;
@@ -193,7 +196,7 @@ function InventoryPage() {
 }
 
 type OrderAddress = { name?: string; line1?: string; line2?: string; city?: string; state?: string; pincode?: string; phone?: string };
-type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; paymentDetails?: string; transactionId?: string; total?: number; subtotal?: number; shipping?: number; discount?: number; customerName?: string; customerPhone?: string; customerEmail?: string; shippingAddress?: OrderAddress | string; address?: OrderAddress | string; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
+type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; paymentDetails?: string; transactionId?: string; total?: number; subtotal?: number; shipping?: number; discount?: number; customerName?: string; customerPhone?: string; customerEmail?: string; shippingAddress?: OrderAddress | string; address?: OrderAddress | string; items?: { productId: string; variantId?: string; variantColor?: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
 
 const orderStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled", "rejected"];
 const paymentStatuses = ["pending", "paid", "failed", "demo", "refunded"];
@@ -498,7 +501,7 @@ function SettingsPage() {
 const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
-  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false, newArrival: false, trending: false, bestseller: false },
+  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], variants: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false, newArrival: false, trending: false, bestseller: false },
   announcements: { message: "", order: 0, active: true },
 };
 
@@ -768,6 +771,19 @@ function LegacyProductEditor({ initial, categories, onDone }: { initial: RecordI
 }
 
 function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordItem; categories: RecordItem[]; onDone: () => void }) {
+  const initialVariants: ProductVariantForm[] = Array.isArray(initial.variants)
+    ? initial.variants.map((variant, index) => {
+      const row = variant && typeof variant === "object" ? variant as Record<string, unknown> : {};
+      const images = Array.isArray(row.images) ? row.images.map(String).filter(Boolean) : [];
+      return {
+        id: String(row.id ?? `${String(initial.id ?? "variant")}-${index + 1}`),
+        color: String(row.color ?? ""),
+        stock: Math.max(0, Math.trunc(Number(row.stock ?? 0))),
+        image: String(row.image ?? images[0] ?? ""),
+        extraImages: images.slice(1).join("\n"),
+      };
+    })
+    : [];
   const [form, setForm] = useState<RecordItem>(() => ({
     ...initial,
     price: Number(initial.originalPrice ?? initial.price ?? 0),
@@ -785,19 +801,54 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     newArrival: initial.newArrival === true,
     trending: initial.trending === true,
     bestseller: initial.bestseller === true,
+    variants: initialVariants,
   }));
   const [busy, setBusy] = useState(false);
   const parents = categories.filter((category) => !category.parentSlug);
   const subcategories = categories.filter((category) => String(category.parentSlug ?? "") === String(form.category ?? ""));
   const set = (key: string, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
+  const variants = Array.isArray(form.variants) ? form.variants as ProductVariantForm[] : [];
+  const setVariant = (index: number, key: keyof ProductVariantForm, value: string | number) => setForm((current) => ({
+    ...current,
+    variants: (Array.isArray(current.variants) ? current.variants as ProductVariantForm[] : []).map((variant, itemIndex) => itemIndex === index ? { ...variant, [key]: value } : variant),
+  }));
+  const addVariant = () => setForm((current) => ({
+    ...current,
+    variants: [...(Array.isArray(current.variants) ? current.variants as ProductVariantForm[] : []), { color: "", stock: 0, image: "", extraImages: "" }],
+  }));
+  const removeVariant = (index: number) => setForm((current) => ({
+    ...current,
+    variants: (Array.isArray(current.variants) ? current.variants as ProductVariantForm[] : []).filter((_, itemIndex) => itemIndex !== index),
+  }));
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const coverImage = String(form.coverImage ?? "").trim();
     const extraImages = String(form.extraImages ?? "").split(/\r?\n|,/).map((image) => image.trim()).filter(Boolean);
+    const rawVariants = variants;
+    const variantColors = new Set<string>();
+    let normalizedVariants: { id?: string; color: string; stock: number; image: string; images: string[] }[] = [];
+    try {
+      normalizedVariants = rawVariants.map((variant, index) => {
+        const color = String(variant.color ?? "").trim();
+        const image = String(variant.image ?? "").trim();
+        const variantImages = [image, ...String(variant.extraImages ?? "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean).filter((item) => item !== image)];
+        if (!color) throw new Error(`Add a color name for variant ${index + 1}.`);
+        if (variantColors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
+        variantColors.add(color.toLowerCase());
+        if (!image) throw new Error(`Add a cover image for the ${color} variant.`);
+        if (variantImages.length > 5) throw new Error(`The ${color} variant can have no more than four extra images.`);
+        const stock = Number(variant.stock);
+        if (!Number.isInteger(stock) || stock < 0) throw new Error(`Enter a valid stock quantity for the ${color} variant.`);
+        return { id: String(variant.id ?? "").trim() || undefined, color, stock, image, images: variantImages };
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Enter valid color variant details.");
+      return;
+    }
     const originalPrice = Number(form.price ?? 0);
     const discountValue = form.discountValue === "" ? 0 : Number(form.discountValue ?? 0);
-    if (!coverImage) { toast.error("A cover image is required."); return; }
+    if (!coverImage && !normalizedVariants.length) { toast.error("A cover image is required when the product has no color variants."); return; }
     if (extraImages.length > 4) { toast.error("Add no more than four extra images."); return; }
     if (!Number.isFinite(originalPrice) || originalPrice < 0) { toast.error("Enter a valid price."); return; }
     if (!Number.isFinite(discountValue) || discountValue < 0 || (form.discountType === "percentage" && discountValue > 100)) { toast.error("Enter a valid discount."); return; }
@@ -816,6 +867,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
           discountValue,
           image: coverImage,
           images,
+           variants: normalizedVariants,
           description: String(form.productDescription ?? "").trim(),
           productDescription: String(form.productDescription ?? "").trim(),
           subcategory: String(form.subcategory ?? "").trim() || undefined,
@@ -838,12 +890,38 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
           <label className="text-xs text-muted-foreground sm:col-span-2">Product name<input required value={String(form.name ?? "")} onChange={(event) => set("name", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
           <label className="text-xs text-muted-foreground">Price (₹)<input required type="number" min="0" step="1" value={Number(form.price ?? 0)} onChange={(event) => set("price", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
           <div className="text-xs text-muted-foreground"><span>Discount (optional)</span><div className="mt-1 flex"><input type="number" min="0" step="1" value={form.discountValue === "" ? "" : Number(form.discountValue ?? 0)} onChange={(event) => set("discountValue", event.target.value === "" ? "" : Number(event.target.value))} placeholder="0" className="min-w-0 flex-1 border border-border px-3 py-2.5 text-sm" /><select value={String(form.discountType ?? "percentage")} onChange={(event) => set("discountType", event.target.value)} className="w-32 border-y border-r border-border bg-white px-2 py-2.5 text-sm"><option value="percentage">% off</option><option value="fixed">₹ off</option></select></div></div>
-          <label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" step="1" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          <label className="text-xs text-muted-foreground">Stock quantity {variants.length > 0 && <span>(used only without color variants)</span>}<input required type="number" min="0" step="1" disabled={variants.length > 0} value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm disabled:bg-[#f4efe8]" /></label>
         </section>
         <section className="border-t border-border pt-5">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required. Add up to four extra images, one URL per line.</p>
-          <label className="mt-3 block text-xs text-muted-foreground">Cover image URL<input required value={String(form.coverImage ?? "")} onChange={(event) => set("coverImage", event.target.value)} placeholder="https://…/cover.jpg" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">{variants.length > 0 ? "Color variant galleries are active. The default gallery is optional and used only as a fallback." : "The cover image is required when no color variants are added. Add up to four extra images, one URL per line."}</p>
+          <label className="mt-3 block text-xs text-muted-foreground">Default cover image URL<input required={variants.length === 0} value={String(form.coverImage ?? "")} onChange={(event) => set("coverImage", event.target.value)} placeholder="https://…/cover.jpg" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
           <label className="mt-3 block text-xs text-muted-foreground">Extra image URLs <span>(optional, maximum 4)</span><textarea value={String(form.extraImages ?? "")} onChange={(event) => set("extraImages", event.target.value)} rows={4} placeholder={"https://…/detail-1.jpg\nhttps://…/detail-2.jpg"} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label>
+        </section>
+        <section className="border-t border-border pt-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div><p className="text-[10px] uppercase tracking-[0.16em] text-gold">Color variants</p><p className="mt-1 text-[11px] text-muted-foreground">Each color has its own cover gallery and inventory stock. Product details and pricing stay shared.</p></div>
+            <button type="button" onClick={addVariant} className="inline-flex items-center gap-1 border border-primary px-3 py-2 text-xs text-primary"><Plus className="size-3.5" /> Add color variant</button>
+          </div>
+          {variants.length === 0 ? (
+            <div className="mt-4 border border-dashed border-[#cfc3b5] bg-[#fbf9f6] p-4 text-sm text-muted-foreground">No color variants yet. This product will use the default gallery and stock above.</div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              {variants.map((variant, index) => (
+                <article key={variant.id || index} className="border border-border bg-[#fbf9f6] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="text-sm font-medium text-primary">Color variant {index + 1}</h4>
+                    <button type="button" onClick={() => removeVariant(index)} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-red-700"><Trash2 className="size-3.5" /> Remove</button>
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs text-muted-foreground">Color name<input required value={variant.color} onChange={(event) => setVariant(index, "color", event.target.value)} placeholder="Sunlit Yellow" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                    <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                    <label className="text-xs text-muted-foreground sm:col-span-2">Variant cover image URL<input required value={variant.image} onChange={(event) => setVariant(index, "image", event.target.value)} placeholder="https://…/yellow-cover.jpg" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                    <label className="text-xs text-muted-foreground sm:col-span-2">Variant extra image URLs <span>(optional, maximum 4)</span><textarea value={variant.extraImages} onChange={(event) => setVariant(index, "extraImages", event.target.value)} rows={3} placeholder={"https://…/yellow-detail-1.jpg\nhttps://…/yellow-detail-2.jpg"} className="mt-1 w-full resize-y border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
         <section className="border-t border-border pt-5">
           <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>

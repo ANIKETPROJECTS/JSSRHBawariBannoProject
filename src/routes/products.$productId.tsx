@@ -8,7 +8,7 @@ import { ProductPolicies } from "@/components/site/ProductPolicies";
 import { useCart } from "@/components/site/CartDrawer";
 import { useReviewSummary } from "@/components/site/ReviewsContext";
 import { useWishlist } from "@/components/site/WishlistContext";
-import { formatPrice, sarees } from "@/data/sarees";
+import { formatPrice, sarees, type SareeVariant } from "@/data/sarees";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/products/$productId")({
@@ -59,6 +59,22 @@ function ProductDetail() {
 }
 
 function normalizeProduct(raw: Record<string, unknown>, fallback: (typeof sarees)[number] | null): (typeof sarees)[number] {
+  const variants = Array.isArray(raw.variants)
+    ? raw.variants.map((entry, index): SareeVariant | null => {
+      const row = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+      const images = Array.isArray(row.images) ? row.images.map(String).filter(Boolean).slice(0, 5) : [];
+      const image = String(row.image ?? images[0] ?? "");
+      const color = String(row.color ?? "");
+      if (!color || !image) return null;
+      return {
+        id: String(row.id ?? `${String(raw.id ?? fallback?.id ?? "product")}-variant-${index + 1}`),
+        color,
+        stock: Math.max(0, Math.trunc(Number(row.stock ?? 0))),
+        image,
+        images: images.length ? images : [image],
+      };
+    }).filter((variant): variant is SareeVariant => Boolean(variant))
+    : fallback?.variants;
   return {
     id: String(raw.id ?? fallback?.id ?? ""),
     name: String(raw.name ?? fallback?.name ?? "Untitled product"),
@@ -68,6 +84,8 @@ function normalizeProduct(raw: Record<string, unknown>, fallback: (typeof sarees
     subcategory: raw.subcategory == null ? fallback?.subcategory : String(raw.subcategory),
     image: String(raw.image ?? fallback?.image ?? ""),
     images: Array.isArray(raw.images) ? raw.images.map(String).filter(Boolean).slice(0, 5) : fallback?.images,
+    variants,
+    stock: raw.stock == null ? fallback?.stock : Math.max(0, Math.trunc(Number(raw.stock))),
     blouse: String(raw.blouse ?? fallback?.blouse ?? ""),
     length: String(raw.length ?? fallback?.length ?? ""),
     care: String(raw.care ?? fallback?.care ?? ""),
@@ -122,11 +140,36 @@ function ProductInfoSections({ saree }: { saree: (typeof sarees)[number] }) {
 function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState(saree.variants?.[0]?.id ?? "");
   const { addItem } = useCart();
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
   const [sharing, setSharing] = useState(false);
   const isWishlisted = wishlistIds.includes(saree.id);
+  const variantOptions = saree.variants ?? [];
+  const variantKey = variantOptions.map((variant) => variant.id).join("|");
+  const selectedVariant = variantOptions.find((variant) => variant.id === selectedVariantId) ?? variantOptions[0];
+  const selectedProduct = selectedVariant
+    ? {
+      ...saree,
+      image: selectedVariant.image,
+      images: selectedVariant.images?.length ? selectedVariant.images : [selectedVariant.image],
+      stock: selectedVariant.stock,
+      selectedVariantId: selectedVariant.id,
+      selectedVariantColor: selectedVariant.color,
+    }
+    : saree;
+  const availableStock = selectedVariant?.stock ?? saree.stock;
+  const maxQuantity = availableStock == null ? 9 : Math.min(9, Math.max(1, availableStock));
+
+  useEffect(() => {
+    setSelectedVariantId((current) => variantOptions.some((variant) => variant.id === current) ? current : (variantOptions[0]?.id ?? ""));
+  }, [saree.id, variantKey]);
+
+  useEffect(() => {
+    setActive(0);
+    setQty(1);
+  }, [selectedVariantId]);
 
   async function shareProduct() {
     if (sharing) return;
@@ -164,7 +207,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
     }
   }
 
-  const gallery = (saree.images?.length ? saree.images : [saree.image]).filter(Boolean).slice(0, 5);
+  const gallery = (selectedProduct.images?.length ? selectedProduct.images : [selectedProduct.image]).filter(Boolean).slice(0, 5);
   const originalPrice = Number(saree.originalPrice ?? 0);
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
   const related = sarees
@@ -239,6 +282,37 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
             <ProductRating summary={reviewSummary} />
           </a>
 
+          {variantOptions.length > 0 && (
+            <div className="mt-6">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Available Colors</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {variantOptions.map((variant) => {
+                  const isSelected = variant.id === selectedVariant?.id;
+                  const isAvailable = variant.stock > 0;
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setSelectedVariantId(variant.id)}
+                      className={cn(
+                        "flex items-center gap-2 border p-2 text-left transition-colors",
+                        isSelected ? "border-primary bg-primary/5" : "border-border hover:border-gold",
+                        !isAvailable && "opacity-55",
+                      )}
+                    >
+                      <img src={variant.image} alt="" className="size-10 shrink-0 object-cover" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs text-primary">{variant.color}</span>
+                        <span className="mt-0.5 block text-[10px] text-muted-foreground">{isAvailable ? `${variant.stock} available` : "Sold out"}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 h-px bg-border" />
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -255,7 +329,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               <button
                 type="button"
                 aria-label="Increase quantity"
-                onClick={() => setQty((q) => Math.min(9, q + 1))}
+                onClick={() => setQty((q) => Math.min(maxQuantity, q + 1))}
                 className="p-3 text-foreground/70 hover:text-primary"
               >
                 <Plus className="size-3.5" strokeWidth={1.8} />
@@ -264,10 +338,11 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
             <button
               type="button"
-              onClick={() => addItem(saree, qty)}
-              className="inline-flex flex-1 items-center justify-center gap-2 bg-primary px-8 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
+              disabled={availableStock === 0}
+              onClick={() => addItem(selectedProduct, qty)}
+              className="inline-flex flex-1 items-center justify-center gap-2 bg-primary px-8 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <ShoppingBag className="size-4" strokeWidth={1.6} /> Add to Cart
+              <ShoppingBag className="size-4" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
             </button>
           </div>
 

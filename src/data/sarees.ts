@@ -8,6 +8,14 @@ import s7 from "@/assets/saree-7.jpg";
 import s8 from "@/assets/saree-8.jpg";
 import s9 from "@/assets/saree-9.jpg";
 
+export type SareeVariant = {
+  id: string;
+  color: string;
+  stock: number;
+  image: string;
+  images?: string[];
+};
+
 export type Saree = {
   id: string;
   name: string;
@@ -17,6 +25,10 @@ export type Saree = {
   subcategory?: string; // subcategory id
   image: string;
   images?: string[];
+  variants?: SareeVariant[];
+  stock?: number;
+  selectedVariantId?: string;
+  selectedVariantColor?: string;
   blouse: string;
   length: string;
   care: string;
