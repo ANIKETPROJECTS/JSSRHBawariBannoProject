@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, Users, XCircle } from "lucide-react";
+import { BarChart3, Boxes, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -290,8 +290,27 @@ function OrdersPage() {
   </div>;
 }
 
-type CustomerRecord = { _id?: string; name?: string; email?: string; phone?: string; createdAt?: string; orderCount?: number; orderTotal?: number };
+type CustomerRecord = { _id?: string; name?: string; email?: string; phone?: string; createdAt?: string; updatedAt?: string; lastLogin?: string; lastActivity?: string; orderCount?: number; orderTotal?: number; wishlist?: string[]; wishlistCount?: number; verified?: boolean; paidUser?: boolean; city?: string; state?: string; customerStats?: { orders: number; revenue: number } };
 type CustomerOrder = { orderId?: string; total?: number; status?: string; paymentStatus?: string; items?: { productId: string; quantity: number }[]; createdAt?: string };
+
+function customerRelativeDate(value: string | undefined) {
+  if (!value) return "—";
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "—";
+  const days = Math.max(0, Math.floor((Date.now() - timestamp) / 86400000));
+  if (days === 0) {
+    const hours = Math.max(1, Math.floor((Date.now() - timestamp) / 3600000));
+    return `about ${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
+
+function customerDate(value: string | undefined) {
+  if (!value) return "—";
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? new Date(timestamp).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "—";
+}
 
 function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerRecord[]>([]);

@@ -586,20 +586,103 @@ async function customersHistory(request: Request, customerId?: string) {
   if (customerId) {
     const customer = await database.collection("customers").findOne({ _id: new ObjectId(customerId) });
     if (!customer) return fail("Customer not found.", 404);
-    const orders = await database.collection("orders").find({ customerId: new ObjectId(customerId) }).sort({ createdAt: -1 }).toArray();
+    const orders = await database.collection("orders").find({
+      $or: [
+        { customerId: new ObjectId(customerId) },
+        { customerId: String(customerId) },
+        ...(customer.phone ? [{ customerPhone: customer.phone }] : []),
+        ...(customer.email ? [{ customerEmail: customer.email }] : []),
+      ],
+    }).sort({ createdAt: -1 }).toArray();
     return json({ customer, orders });
   }
   const url = new URL(request.url);
   const search = url.searchParams.get("search")?.trim();
+  const cityFilter = url.searchParams.get("city")?.trim().toLowerCase();
+  const stateFilter = url.searchParams.get("state")?.trim().toLowerCase();
+  const activityFilter = url.searchParams.get("activity")?.trim() || "all";
+  const paidFilter = url.searchParams.get("paid")?.trim() || "all";
+  const sortField = url.searchParams.get("sortField")?.trim() || "joined";
+  const sortDirection = url.searchParams.get("sortDirection") === "oldest" ? "oldest" : "newest";
   const query = search ? { $or: [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }, { phone: { $regex: search, $options: "i" } }] } : {};
   const customers = await database.collection("customers").find(query).sort({ createdAt: -1 }).limit(500).toArray();
   const customerIds = customers.map((customer) => customer._id);
-  const orderCounts = await database.collection("orders").aggregate([
-    { $match: { customerId: { $in: customerIds } } },
-    { $group: { _id: "$customerId", orders: { $sum: 1 }, total: { $sum: "$total" } } },
-  ]).toArray();
-  const summary = new Map(orderCounts.map((item) => [String(item._id), item]));
-  return json(customers.map((customer) => ({ ...customer, orderCount: Number(summary.get(String(customer._id))?.orders ?? 0), orderTotal: Number(summary.get(String(customer._id))?.total ?? 0) })));
+  const customerPhones = customers.map((customer) => customer.phone).filter(Boolean);
+  const customerEmails = customers.map((customer) => customer.email).filter(Boolean);
+  const orderMatch = [
+    ...(customerIds.length ? [{ customerId: { $in: [...customerIds, ...customerIds.map(String)] } }] : []),
+    ...(customerPhones.length ? [{ customerPhone: { $in: customerPhones } }] : []),
+    ...(customerEmails.length ? [{ customerEmail: { $in: customerEmails } }] : []),
+  ];
+  const orders = orderMatch.length ? await database.collection("orders").find({ $or: orderMatch }).sort({ createdAt: -1 }).limit(5000).toArray() : [];
+  const allOrders = await database.collection("orders").find({}).project({ total: 1 }).limit(5000).toArray();
+  const summary = new Map<string, { orders: number; total: number; latestActivity?: Date; paid: boolean; city?: string; state?: string; latestOrderName?: string }>();
+  const readAddress = (value: unknown) => {
+    if (!value || typeof value !== "object") return {};
+    const address = value as JsonRecord;
+    return {
+      city: String(address.city ?? "").trim(),
+      state: String(address.state ?? "").trim(),
+    };
+  };
+  const customerForOrder = (order: JsonRecord) => customers.find((customer) =>
+    (order.customerId != null && (String(order.customerId) === String(customer._id) || String(order.customerId) === String(customer._id))) ||
+    (customer.phone && String(order.customerPhone ?? "") === String(customer.phone)) ||
+    (customer.email && String(order.customerEmail ?? "").toLowerCase() === String(customer.email).toLowerCase()),
+  );
+  for (const order of orders) {
+    const customer = customerForOrder(order);
+    if (!customer) continue;
+    const key = String(customer._id);
+    const current = summary.get(key) ?? { orders: 0, total: 0, paid: false };
+    const createdAt = order.createdAt instanceof Date ? order.createdAt : new Date(String(order.createdAt ?? ""));
+    const address = readAddress(order.shippingAddress ?? order.address);
+    current.orders += 1;
+    current.total += Number(order.total ?? 0);
+    current.paid ||= ["paid", "success", "completed"].includes(String(order.paymentStatus ?? "").toLowerCase());
+    if (!current.latestActivity || (createdAt.getTime() && createdAt > current.latestActivity)) current.latestActivity = createdAt;
+    if (!current.city && address.city) current.city = address.city;
+    if (!current.state && address.state) current.state = address.state;
+    if (!current.latestOrderName && order.customerName) current.latestOrderName = String(order.customerName);
+    summary.set(key, current);
+  }
+  const now = Date.now();
+  const activityCutoffs: Record<string, number> = { today: 1, "7-days": 7, "30-days": 30 };
+  const rows = customers.map((customer) => {
+    const stats = summary.get(String(customer._id)) ?? { orders: 0, total: 0, paid: false };
+    const savedAddress = Array.isArray(customer.addresses) ? customer.addresses.map(readAddress).find((address) => address.city || address.state) : undefined;
+    const lastLogin = customer.lastLogin instanceof Date ? customer.lastLogin : customer.lastLogin ? new Date(String(customer.lastLogin)) : undefined;
+    const latestActivity = lastLogin && stats.latestActivity ? (lastLogin > stats.latestActivity ? lastLogin : stats.latestActivity) : lastLogin ?? stats.latestActivity;
+    const city = stats.city || String(savedAddress?.city ?? customer.city ?? "");
+    const state = stats.state || String(savedAddress?.state ?? customer.state ?? "");
+    const wishlistCount = Array.isArray(customer.wishlist) ? customer.wishlist.length : 0;
+    return {
+      ...customer,
+      name: customer.name || stats.latestOrderName || "",
+      orderCount: stats.orders,
+      orderTotal: stats.total,
+      wishlistCount,
+      verified: Boolean(customer.phone),
+      paidUser: stats.paid,
+      city,
+      state,
+      lastActivity: latestActivity,
+    };
+  }).filter((customer) => {
+    const customerActivity = customer.lastActivity ? new Date(String(customer.lastActivity)).getTime() : 0;
+    const activityDays = activityCutoffs[activityFilter];
+    const activityMatches = activityFilter === "all" || (activityFilter === "never" ? !customerActivity : Boolean(customerActivity) && now - customerActivity <= activityDays * 24 * 60 * 60 * 1000);
+    return (!cityFilter || String(customer.city).toLowerCase() === cityFilter)
+      && (!stateFilter || String(customer.state).toLowerCase() === stateFilter)
+      && activityMatches
+      && (paidFilter === "all" || (paidFilter === "paid" ? customer.paidUser : !customer.paidUser));
+  }).sort((a, b) => {
+    const multiplier = sortDirection === "oldest" ? 1 : -1;
+    const value = (field: string, row: typeof a) => field === "orders" ? Number(row.orderCount) : field === "spend" ? Number(row.orderTotal) : field === "activity" ? new Date(String(row.lastActivity ?? 0)).getTime() : new Date(String(row.createdAt ?? 0)).getTime();
+    return (value(sortField, a) - value(sortField, b)) * multiplier;
+  });
+  const overall = allOrders.reduce((result, order) => ({ orders: result.orders + 1, revenue: result.revenue + Number(order.total ?? 0) }), { orders: 0, revenue: 0 });
+  return json(rows.map((customer) => ({ ...customer, customerStats: overall })));
 }
 
 function isUpload(value: FormDataEntryValue): value is File {
