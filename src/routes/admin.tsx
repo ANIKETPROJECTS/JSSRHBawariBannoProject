@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Megaphone, Menu, Package, Plus, Save, Settings, ShoppingCart, Star, Tags, Trash2, Users } from "lucide-react";
+import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Megaphone, Menu, Package, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -462,10 +462,53 @@ function ProductManager() {
   const [products, setProducts] = useState<RecordItem[]>([]);
   const [categories, setCategories] = useState<RecordItem[]>([]);
   const [editing, setEditing] = useState<RecordItem | null>(null);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
   async function load() { try { const [productItems, categoryItems] = await Promise.all([api("/api/admin/products"), api("/api/admin/categories")]); setProducts(productItems); setCategories(categoryItems.filter((item: RecordItem) => !item.parentSlug)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load products."); } }
   useEffect(() => { void load(); }, []);
   const categoryName = (slug: unknown) => String(categories.find((category) => String(category.slug) === String(slug))?.label ?? slug ?? "Unassigned");
-  return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{products.length} products</p><h2 className="mt-1 font-display text-3xl text-primary">Products & stock</h2></div><button type="button" onClick={() => setEditing({ ...emptyByResource.products })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div>{editing ? <div className="mt-7 max-w-4xl"><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to products</button><SimpleProductEditor initial={editing} categories={categories} onDone={() => { setEditing(null); void load(); }} /></div> : <div className="mt-7 grid gap-3">{products.map((product) => <div key={product._id} className="flex flex-wrap items-center gap-4 border border-[#ded5c9] bg-white p-4"><div className="size-16 shrink-0 overflow-hidden bg-[#f0e9df]">{product.image && <img src={String(product.image)} alt="" className="h-full w-full object-cover" />}</div><div className="min-w-48 flex-1"><p className="font-medium text-primary">{String(product.name ?? product.id)}</p><p className="mt-1 text-xs text-muted-foreground">Category: <strong className="font-medium text-primary">{categoryName(product.category)}</strong></p><p className="mt-1 text-xs text-muted-foreground">₹{Number(product.price ?? 0).toLocaleString("en-IN")} · Stock {Number(product.stock ?? 0)}</p></div><button type="button" onClick={() => setEditing({ ...product })} className="border border-border px-3 py-2 text-xs text-primary">Edit</button></div>)}</div>}</div>;
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const matches = products.filter((product) => {
+      const productStock = Number(product.stock ?? 0);
+      const searchable = [product.name, product.id, product.fabric, product.category, categoryName(product.category)].map((value) => String(value ?? "").toLowerCase()).join(" ");
+      const matchesSearch = !query || searchable.includes(query);
+      const matchesCategory = categoryFilter === "all" || String(product.category ?? "") === categoryFilter;
+      const matchesStock = stockFilter === "all"
+        || (stockFilter === "in-stock" && productStock > 0)
+        || (stockFilter === "low-stock" && productStock > 0 && productStock <= 3)
+        || (stockFilter === "out-of-stock" && productStock === 0);
+      return matchesSearch && matchesCategory && matchesStock;
+    });
+    return matches.sort((a, b) => {
+      if (sort === "name-asc" || sort === "name-desc") {
+        const comparison = String(a.name ?? a.id ?? "").localeCompare(String(b.name ?? b.id ?? ""));
+        return sort === "name-asc" ? comparison : -comparison;
+      }
+      if (sort === "price-low" || sort === "price-high") {
+        const comparison = Number(a.price ?? 0) - Number(b.price ?? 0);
+        return sort === "price-low" ? comparison : -comparison;
+      }
+      if (sort === "stock-low" || sort === "stock-high") {
+        const comparison = Number(a.stock ?? 0) - Number(b.stock ?? 0);
+        return sort === "stock-low" ? comparison : -comparison;
+      }
+      if (sort === "oldest" || sort === "newest") {
+        const comparison = new Date(String(a.createdAt ?? 0)).getTime() - new Date(String(b.createdAt ?? 0)).getTime();
+        return sort === "oldest" ? comparison : -comparison;
+      }
+      return 0;
+    });
+  }, [categoryFilter, categories, products, search, sort, stockFilter]);
+  function clearFilters() {
+    setSearch("");
+    setCategoryFilter("all");
+    setStockFilter("all");
+    setSort("newest");
+  }
+  return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{filteredProducts.length === products.length ? `${products.length} products` : `Showing ${filteredProducts.length} of ${products.length} products`}</p><h2 className="mt-1 font-display text-3xl text-primary">Products & stock</h2></div><button type="button" onClick={() => setEditing({ ...emptyByResource.products })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div>{editing ? <div className="mt-7 max-w-4xl"><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to products</button><SimpleProductEditor initial={editing} categories={categories} onDone={() => { setEditing(null); void load(); }} /></div> : <><div className="mt-7 border border-[#ded5c9] bg-white p-5"><div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-gold"><SlidersHorizontal className="size-3.5" /> Catalog filters</div><div className="mt-4 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_170px_190px_auto]"><label className="relative block"><span className="sr-only">Search products</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, ID, fabric…" className="w-full border border-border py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gold" /></label><label><span className="sr-only">Filter by category</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All categories</option>{categories.map((category) => <option key={category._id} value={String(category.slug)}>{String(category.label ?? category.slug)}</option>)}</select></label><label><span className="sr-only">Filter by stock</span><select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All stock levels</option><option value="in-stock">In stock</option><option value="low-stock">Low stock (1–3)</option><option value="out-of-stock">Out of stock</option></select></label><label><span className="sr-only">Sort products</span><select value={sort} onChange={(event) => setSort(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name-asc">Name A–Z</option><option value="name-desc">Name Z–A</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="stock-low">Stock: low to high</option><option value="stock-high">Stock: high to low</option></select></label><button type="button" onClick={clearFilters} className="border border-border px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary">Clear</button></div></div><div className="mt-4 grid gap-3">{filteredProducts.length === 0 ? <div className="border border-dashed border-[#cfc3b5] bg-white p-10 text-center"><Search className="mx-auto size-5 text-gold" /><p className="mt-3 text-sm text-muted-foreground">No products match your search and filters.</p><button type="button" onClick={clearFilters} className="mt-3 text-xs text-primary hover:underline">Clear filters</button></div> : filteredProducts.map((product) => <div key={product._id} className="flex flex-wrap items-center gap-4 border border-[#ded5c9] bg-white p-4"><div className="size-16 shrink-0 overflow-hidden bg-[#f0e9df]">{product.image && <img src={String(product.image)} alt="" className="h-full w-full object-cover" />}</div><div className="min-w-48 flex-1"><p className="font-medium text-primary">{String(product.name ?? product.id)}</p><p className="mt-1 text-xs text-muted-foreground">Category: <strong className="font-medium text-primary">{categoryName(product.category)}</strong></p><p className="mt-1 text-xs text-muted-foreground">₹{Number(product.price ?? 0).toLocaleString("en-IN")} · Stock {Number(product.stock ?? 0)}</p></div><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] ${Number(product.stock ?? 0) === 0 ? "border-red-200 bg-red-50 text-red-700" : Number(product.stock ?? 0) <= 3 ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{Number(product.stock ?? 0) === 0 ? "Out of stock" : Number(product.stock ?? 0) <= 3 ? "Low stock" : "In stock"}</span><button type="button" onClick={() => setEditing({ ...product })} className="border border-border px-3 py-2 text-xs text-primary hover:border-primary">Edit</button></div>)}</div></>}</div>;
 }
 
 function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordItem; categories: RecordItem[]; onDone: () => void }) {
