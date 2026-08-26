@@ -498,7 +498,7 @@ function SettingsPage() {
 const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
-  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], blouse: "", length: "", care: "", description: "", productDetails: "", productSpecification: "", stock: 0, published: true, featured: false },
+  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false },
   announcements: { message: "", order: 0, active: true },
 };
 
@@ -737,7 +737,7 @@ function LegacySimpleProductEditor({ initial, categories, onDone }: { initial: R
   return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Catalog detail</p><h3 className="mt-1 font-display text-2xl text-primary">{form._id ? "Edit product" : "Add product"}</h3></div><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground sm:col-span-2">Product name<input required value={String(form.name ?? "")} onChange={(event) => set("name", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Product ID<input required value={String(form.id ?? "")} onChange={(event) => set("id", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Category<select required value={String(form.category ?? "")} onChange={(event) => { set("category", event.target.value); set("subcategory", ""); }} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">Choose a parent category</option>{parents.map((parent) => <option key={parent._id} value={String(parent.slug)}>{String(parent.label ?? parent.slug)}</option>)}</select><span className="mt-1 block text-[11px] text-muted-foreground">The product can be assigned directly to this parent.</span></label><label className="text-xs text-muted-foreground">Subcategory<select value={String(form.subcategory ?? "")} onChange={(event) => set("subcategory", event.target.value)} disabled={!form.category || subcategories.length === 0} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm disabled:bg-[#f4efe8]"><option value="">{!form.category ? "Choose category first" : subcategories.length ? "Directly in parent category" : "No subcategories for this category"}</option>{subcategories.map((subcategory) => <option key={subcategory._id} value={String(subcategory.slug)}>↳ {String(subcategory.label ?? subcategory.slug)}</option>)}</select><span className="mt-1 block text-[11px] text-muted-foreground">Optional child category from the selected parent.</span></label><label className="text-xs text-muted-foreground">Fabric<input value={String(form.fabric ?? "")} onChange={(event) => set("fabric", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Price (₹)<input required type="number" min="0" value={Number(form.price ?? 0)} onChange={(event) => set("price", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground sm:col-span-2">Image URLs<textarea required value={String(form.imageGallery ?? "")} onChange={(event) => set("imageGallery", event.target.value)} rows={4} placeholder="One URL per line" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground sm:col-span-2">Description<textarea required value={String(form.description ?? "")} onChange={(event) => set("description", event.target.value)} rows={5} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label></div><div className="mt-6 flex gap-5 border-t border-border pt-5 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={form.published !== false} onChange={(event) => set("published", event.target.checked)} /> Published on storefront</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.featured === true} onChange={(event) => set("featured", event.target.checked)} /> Featured product</label></div><button disabled={busy} className="mt-6 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving product…" : "Save product"}</button></form>;
 }
 
-function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordItem; categories: RecordItem[]; onDone: () => void }) {
+function LegacyProductEditor({ initial, categories, onDone }: { initial: RecordItem; categories: RecordItem[]; onDone: () => void }) {
   const [form, setForm] = useState(() => ({
     ...initial,
     coverImage: String(initial.image ?? ""),
@@ -765,6 +765,109 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     finally { setBusy(false); }
   }
   return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Catalog detail</p><h3 className="mt-1 font-display text-2xl text-primary">{form._id ? "Edit product" : "Add product"}</h3><p className="mt-2 text-sm text-muted-foreground">Everything entered here is saved to the live product record.</p></div><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground sm:col-span-2">Product name<input required value={String(form.name ?? "")} onChange={(event) => set("name", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Product ID<input required value={String(form.id ?? "")} onChange={(event) => set("id", event.target.value.trim().toLowerCase().replace(/\s+/g, "-"))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Fabric<input required value={String(form.fabric ?? "")} onChange={(event) => set("fabric", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Category<select required value={String(form.category ?? "")} onChange={(event) => { set("category", event.target.value); set("subcategory", ""); }} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">Choose a parent category</option>{parents.map((parent) => <option key={parent._id} value={String(parent.slug)}>{String(parent.label ?? parent.slug)}</option>)}</select></label><label className="text-xs text-muted-foreground">Subcategory<select value={String(form.subcategory ?? "")} onChange={(event) => set("subcategory", event.target.value)} disabled={!form.category || subcategories.length === 0} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm disabled:bg-[#f4efe8]"><option value="">{!form.category ? "Choose category first" : subcategories.length ? "Directly in parent category" : "No subcategories available"}</option>{subcategories.map((subcategory) => <option key={subcategory._id} value={String(subcategory.slug)}>↳ {String(subcategory.label ?? subcategory.slug)}</option>)}</select></label><label className="text-xs text-muted-foreground">Price (₹)<input required type="number" min="0" value={Number(form.price ?? 0)} onChange={(event) => set("price", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><div className="sm:col-span-2 border-t border-border pt-5"><p className="text-xs font-medium text-primary">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required. Add up to four extra images, one URL per line.</p><label className="mt-3 block text-xs text-muted-foreground">Cover image URL<input required value={String(form.coverImage ?? "")} onChange={(event) => set("coverImage", event.target.value)} placeholder="https://…/cover.jpg" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="mt-3 block text-xs text-muted-foreground">Extra image URLs <span className="text-muted-foreground">(optional, maximum 4)</span><textarea value={String(form.extraImages ?? "")} onChange={(event) => set("extraImages", event.target.value)} rows={4} placeholder={"https://…/detail-1.jpg\nhttps://…/detail-2.jpg"} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label></div><label className="text-xs text-muted-foreground sm:col-span-2">PRODUCT DETAILS<textarea required value={String(form.productDetails ?? "")} onChange={(event) => set("productDetails", event.target.value)} rows={4} placeholder="Fabric, occasion, drape, and other product details…" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground sm:col-span-2">PRODUCT DESCRIPTION<textarea required value={String(form.description ?? "")} onChange={(event) => set("description", event.target.value)} rows={6} placeholder="Tell customers the story of this product…" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground sm:col-span-2">PRODUCT SPECIFICATION<textarea required value={String(form.productSpecification ?? "")} onChange={(event) => set("productSpecification", event.target.value)} rows={4} placeholder="Weight, care instructions, country of origin, and measurements…" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Blouse details<input value={String(form.blouse ?? "")} onChange={(event) => set("blouse", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Saree length<input value={String(form.length ?? "")} onChange={(event) => set("length", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground sm:col-span-2">Care instructions<input value={String(form.care ?? "")} onChange={(event) => set("care", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label></div><div className="mt-6 flex flex-wrap gap-5 border-t border-border pt-5 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={form.published !== false} onChange={(event) => set("published", event.target.checked)} /> Published on storefront</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.featured === true} onChange={(event) => set("featured", event.target.checked)} /> Featured product</label></div><button disabled={busy} className="mt-6 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving product…" : "Save product"}</button></form>;
+}
+
+function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordItem; categories: RecordItem[]; onDone: () => void }) {
+  const [form, setForm] = useState<RecordItem>(() => ({
+    ...initial,
+    price: Number(initial.originalPrice ?? initial.price ?? 0),
+    originalPrice: Number(initial.originalPrice ?? initial.price ?? 0),
+    discountType: initial.discountType === "fixed" ? "fixed" : "percentage",
+    discountValue: initial.discountValue == null ? "" : Number(initial.discountValue),
+    coverImage: String(initial.image ?? ""),
+    extraImages: Array.isArray(initial.images) ? initial.images.slice(1).map(String).join("\n") : "",
+    productDescription: String(initial.productDescription ?? initial.description ?? ""),
+    fabric: String(initial.fabric ?? ""),
+    length: String(initial.length ?? ""),
+    weight: String(initial.weight ?? ""),
+    care: String(initial.care ?? ""),
+    countryOfOrigin: String(initial.countryOfOrigin ?? "India"),
+  }));
+  const [busy, setBusy] = useState(false);
+  const parents = categories.filter((category) => !category.parentSlug);
+  const subcategories = categories.filter((category) => String(category.parentSlug ?? "") === String(form.category ?? ""));
+  const set = (key: string, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const coverImage = String(form.coverImage ?? "").trim();
+    const extraImages = String(form.extraImages ?? "").split(/\r?\n|,/).map((image) => image.trim()).filter(Boolean);
+    const originalPrice = Number(form.price ?? 0);
+    const discountValue = form.discountValue === "" ? 0 : Number(form.discountValue ?? 0);
+    if (!coverImage) { toast.error("A cover image is required."); return; }
+    if (extraImages.length > 4) { toast.error("Add no more than four extra images."); return; }
+    if (!Number.isFinite(originalPrice) || originalPrice < 0) { toast.error("Enter a valid price."); return; }
+    if (!Number.isFinite(discountValue) || discountValue < 0 || (form.discountType === "percentage" && discountValue > 100)) { toast.error("Enter a valid discount."); return; }
+    if (form.discountType === "fixed" && discountValue > originalPrice) { toast.error("The fixed discount cannot be greater than the price."); return; }
+    setBusy(true);
+    try {
+      const images = [coverImage, ...extraImages.filter((image) => image !== coverImage)];
+      const { _id, coverImage: _coverImage, extraImages: _extraImages, ...payload } = form;
+      await api(`/api/admin/products${_id ? `/${_id}` : ""}`, {
+        method: _id ? "PUT" : "POST",
+        body: JSON.stringify({
+          ...payload,
+          id: String(form.id ?? "").trim() || undefined,
+          price: originalPrice,
+          originalPrice,
+          discountValue,
+          image: coverImage,
+          images,
+          description: String(form.productDescription ?? "").trim(),
+          productDescription: String(form.productDescription ?? "").trim(),
+          subcategory: String(form.subcategory ?? "").trim() || undefined,
+          countryOfOrigin: String(form.countryOfOrigin ?? "").trim() || "India",
+        }),
+      });
+      toast.success("Product saved."); onDone();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save product."); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-6">
+      <div className="flex items-start justify-between">
+        <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Catalog detail</p><h3 className="mt-1 font-display text-2xl text-primary">{form._id ? "Edit product" : "Add product"}</h3><p className="mt-2 text-sm text-muted-foreground">Product ID is generated automatically from the product name.</p></div>
+        <button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button>
+      </div>
+      <div className="mt-6 space-y-6">
+        <section className="grid gap-4 sm:grid-cols-2">
+          <label className="text-xs text-muted-foreground sm:col-span-2">Product name<input required value={String(form.name ?? "")} onChange={(event) => set("name", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          <label className="text-xs text-muted-foreground">Price (₹)<input required type="number" min="0" step="1" value={Number(form.price ?? 0)} onChange={(event) => set("price", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          <div className="text-xs text-muted-foreground"><span>Discount (optional)</span><div className="mt-1 flex"><input type="number" min="0" step="1" value={form.discountValue === "" ? "" : Number(form.discountValue ?? 0)} onChange={(event) => set("discountValue", event.target.value === "" ? "" : Number(event.target.value))} placeholder="0" className="min-w-0 flex-1 border border-border px-3 py-2.5 text-sm" /><select value={String(form.discountType ?? "percentage")} onChange={(event) => set("discountType", event.target.value)} className="w-32 border-y border-r border-border bg-white px-2 py-2.5 text-sm"><option value="percentage">% off</option><option value="fixed">₹ off</option></select></div></div>
+          <label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" step="1" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+        </section>
+        <section className="border-t border-border pt-5">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required. Add up to four extra images, one URL per line.</p>
+          <label className="mt-3 block text-xs text-muted-foreground">Cover image URL<input required value={String(form.coverImage ?? "")} onChange={(event) => set("coverImage", event.target.value)} placeholder="https://…/cover.jpg" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          <label className="mt-3 block text-xs text-muted-foreground">Extra image URLs <span>(optional, maximum 4)</span><textarea value={String(form.extraImages ?? "")} onChange={(event) => set("extraImages", event.target.value)} rows={4} placeholder={"https://…/detail-1.jpg\nhttps://…/detail-2.jpg"} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label>
+        </section>
+        <section className="border-t border-border pt-5">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
+          <label className="mt-3 block text-xs text-muted-foreground">Description<textarea required value={String(form.productDescription ?? "")} onChange={(event) => set("productDescription", event.target.value)} rows={5} placeholder="Describe the saree, its craft, colour, and occasion…" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label>
+        </section>
+        <section className="border-t border-border pt-5">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DETAILS</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <label className="text-xs text-muted-foreground">Fabric<input required value={String(form.fabric ?? "")} onChange={(event) => set("fabric", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+            <label className="text-xs text-muted-foreground">Category<select required value={String(form.category ?? "")} onChange={(event) => { set("category", event.target.value); set("subcategory", ""); }} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">Choose a parent category</option>{parents.map((parent) => <option key={parent._id} value={String(parent.slug)}>{String(parent.label ?? parent.slug)}</option>)}</select></label>
+            <label className="text-xs text-muted-foreground">Subcategory<select value={String(form.subcategory ?? "")} onChange={(event) => set("subcategory", event.target.value)} disabled={!form.category || subcategories.length === 0} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm disabled:bg-[#f4efe8]"><option value="">{!form.category ? "Choose category first" : subcategories.length ? "Optional subcategory" : "No subcategories available"}</option>{subcategories.map((subcategory) => <option key={subcategory._id} value={String(subcategory.slug)}>↳ {String(subcategory.label ?? subcategory.slug)}</option>)}</select></label>
+            <label className="text-xs text-muted-foreground">Length<input required value={String(form.length ?? "")} onChange={(event) => set("length", event.target.value)} placeholder="6.3 metres including blouse" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          </div>
+        </section>
+        <section className="border-t border-border pt-5">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT SPECIFICATION</p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <label className="text-xs text-muted-foreground">Weight<input required value={String(form.weight ?? "")} onChange={(event) => set("weight", event.target.value)} placeholder="Approx. 550 g" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+            <label className="text-xs text-muted-foreground">Care Instructions<input required value={String(form.care ?? "")} onChange={(event) => set("care", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+            <label className="text-xs text-muted-foreground">Country of Origin<input required value={String(form.countryOfOrigin ?? "India")} onChange={(event) => set("countryOfOrigin", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+          </div>
+        </section>
+      </div>
+      <div className="mt-6 flex flex-wrap gap-5 border-t border-border pt-5 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={form.published !== false} onChange={(event) => set("published", event.target.checked)} /> Published on storefront</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.featured === true} onChange={(event) => set("featured", event.target.checked)} /> Featured product</label></div>
+      <button disabled={busy} className="mt-6 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving product…" : "Save product"}</button>
+    </form>
+  );
 }
 
 function ProductEditor({ initial, onDone }: { initial: RecordItem; onDone: () => void }) {

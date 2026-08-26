@@ -132,6 +132,15 @@ function cleanDocument(value: JsonRecord) {
   return output;
 }
 
+function productSlug(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 72);
+}
+
 async function list(resource: Resource) {
   const collection = (await db()).collection(resource);
   return collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
@@ -143,6 +152,13 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
   const document = { ...cleanDocument(input), updatedAt: new Date() };
   let clearSubcategory = false;
   if (resource === "products") {
+    if (!String(document.id ?? "").trim()) {
+      const baseId = productSlug(document.name) || "product";
+      let generatedId = baseId;
+      let suffix = 2;
+      while (await collection.findOne({ id: generatedId })) generatedId = `${baseId}-${suffix++}`;
+      document.id = generatedId;
+    }
     const parentSlug = String(document.category ?? "").trim();
     const childSlug = String(document.subcategory ?? "").trim();
     if (childSlug) {
@@ -159,6 +175,20 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
     document.image = coverImage;
     document.images = images;
+    const originalPrice = Number(document.originalPrice ?? document.price);
+    const discountType = String(document.discountType ?? "percentage") === "fixed" ? "fixed" : "percentage";
+    const discountValue = document.discountValue === "" || document.discountValue == null ? 0 : Number(document.discountValue);
+    if (!Number.isFinite(originalPrice) || originalPrice < 0) throw new Error("Enter a valid product price.");
+    if (!Number.isFinite(discountValue) || discountValue < 0 || (discountType === "percentage" && discountValue > 100)) throw new Error("Enter a valid product discount.");
+    if (discountType === "fixed" && discountValue > originalPrice) throw new Error("The fixed discount cannot be greater than the product price.");
+    const sellingPrice = discountType === "fixed"
+      ? Math.max(0, originalPrice - discountValue)
+      : Math.max(0, Math.round(originalPrice * (1 - discountValue / 100)));
+    document.originalPrice = originalPrice;
+    document.discountType = discountType;
+    document.discountValue = discountValue;
+    document.price = sellingPrice;
+    document.countryOfOrigin = String(document.countryOfOrigin ?? "").trim() || "India";
     const productDescription = String(document.productDescription ?? document.description ?? "").trim();
     document.productDescription = productDescription;
     document.description = productDescription;

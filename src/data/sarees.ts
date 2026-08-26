@@ -20,12 +20,17 @@ export type Saree = {
   blouse: string;
   length: string;
   care: string;
+  weight?: string;
+  countryOfOrigin?: string;
   description: string;
   productDetails?: string;
   productDescription?: string;
   productSpecification?: string;
   addedOn: string;
   featured?: boolean;
+  originalPrice?: number;
+  discountType?: "percentage" | "fixed";
+  discountValue?: number;
 };
 
 export type CategoryNode = {
