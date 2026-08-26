@@ -146,7 +146,7 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     await collection.updateOne({ _id: new ObjectId(id) }, { $set: document });
     if (resource === "products" && previous && typeof previous.stock === "number" && typeof document.stock === "number" && previous.stock !== document.stock) {
       await database.collection("inventory_movements").insertOne({
-        productId: id,
+        productId: String(previous.id ?? id),
         previousStock: previous.stock,
         nextStock: document.stock,
         change: document.stock - previous.stock,
@@ -267,6 +267,92 @@ async function inventoryHistory(request: Request) {
   }));
 }
 
+async function inventoryCrud(request: Request, movementId?: string) {
+  const database = await db();
+  const collection = database.collection("inventory_movements");
+  if (movementId && !ObjectId.isValid(movementId)) return fail("Inventory record not found.", 404);
+
+  if (request.method === "POST") {
+    const input = await body(request);
+    const productId = String(input.productId ?? "").trim();
+    const quantity = Math.trunc(Number(input.quantity));
+    const product = await database.collection("products").findOne({ id: productId });
+    if (!product) return fail("Choose an existing product.");
+    if (!Number.isFinite(quantity) || quantity === 0) return fail("Inventory change must be a non-zero whole number.");
+    const previousStock = Number(product.stock ?? 0);
+    const nextStock = previousStock + quantity;
+    if (nextStock < 0) return fail("Inventory cannot go below zero.");
+    const result = await database.collection("products").findOneAndUpdate(
+      { id: productId, stock: previousStock },
+      { $set: { stock: nextStock, updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+    if (!result) return fail("Stock changed before this adjustment was saved. Please try again.", 409);
+    const movement = {
+      productId,
+      productName: product.name,
+      quantity,
+      previousStock,
+      nextStock,
+      eventType: String(input.eventType ?? "manual") === "purchase" ? "purchase" : "manual",
+      reason: String(input.reason ?? "Admin inventory adjustment").trim().slice(0, 240),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const inserted = await collection.insertOne(movement);
+    return json({ ...movement, _id: inserted.insertedId });
+  }
+
+  if (movementId && (request.method === "PUT" || request.method === "PATCH")) {
+    const current = await collection.findOne({ _id: new ObjectId(movementId) });
+    if (!current) return fail("Inventory record not found.", 404);
+    const input = await body(request);
+    const quantity = Math.trunc(Number(input.quantity ?? current.quantity));
+    const reason = String(input.reason ?? current.reason ?? "Admin inventory adjustment").trim().slice(0, 240);
+    const eventType = String(input.eventType ?? current.eventType ?? "manual") === "purchase" ? "purchase" : "manual";
+    if (!Number.isFinite(quantity) || quantity === 0) return fail("Inventory change must be a non-zero whole number.");
+    const productId = String(current.productId ?? "").trim();
+    const product = await database.collection("products").findOne({ id: productId });
+    if (!product) return fail("The product for this inventory record no longer exists.");
+    const delta = quantity - Number(current.quantity ?? 0);
+    const currentStock = Number(product.stock ?? 0);
+    const nextStock = currentStock + delta;
+    if (nextStock < 0) return fail("This edit would make inventory negative.");
+    if (delta) {
+      const updatedProduct = await database.collection("products").findOneAndUpdate(
+        { id: productId, stock: currentStock },
+        { $set: { stock: nextStock, updatedAt: new Date() } },
+        { returnDocument: "after" },
+      );
+      if (!updatedProduct) return fail("Stock changed before this edit was saved. Please try again.", 409);
+    }
+    const updated = await collection.findOneAndUpdate(
+      { _id: new ObjectId(movementId) },
+      { $set: { quantity, nextStock: Number(current.nextStock ?? 0) + delta, reason, eventType, updatedAt: new Date() } },
+      { returnDocument: "after" },
+    );
+    return updated ? json(updated) : fail("Inventory record not found.", 404);
+  }
+
+  if (movementId && request.method === "DELETE") {
+    const current = await collection.findOne({ _id: new ObjectId(movementId) });
+    if (!current) return fail("Inventory record not found.", 404);
+    const productId = String(current.productId ?? "").trim();
+    const quantity = Number(current.quantity ?? 0);
+    const product = await database.collection("products").findOne({ id: productId });
+    if (product) {
+      const nextStock = Number(product.stock ?? 0) - quantity;
+      if (nextStock < 0) return fail("This deletion would make inventory negative.", 409);
+      await database.collection("products").updateOne({ id: productId }, { $set: { stock: nextStock, updatedAt: new Date() } });
+    }
+    await collection.deleteOne({ _id: new ObjectId(movementId) });
+    return json({ ok: true });
+  }
+
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  return inventoryHistory(request);
+}
+
 async function ordersHistory(request: Request) {
   const url = new URL(request.url);
   const query: JsonRecord = {};
@@ -324,6 +410,63 @@ async function ordersHistory(request: Request) {
   }));
 }
 
+async function adminOrders(request: Request, orderId?: string) {
+  const database = await db();
+  const collection = database.collection("orders");
+  if (orderId && !ObjectId.isValid(orderId)) return fail("Order not found.", 404);
+
+  if (orderId && request.method === "DELETE") {
+    const result = await collection.deleteOne({ _id: new ObjectId(orderId) });
+    if (!result.deletedCount) return fail("Order not found.", 404);
+    return json({ ok: true });
+  }
+
+  if (request.method === "POST" || (orderId && (request.method === "PUT" || request.method === "PATCH"))) {
+    const input = await body(request);
+    const status = String(input.status ?? "pending");
+    const paymentStatus = String(input.paymentStatus ?? "demo");
+    const allowedStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
+    if (!allowedStatuses.includes(status)) return fail("Invalid order status.");
+    if (!paymentStatus || paymentStatus.length > 40) return fail("Invalid payment status.");
+    const items = Array.isArray(input.items) ? input.items.filter((item) => item && typeof item === "object").map((item) => {
+      const row = item as JsonRecord;
+      return {
+        productId: String(row.productId ?? "").trim(),
+        name: String(row.name ?? "").trim(),
+        image: String(row.image ?? "").trim(),
+        quantity: Math.max(1, Math.trunc(Number(row.quantity) || 1)),
+        price: Math.max(0, Number(row.price) || 0),
+      };
+    }).filter((item) => item.productId) : [];
+    const document = {
+      orderId: String(input.orderId ?? "").trim().slice(0, 80),
+      customerName: String(input.customerName ?? "").trim().slice(0, 120),
+      customerPhone: String(input.customerPhone ?? "").replace(/\D/g, "").slice(-10),
+      customerEmail: String(input.customerEmail ?? "").trim().slice(0, 160),
+      status,
+      paymentStatus,
+      paymentMethod: String(input.paymentMethod ?? "Demo").trim().slice(0, 60),
+      items,
+      subtotal: Math.max(0, Number(input.subtotal) || 0),
+      shipping: Math.max(0, Number(input.shipping) || 0),
+      discount: Math.max(0, Number(input.discount) || 0),
+      total: Math.max(0, Number(input.total) || 0),
+      updatedAt: new Date(),
+    };
+    if (document.customerEmail && !document.customerEmail.includes("@")) return fail("Enter a valid customer email.");
+    if (orderId) {
+      const updated = await collection.findOneAndUpdate({ _id: new ObjectId(orderId) }, { $set: document }, { returnDocument: "after" });
+      return updated ? json(updated) : fail("Order not found.", 404);
+    }
+    const orderNumber = await database.collection("counters").findOneAndUpdate({ _id: "orders" }, { $inc: { value: 1 } }, { upsert: true, returnDocument: "after" });
+    const created = { ...document, orderId: document.orderId || `BawriBanno${String(Number(orderNumber?.value ?? 1)).padStart(2, "0")}`, createdAt: new Date() };
+    const result = await collection.insertOne(created);
+    return json({ ...created, _id: result.insertedId }, { status: 201 });
+  }
+
+  return ordersHistory(request);
+}
+
 async function updateOrder(request: Request, id: string) {
   if (!ObjectId.isValid(id)) return fail("Order not found.", 404);
   const input = await body(request);
@@ -341,8 +484,32 @@ async function updateOrder(request: Request, id: string) {
 
 async function customersHistory(request: Request, customerId?: string) {
   const database = await db();
+  const collection = database.collection("customers");
+  if (customerId && !ObjectId.isValid(customerId)) return fail("Customer not found.", 404);
+  if (customerId && request.method === "DELETE") {
+    const result = await collection.deleteOne({ _id: new ObjectId(customerId) });
+    if (!result.deletedCount) return fail("Customer not found.", 404);
+    return json({ ok: true });
+  }
+  if (request.method === "POST" || (customerId && (request.method === "PUT" || request.method === "PATCH"))) {
+    const input = await body(request);
+    const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
+    const name = String(input.name ?? "").trim().slice(0, 120);
+    const email = String(input.email ?? "").trim().slice(0, 160);
+    if (phone.length !== 10) return fail("Enter a valid 10-digit mobile number.");
+    if (!name) return fail("Customer name is required.");
+    if (!email.includes("@")) return fail("Enter a valid customer email.");
+    const duplicate = await collection.findOne({ phone, ...(customerId ? { _id: { $ne: new ObjectId(customerId) } } : {}) });
+    if (duplicate) return fail("A customer with this mobile number already exists.", 409);
+    if (customerId) {
+      const updated = await collection.findOneAndUpdate({ _id: new ObjectId(customerId) }, { $set: { name, email, phone, updatedAt: new Date() } }, { returnDocument: "after" });
+      return updated ? json(updated) : fail("Customer not found.", 404);
+    }
+    const created = { name, email, phone, wishlist: [], addresses: [], createdAt: new Date(), updatedAt: new Date() };
+    const result = await collection.insertOne(created);
+    return json({ ...created, _id: result.insertedId }, { status: 201 });
+  }
   if (customerId) {
-    if (!ObjectId.isValid(customerId)) return fail("Customer not found.", 404);
     const customer = await database.collection("customers").findOne({ _id: new ObjectId(customerId) });
     if (!customer) return fail("Customer not found.", 404);
     const orders = await database.collection("orders").find({ customerId: new ObjectId(customerId) }).sort({ createdAt: -1 }).toArray();
@@ -527,6 +694,24 @@ async function adminReviews(request: Request, reviewId?: string) {
   const database = await db();
   if (reviewId && !ObjectId.isValid(reviewId)) return fail("Review not found.", 404);
   const collection = database.collection("reviews");
+  if (!reviewId && request.method === "POST") {
+    const input = await body(request);
+    const productId = String(input.productId ?? "").trim();
+    const product = await database.collection("products").findOne({ id: productId });
+    if (!product && !sarees.some((item) => item.id === productId)) return fail("Choose an existing product.");
+    const rating = Number(input.rating);
+    const status = String(input.status ?? "pending");
+    const title = String(input.title ?? "").trim();
+    const reviewBody = String(input.body ?? "").trim();
+    const reviewerName = String(input.reviewerName ?? "Bawari customer").trim();
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail("Rating must be between 1 and 5.");
+    if (!["pending", "approved", "rejected"].includes(status)) return fail("Invalid review status.");
+    if (!title || title.length > 120 || !reviewBody || reviewBody.length > 5000 || !reviewerName || reviewerName.length > 80) return fail("Review text or reviewer name is invalid.");
+    const now = new Date();
+    const review = { productId, reviewerName, rating, title, body: reviewBody, status, media: [], createdAt: now, updatedAt: now };
+    const result = await collection.insertOne(review);
+    return json(serializeReview({ ...review, _id: result.insertedId } as ReviewRecord), { status: 201 });
+  }
   if (reviewId && request.method === "DELETE") {
     const review = await collection.findOne({ _id: new ObjectId(reviewId) }) as ReviewRecord | null;
     if (!review) return fail("Review not found.", 404);
@@ -574,11 +759,26 @@ async function adminReviews(request: Request, reviewId?: string) {
 async function storeSettings(request: Request) {
   const database = await db();
   const collection = database.collection("settings");
-  if (request.method === "GET") return json((await collection.findOne({ _id: "store" })) ?? { _id: "store", shippingCharges: 250, freeShippingThreshold: 15000 });
+  const defaults = { _id: "store", shippingCharges: 250, freeShippingThreshold: 15000 };
+  if (request.method === "GET") {
+    const current = await collection.findOne({ _id: "store" });
+    return json({ ...(current ?? defaults), configured: Boolean(current) });
+  }
+  if (request.method === "POST") {
+    const current = await collection.findOne({ _id: "store" });
+    if (current) return fail("Store settings already exist. Edit the existing record.");
+    const input = cleanDocument(await body(request));
+    await collection.insertOne({ ...defaults, ...input, _id: "store", updatedAt: new Date() });
+    return json({ ...(await collection.findOne({ _id: "store" })), configured: true }, { status: 201 });
+  }
   if (request.method === "PUT") {
     const input = cleanDocument(await body(request));
     await collection.updateOne({ _id: "store" }, { $set: { ...input, updatedAt: new Date() } }, { upsert: true });
-    return json(await collection.findOne({ _id: "store" }));
+    return json({ ...(await collection.findOne({ _id: "store" })), configured: true });
+  }
+  if (request.method === "DELETE") {
+    await collection.deleteOne({ _id: "store" });
+    return json({ ...defaults, configured: false });
   }
   return fail("Method not allowed.", 405);
 }
@@ -733,16 +933,18 @@ async function handleAdmin(request: Request, path: string) {
     });
   }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
-  if (path === "/api/admin/inventory" && request.method === "GET") return await inventoryHistory(request);
-  if (path === "/api/admin/orders" && request.method === "GET") return await ordersHistory(request);
+  if (path === "/api/admin/inventory") return await inventoryCrud(request);
+  const inventoryMatch = path.match(/^\/api\/admin\/inventory\/([^/]+)$/);
+  if (inventoryMatch) return await inventoryCrud(request, inventoryMatch[1]);
+  if (path === "/api/admin/orders") return await adminOrders(request);
   const orderMatch = path.match(/^\/api\/admin\/orders\/([^/]+)$/);
-  if (orderMatch && (request.method === "PUT" || request.method === "PATCH")) return await updateOrder(request, orderMatch[1]);
+  if (orderMatch) return await adminOrders(request, orderMatch[1]);
   const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);
-  if (customerMatch && request.method === "GET") return await customersHistory(request, customerMatch[1]);
+  if (customerMatch) return await customersHistory(request, customerMatch[1]);
   const reviewMatch = path.match(/^\/api\/admin\/reviews(?:\/([^/]+))?$/);
   if (reviewMatch) return await adminReviews(request, reviewMatch[1]);
   if (path === "/api/admin/settings") return await storeSettings(request);
-  const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
+  const match = path.match(/^\/api\/admin\/(heroes|categories|products|announcements|coupons)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
   const resource = match[1] as Resource;
   const id = match[2];
