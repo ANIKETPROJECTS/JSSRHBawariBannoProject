@@ -923,44 +923,74 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div className="relative text-xs text-muted-foreground">
                       <span>Color name</span>
-                      <button
-                        type="button"
-                        role="combobox"
-                        aria-haspopup="listbox"
-                        aria-expanded={openColorIndex === index}
-                        onClick={() => setOpenColorIndex(openColorIndex === index ? null : index)}
-                        className="mt-1 flex w-full items-center justify-between border border-border bg-white px-3 py-2.5 text-left text-sm text-foreground"
-                      >
-                        <span className="flex items-center gap-2">
-                          {getProductColor(variant.color) ? (
-                            <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: getProductColor(variant.color)?.hex }} />
-                          ) : (
-                            <span className="size-4 rounded-full border border-dashed border-muted-foreground" />
-                          )}
-                          {getProductColor(variant.color)?.label ?? "Choose a color"}
-                        </span>
-                        <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", openColorIndex === index && "rotate-90")} />
-                      </button>
-                      {openColorIndex === index && (
-                        <div role="listbox" aria-label="Color options" className="absolute inset-x-0 top-full z-30 mt-1 max-h-56 overflow-y-auto border border-border bg-white p-1 shadow-lg">
-                          {productColors.map((option) => (
+                        {isCustomColor ? (
+                          <div className="mt-1 flex gap-2">
+                            <input
+                              required
+                              value={variant.color === otherColorKey ? "" : variant.color}
+                              onChange={(event) => setVariant(index, "color", event.target.value)}
+                              placeholder="e.g. Rose Gold"
+                              className="min-w-0 flex-1 border border-border bg-white px-3 py-2.5 text-sm text-foreground"
+                            />
                             <button
-                              key={option.key}
                               type="button"
-                              role="option"
-                              aria-selected={variant.color === option.key}
-                              onClick={() => {
-                                setVariant(index, "color", option.key);
-                                setOpenColorIndex(null);
-                              }}
-                              className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-[#f4efe8]", variant.color === option.key && "bg-[#f4efe8] text-primary")}
+                              onClick={() => setVariant(index, "color", "")}
+                              className="shrink-0 border border-border bg-white px-2 text-[10px] uppercase tracking-[0.08em] text-muted-foreground hover:border-primary hover:text-primary"
                             >
-                              <span className="size-4 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: option.hex }} />
-                              {option.label}
+                              List
                             </button>
-                          ))}
-                        </div>
-                      )}
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              role="combobox"
+                              aria-haspopup="listbox"
+                              aria-expanded={openColorIndex === index}
+                              onClick={() => setOpenColorIndex(openColorIndex === index ? null : index)}
+                              className="mt-1 flex w-full items-center justify-between border border-border bg-white px-3 py-2.5 text-left text-sm text-foreground"
+                            >
+                              <span className="flex items-center gap-2">
+                                <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: colorOption?.hex }} />
+                                {colorOption?.label ?? "Choose a color"}
+                              </span>
+                              <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", openColorIndex === index && "rotate-90")} />
+                            </button>
+                            {openColorIndex === index && (
+                              <div role="listbox" aria-label="Color options" className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto border border-border bg-white p-1 shadow-lg">
+                                {productColors.map((option) => (
+                                  <button
+                                    key={option.key}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={variant.color === option.key}
+                                    onClick={() => {
+                                      setVariant(index, "color", option.key);
+                                      setOpenColorIndex(null);
+                                    }}
+                                    className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-[#f4efe8]", variant.color === option.key && "bg-[#f4efe8] text-primary")}
+                                  >
+                                    <span className="size-4 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: option.hex }} />
+                                    {option.label}
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  role="option"
+                                  aria-selected={false}
+                                  onClick={() => {
+                                    setVariant(index, "color", otherColorKey);
+                                    setOpenColorIndex(null);
+                                  }}
+                                  className="mt-1 flex w-full items-center gap-2 border-t border-border px-2 py-2 text-left text-sm hover:bg-[#f4efe8]"
+                                >
+                                  <span className="size-4 shrink-0 rounded-full border border-dashed border-muted-foreground" />
+                                  Other — type a color
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
                     </div>
                     <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant cover image URL<input required value={variant.image} onChange={(event) => setVariant(index, "image", event.target.value)} placeholder="https://…/yellow-cover.jpg" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
