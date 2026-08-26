@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
 import { CollectionPage } from "@/components/site/CollectionPage";
-import { sarees } from "@/data/sarees";
 
 export const Route = createFileRoute("/new-arrival")({
   head: () => ({
@@ -14,14 +13,13 @@ export const Route = createFileRoute("/new-arrival")({
 });
 
 function NewArrival() {
-  const products = sarees.filter((saree) => saree.addedOn >= "2026-08-01");
   return (
     <SiteShell>
       <CollectionPage
         eyebrow="Just Added"
         title="New Arrivals"
         description="Fresh from the loom and newly added to our edit — the latest sarees to find a place in your wardrobe."
-        products={products}
+        productFilter={(saree) => saree.newArrival === true || saree.addedOn >= "2026-08-01"}
       />
     </SiteShell>
   );

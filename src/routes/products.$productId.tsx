@@ -71,13 +71,49 @@ function normalizeProduct(raw: Record<string, unknown>, fallback: (typeof sarees
     blouse: String(raw.blouse ?? fallback?.blouse ?? ""),
     length: String(raw.length ?? fallback?.length ?? ""),
     care: String(raw.care ?? fallback?.care ?? ""),
+    weight: String(raw.weight ?? fallback?.weight ?? ""),
+    countryOfOrigin: String(raw.countryOfOrigin ?? fallback?.countryOfOrigin ?? "India"),
     description: String(raw.productDescription ?? raw.description ?? fallback?.description ?? ""),
     productDetails: raw.productDetails == null ? fallback?.productDetails : String(raw.productDetails),
     productDescription: raw.productDescription == null ? fallback?.productDescription : String(raw.productDescription),
     productSpecification: raw.productSpecification == null ? fallback?.productSpecification : String(raw.productSpecification),
     addedOn: String(raw.addedOn ?? fallback?.addedOn ?? ""),
     featured: raw.featured === true,
+    originalPrice: raw.originalPrice == null ? fallback?.originalPrice : Number(raw.originalPrice),
+    discountType: raw.discountType === "fixed" ? "fixed" : "percentage",
+    discountValue: raw.discountValue == null ? fallback?.discountValue : Number(raw.discountValue),
   };
+}
+
+function ProductInfoSections({ saree }: { saree: (typeof sarees)[number] }) {
+  const [openInfo, setOpenInfo] = useState("details");
+  const details = [
+    ["Fabric", saree.fabric],
+    ["Category", saree.category],
+    ["Length", saree.length],
+  ].filter(([, value]) => value);
+  const specifications = [
+    ["Weight", saree.weight],
+    ["Care Instructions", saree.care],
+    ["Country of Origin", saree.countryOfOrigin || "India"],
+  ].filter(([, value]) => value);
+  const sections = [
+    ["details", "PRODUCT DETAILS", details],
+    ["description", "PRODUCT DESCRIPTION", saree.description ? [["Description", saree.description]] : []],
+    ["specification", "PRODUCT SPECIFICATION", specifications],
+  ] as const;
+  return (
+    <div className="mt-8 border-y border-border">
+      {sections.map(([id, title, rows]) => (
+        <div key={id} className="border-b border-border last:border-b-0">
+          <button type="button" aria-expanded={openInfo === id} onClick={() => setOpenInfo(openInfo === id ? "" : id)} className="flex w-full items-center justify-between gap-4 py-4 text-left text-xs font-medium tracking-[0.08em] text-primary">
+            <span>{title}</span><span className="text-base font-normal">{openInfo === id ? "⌃" : "⌄"}</span>
+          </button>
+          {openInfo === id && <div className="space-y-2 pb-5 text-sm leading-relaxed text-muted-foreground">{rows.length ? rows.map(([label, value]) => <div key={label}><span className="font-medium text-foreground/80">{label}: </span><span className="whitespace-pre-line">{value}</span></div>) : <p>Product information will be added soon.</p>}</div>}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
@@ -87,7 +123,6 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
   const [sharing, setSharing] = useState(false);
-  const [openInfo, setOpenInfo] = useState("details");
   const isWishlisted = wishlistIds.includes(saree.id);
 
   async function shareProduct() {
@@ -127,15 +162,8 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   }
 
   const gallery = (saree.images?.length ? saree.images : [saree.image]).filter(Boolean).slice(0, 5);
-  const productDetails = saree.productDetails?.trim() || [
-    `Fabric: ${saree.fabric}`,
-    `Category: ${saree.category}`,
-    `Length: ${saree.length}`,
-  ].join("\n");
-  const productSpecification = saree.productSpecification?.trim() || [
-    `Blouse: ${saree.blouse}`,
-    `Care instructions: ${saree.care}`,
-  ].join("\n");
+  const originalPrice = Number(saree.originalPrice ?? 0);
+  const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
   const related = sarees
     .filter((s) => s.id !== saree.id && s.category === saree.category)
     .concat(sarees.filter((s) => s.id !== saree.id && s.category !== saree.category))
@@ -195,40 +223,20 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
         <div>
           <p className="text-eyebrow text-muted-foreground">{saree.fabric}</p>
           <h1 className="mt-3 font-display text-4xl text-primary md:text-5xl">{saree.name}</h1>
+          <div className="mt-4">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{saree.description || "Product description will be added soon."}</p>
+          </div>
           <p className="mt-4 text-2xl tracking-wide text-foreground">
             {formatPrice(saree.price)}
           </p>
+          {hasDiscount && <div className="flex items-center gap-3"><p className="text-sm text-muted-foreground line-through">{formatPrice(originalPrice)}</p><span className="text-xs font-medium text-red-700">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></div>}
           <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
           <a href="#reviews" className="mt-3 inline-flex hover:opacity-80">
             <ProductRating summary={reviewSummary} />
           </a>
 
           <div className="mt-6 h-px bg-border" />
-
-          <div className="mt-8 border-y border-border">
-            {[
-              ["details", "PRODUCT DETAILS", productDetails],
-              ["description", "PRODUCT DESCRIPTION", saree.description],
-              ["specification", "PRODUCT SPECIFICATION", productSpecification],
-            ].map(([id, title, content]) => (
-              <div key={id} className="border-b border-border last:border-b-0">
-                <button
-                  type="button"
-                  aria-expanded={openInfo === id}
-                  onClick={() => setOpenInfo(openInfo === id ? "" : id)}
-                  className="flex w-full items-center justify-between gap-4 py-4 text-left text-xs font-medium tracking-[0.08em] text-primary"
-                >
-                  <span>{title}</span>
-                  <span className="text-base font-normal">{openInfo === id ? "⌃" : "⌄"}</span>
-                </button>
-                {openInfo === id && (
-                  <div className="whitespace-pre-line pb-5 text-sm leading-relaxed text-muted-foreground">
-                    {content || "Product information will be added soon."}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <div className="flex items-center border border-border">
@@ -290,6 +298,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
             </button>
           </div>
 
+          <ProductInfoSections saree={saree} />
           <p className="mt-5 text-xs text-muted-foreground">
             Complimentary blouse stitching consultation · Ships in 3–5 days
           </p>

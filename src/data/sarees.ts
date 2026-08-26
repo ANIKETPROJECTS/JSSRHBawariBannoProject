@@ -31,6 +31,9 @@ export type Saree = {
   originalPrice?: number;
   discountType?: "percentage" | "fixed";
   discountValue?: number;
+  newArrival?: boolean;
+  trending?: boolean;
+  bestseller?: boolean;
 };
 
 export type CategoryNode = {

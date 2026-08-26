@@ -19,6 +19,8 @@ export function ProductCard({
   const { addItem } = useCart();
   const reviewSummary = useReviewSummary(saree.id);
   const isWishlisted = ids.includes(saree.id);
+  const originalPrice = Number(saree.originalPrice ?? 0);
+  const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
 
   return (
     <Link
@@ -93,9 +95,7 @@ export function ProductCard({
         </div>
         <div className="mt-2 flex items-center gap-2">
           <p className="text-xl font-medium tracking-wide text-primary">{formatPrice(saree.price)}</p>
-          <p className="text-base tracking-wide text-muted-foreground line-through">
-            {formatPrice(Math.ceil((saree.price * 1.15) / 100) * 100)}
-          </p>
+          {hasDiscount && <><p className="text-base tracking-wide text-muted-foreground line-through">{formatPrice(originalPrice)}</p><span className="text-xs font-medium text-red-700">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></>}
           {showAddToCart && (
             <button
               type="button"

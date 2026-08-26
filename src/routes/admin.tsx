@@ -498,7 +498,7 @@ function SettingsPage() {
 const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
-  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false },
+  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false, newArrival: false, trending: false, bestseller: false },
   announcements: { message: "", order: 0, active: true },
 };
 
@@ -782,6 +782,9 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     weight: String(initial.weight ?? ""),
     care: String(initial.care ?? ""),
     countryOfOrigin: String(initial.countryOfOrigin ?? "India"),
+    newArrival: initial.newArrival === true,
+    trending: initial.trending === true,
+    bestseller: initial.bestseller === true,
   }));
   const [busy, setBusy] = useState(false);
   const parents = categories.filter((category) => !category.parentSlug);
@@ -863,6 +866,15 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
             <label className="text-xs text-muted-foreground">Country of Origin<input required value={String(form.countryOfOrigin ?? "India")} onChange={(event) => set("countryOfOrigin", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
           </div>
         </section>
+        <section className="border-t border-border pt-5">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">COLLECTION PLACEMENT</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Choose the storefront sections where this product should appear.</p>
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-sm">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={form.newArrival === true} onChange={(event) => set("newArrival", event.target.checked)} /> New Arrival</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={form.trending === true} onChange={(event) => set("trending", event.target.checked)} /> Trending</label>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={form.bestseller === true} onChange={(event) => set("bestseller", event.target.checked)} /> Bestseller</label>
+          </div>
+        </section>
       </div>
       <div className="mt-6 flex flex-wrap gap-5 border-t border-border pt-5 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={form.published !== false} onChange={(event) => set("published", event.target.checked)} /> Published on storefront</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.featured === true} onChange={(event) => set("featured", event.target.checked)} /> Featured product</label></div>
       <button disabled={busy} className="mt-6 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving product…" : "Save product"}</button>
@@ -899,7 +911,7 @@ function Editor({ resource, initial, onDone }: { resource: Exclude<Tab, "dashboa
   return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-5"><div className="flex items-center justify-between"><h3 className="font-display text-2xl text-primary">{form._id ? "Edit record" : "New record"}</h3><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-5 space-y-3">{fields.map(([key, label]) => <label key={key} className="block text-xs text-muted-foreground">{label}<input required={["title", "label", "name", "id", "slug", "message", "code"].includes(key)} type={["price", "stock", "order", "amount", "minimumSubtotal"].includes(key) ? "number" : "text"} value={String(form[key] ?? "")} onChange={(e) => setForm({ ...form, [key]: ["price", "stock", "order", "amount", "minimumSubtotal"].includes(key) ? Number(e.target.value) : e.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>)}</div>{["heroes", "categories", "products"].includes(resource) ? <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.published !== false} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Published on storefront</label> : <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active !== false} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active</label>}{resource === "products" && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.featured === true} onChange={(e) => setForm({ ...form, featured: e.target.checked })} /> Featured product</label>}<button disabled={busy} className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" /> {busy ? "Saving…" : "Save changes"}</button></form>;
 }
 
-function LegacyProductEditor({ initial, onDone }: { initial: RecordItem; onDone: () => void }) {
+function LegacyProductCrudEditor({ initial, onDone }: { initial: RecordItem; onDone: () => void }) {
   const existingImages = Array.isArray(initial.images) && initial.images.length ? initial.images.map(String) : [String(initial.image ?? "")];
   const [form, setForm] = useState({ ...initial, images: existingImages });
   const [busy, setBusy] = useState(false);

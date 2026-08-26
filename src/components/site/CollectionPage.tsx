@@ -52,6 +52,7 @@ export type CollectionPageProps = {
   title: string;
   description: string;
   products?: Saree[];
+  productFilter?: (saree: Saree) => boolean;
   initialSelection?: Selection;
 };
 
@@ -94,12 +95,20 @@ function sareesFromRecords(records: unknown[]): Saree[] {
         blouse: String(item.blouse ?? ""),
         length: String(item.length ?? ""),
         care: String(item.care ?? ""),
+        weight: String(item.weight ?? ""),
+        countryOfOrigin: String(item.countryOfOrigin ?? "India"),
         description: String(item.description ?? ""),
         ...(item.productDetails ? { productDetails: String(item.productDetails) } : {}),
         ...(item.productDescription || item.description ? { productDescription: String(item.productDescription ?? item.description) } : {}),
         ...(item.productSpecification ? { productSpecification: String(item.productSpecification) } : {}),
         addedOn: String(item.addedOn ?? item.createdAt ?? ""),
         ...(item.featured ? { featured: true } : {}),
+        ...(item.originalPrice != null ? { originalPrice: Number(item.originalPrice) } : {}),
+        ...(item.discountType === "fixed" || item.discountType === "percentage" ? { discountType: item.discountType } : {}),
+        ...(item.discountValue != null ? { discountValue: Number(item.discountValue) } : {}),
+        ...(item.newArrival === true ? { newArrival: true } : {}),
+        ...(item.trending === true ? { trending: true } : {}),
+        ...(item.bestseller === true ? { bestseller: true } : {}),
       };
     });
 }
@@ -109,6 +118,7 @@ export function CollectionPage({
   title,
   description,
   products,
+  productFilter,
   initialSelection = { category: null, subcategory: null },
 }: CollectionPageProps) {
   const [selection, setSelection] = useState<Selection>(initialSelection);
@@ -136,10 +146,11 @@ export function CollectionPage({
   }, []);
 
   const activeProducts = products ?? liveProducts ?? sarees;
+  const collectionProducts = productFilter ? activeProducts.filter(productFilter) : activeProducts;
   const activeCategories = liveCategories ?? categories;
 
   const list = useMemo(() => {
-    const filtered = activeProducts.filter((s) => {
+    const filtered = collectionProducts.filter((s) => {
       if (selection.subcategory) return s.subcategory === selection.subcategory;
       if (selection.category) return s.category === selection.category;
       return true;
@@ -160,7 +171,7 @@ export function CollectionPage({
     if (sort === "newest") sorted.sort((a, b) => b.addedOn.localeCompare(a.addedOn));
     if (sort === "featured") sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
-  }, [activeProducts, filters, selection, sort]);
+  }, [collectionProducts, filters, selection, sort]);
 
   return (
     <>
