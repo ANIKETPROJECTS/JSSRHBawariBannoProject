@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Check,
+  CheckCircle2,
   ChevronRight,
+  Circle,
   Heart,
   LogOut,
   MapPin,
@@ -10,6 +12,8 @@ import {
   Pencil,
   Plus,
   ShieldCheck,
+  Truck,
+  XCircle,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,7 +48,7 @@ const orders = [
   { id: "BB-2407-014", date: "28 July 2026", status: "In transit", item: sarees[3] },
 ];
 
-type CustomerOrder = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string };
+type CustomerOrder = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
 
 function Profile() {
   return <SiteShell><CustomerGate><AuthenticatedProfile /></CustomerGate></SiteShell>;
@@ -82,7 +86,60 @@ function AuthenticatedProfile() {
   return <CustomerProfileNoWishlist customer={customer} orders={customerOrders} saved={saved} editing={editing} saving={saving} onSave={save} onEditing={() => setEditing(!editing)} onSignOut={signOut} />;
 }
 
+function CustomerOrderTimeline({ order }: { order: CustomerOrder }) {
+  const normalized = String(order.status ?? "pending").toLowerCase();
+  const history = Array.isArray(order.statusHistory) ? order.statusHistory : [];
+  const historyByStatus = new Map(history.map((event) => [String(event.status).toLowerCase(), event]));
+  const standardSteps = [
+    { status: "pending", label: "Order placed", detail: "We received your order.", Icon: Package },
+    { status: "approved", label: "Order confirmed", detail: "Your order has been confirmed.", Icon: CheckCircle2 },
+    { status: "processing", label: "Preparing your order", detail: "Our team is getting your saree ready.", Icon: Package },
+    { status: "shipped", label: "Shipped", detail: "Your order is on its way.", Icon: Truck },
+    { status: "delivered", label: "Delivered", detail: "Your order has been delivered.", Icon: CheckCircle2 },
+  ];
+  const currentIndex = standardSteps.findIndex((step) => step.status === normalized);
+  const highestHistoryIndex = Math.max(...history.map((event) => standardSteps.findIndex((step) => step.status === String(event.status).toLowerCase())).filter((index) => index >= 0), -1);
+  const reachedIndex = Math.max(currentIndex, highestHistoryIndex);
+  const terminal = normalized === "cancelled" || normalized === "rejected";
+  const visibleSteps = terminal ? standardSteps.slice(0, Math.max(reachedIndex + 1, 1)) : standardSteps;
+  const steps = terminal ? [...visibleSteps, { status: normalized, label: normalized === "rejected" ? "Order rejected" : "Order cancelled", detail: normalized === "rejected" ? "This order was not accepted." : "This order was cancelled.", Icon: XCircle }] : visibleSteps;
+
+  return <div className="mt-5 border-t border-border pt-5">
+    <div className="flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Order tracking</p><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${terminal ? "border-red-200 bg-red-50 text-red-800" : normalized === "delivered" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-800"}`}>{normalized === "approved" ? "Confirmed" : normalized === "processing" ? "Processing" : normalized === "shipped" ? "In transit" : titleCaseOrderStatus(normalized)}</span></div>
+    <ol className="mt-5 grid gap-0 sm:grid-cols-5">
+      {steps.map((step, index) => {
+        const event = historyByStatus.get(step.status);
+        const stepIndex = standardSteps.findIndex((item) => item.status === step.status);
+        const completed = terminal ? index < steps.length - 1 : stepIndex <= reachedIndex;
+        const active = step.status === normalized;
+        const Icon = step.Icon;
+        return <li key={step.status} className="relative flex gap-3 pb-5 sm:block sm:pb-0 sm:pr-3">
+          {index < steps.length - 1 && <span className={`absolute left-[11px] top-6 h-[calc(100%-1.25rem)] w-px sm:left-6 sm:top-3 sm:h-px sm:w-[calc(100%-0.75rem)] ${completed ? "bg-primary" : "bg-border"}`} />}
+          <div className="relative z-10 flex size-6 shrink-0 items-center justify-center rounded-full border-2 bg-white" style={{ borderColor: completed || active ? "hsl(var(--primary))" : "hsl(var(--border))" }}><Icon className={`size-3.5 ${completed || active ? "text-primary" : "text-muted-foreground"}`} /></div>
+          <div className="sm:mt-3"><p className={`text-xs font-medium ${active ? "text-primary" : completed ? "text-foreground" : "text-muted-foreground"}`}>{step.label}</p><p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{event?.changedAt ? formatOrderDate(event.changedAt) : active || completed ? formatOrderDate(order.createdAt) : step.detail}</p></div>
+        </li>;
+      })}
+    </ol>
+    <p className="mt-1 text-xs text-muted-foreground">Current status: <span className="font-medium capitalize text-primary">{titleCaseOrderStatus(normalized)}</span></p>
+  </div>;
+}
+
+function titleCaseOrderStatus(value: string) {
+  return value.replace(/[-_]/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatOrderDate(value: string | undefined) {
+  if (!value) return "Date pending";
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Date pending";
+}
+
 function CustomerProfileNoWishlist({ customer, orders, saved, editing, saving, onSave, onEditing, onSignOut }: { customer: { name: string; email: string; phone: string }; orders: CustomerOrder[]; saved: typeof sarees; editing: boolean; saving: boolean; onSave: (event: React.FormEvent<HTMLFormElement>) => void; onEditing: () => void; onSignOut: () => void }) {
+  const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
+  return <><section className="fabric-texture border-b border-border"><div className="mx-auto max-w-7xl px-5 py-14"><p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p><h1 className="mt-3 font-display text-5xl font-light text-primary">Welcome back, {customer.name || "to your account"}</h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">Your personal space for heirlooms, orders and the little details that make every drape feel yours.</p></div></section><section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[260px_1fr] lg:gap-14"><aside><div className="border border-border bg-card p-6"><div className="flex items-center gap-4"><div className="flex size-16 items-center justify-center rounded-full bg-primary text-2xl text-white">{initials}</div><div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">+91 {customer.phone}</p></div></div><div className="mt-6 border-t border-border pt-5"><p className="text-eyebrow text-muted-foreground">Verified mobile</p><p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p></div></div><button type="button" onClick={onSignOut} className="mt-5 flex items-center gap-2 px-2 text-sm text-muted-foreground hover:text-primary"><LogOut className="size-4" /> Sign out</button></aside><div className="min-w-0"><section className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div><button type="button" onClick={onEditing} className="inline-flex items-center gap-2 text-sm text-primary"><Pencil className="size-3.5" />{editing ? "Cancel" : "Edit details"}</button></div><form onSubmit={onSave} className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2"><label><span className="text-eyebrow text-muted-foreground">Full name</span><input name="name" defaultValue={customer.name} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label><span className="text-eyebrow text-muted-foreground">Email address</span><input name="email" type="email" defaultValue={customer.email} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={`+91 ${customer.phone}`} readOnly className="mt-2 w-full border-b border-border bg-transparent py-2 text-sm outline-none" /></label>{editing && <button disabled={saving} className="w-fit bg-primary px-7 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}</form></section><div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">{orders.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Orders</p></div><Link to="/wishlist" className="border border-border bg-card p-5 transition-colors hover:border-gold"><p className="font-display text-4xl font-light text-primary">{saved.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Saved favourites</p><p className="mt-2 text-xs text-primary">View wishlist →</p></Link></div><section className="mt-8 border border-border bg-card p-6 sm:p-8"><div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Your purchases</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Order history</h2></div><span className="text-sm text-muted-foreground">{orders.length} order{orders.length === 1 ? "" : "s"}</span></div>{orders.length === 0 ? <p className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">Your order details will appear here after checkout.</p> : <div className="mt-6 space-y-4">{orders.map((order) => <article key={order._id ?? order.orderId} className="border border-border p-5"><div className="flex flex-wrap items-center gap-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId ?? "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Date unavailable"}</p><p className="mt-1 text-xs text-muted-foreground">{order.items?.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0) ?? 0} item(s) · {order.paymentMethod ?? "Demo payment"}</p></div><div className="text-right"><p className="font-medium text-primary">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><p className="mt-1 text-xs capitalize text-emerald-deep">{titleCaseOrderStatus(order.status ?? "pending")} · {order.paymentStatus ?? "pending"}</p></div></div><CustomerOrderTimeline order={order} /></article>)}</div>}</section></div></section></>;
+}
+
+function LegacyCustomerProfileNoWishlist({ customer, orders, saved, editing, saving, onSave, onEditing, onSignOut }: { customer: { name: string; email: string; phone: string }; orders: CustomerOrder[]; saved: typeof sarees; editing: boolean; saving: boolean; onSave: (event: React.FormEvent<HTMLFormElement>) => void; onEditing: () => void; onSignOut: () => void }) {
   const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
   return <><section className="fabric-texture border-b border-border"><div className="mx-auto max-w-7xl px-5 py-14"><p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p><h1 className="mt-3 font-display text-5xl font-light text-primary">Welcome back, {customer.name || "to your account"}</h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">Your personal space for heirlooms, orders and the little details that make every drape feel yours.</p></div></section><section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[260px_1fr] lg:gap-14"><aside><div className="border border-border bg-card p-6"><div className="flex items-center gap-4"><div className="flex size-16 items-center justify-center rounded-full bg-primary text-2xl text-white">{initials}</div><div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">+91 {customer.phone}</p></div></div><div className="mt-6 border-t border-border pt-5"><p className="text-eyebrow text-muted-foreground">Verified mobile</p><p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p></div></div><button type="button" onClick={onSignOut} className="mt-5 flex items-center gap-2 px-2 text-sm text-muted-foreground hover:text-primary"><LogOut className="size-4" /> Sign out</button></aside><div className="min-w-0"><section className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div><button type="button" onClick={onEditing} className="inline-flex items-center gap-2 text-sm text-primary"><Pencil className="size-3.5" />{editing ? "Cancel" : "Edit details"}</button></div><form onSubmit={onSave} className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2"><label><span className="text-eyebrow text-muted-foreground">Full name</span><input name="name" defaultValue={customer.name} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label><span className="text-eyebrow text-muted-foreground">Email address</span><input name="email" type="email" defaultValue={customer.email} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={`+91 ${customer.phone}`} readOnly className="mt-2 w-full border-b border-border bg-transparent py-2 text-sm outline-none" /></label>{editing && <button disabled={saving} className="w-fit bg-primary px-7 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}</form></section><div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">{orders.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Orders</p></div><Link to="/wishlist" className="border border-border bg-card p-5 transition-colors hover:border-gold"><p className="font-display text-4xl font-light text-primary">{saved.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Saved favourites</p><p className="mt-2 text-xs text-primary">View wishlist →</p></Link></div><section className="mt-8 border border-border bg-card p-6 sm:p-8"><div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Your purchases</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Order history</h2></div><span className="text-sm text-muted-foreground">{orders.length} order{orders.length === 1 ? "" : "s"}</span></div>{orders.length === 0 ? <p className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">Your order details will appear here after checkout.</p> : <div className="mt-6 divide-y divide-border border-y border-border">{orders.map((order) => <div key={order._id ?? order.orderId} className="flex flex-wrap items-center gap-4 py-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId ?? "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Date unavailable"}</p><p className="mt-1 text-xs text-muted-foreground">{order.items?.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0) ?? 0} item(s) · {order.paymentMethod ?? "Demo payment"}</p></div><div className="text-right"><p className="font-medium text-primary">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><p className="mt-1 text-xs capitalize text-emerald-deep">{order.status ?? "pending"} · {order.paymentStatus ?? "pending"}</p></div></div>)}</div>}</section></div></section></>;
 }

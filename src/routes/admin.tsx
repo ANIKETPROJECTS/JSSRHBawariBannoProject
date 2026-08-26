@@ -192,15 +192,15 @@ function InventoryPage() {
 }
 
 type OrderAddress = { name?: string; line1?: string; line2?: string; city?: string; state?: string; pincode?: string; phone?: string };
-type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; paymentDetails?: string; transactionId?: string; total?: number; subtotal?: number; shipping?: number; discount?: number; customerName?: string; customerPhone?: string; customerEmail?: string; shippingAddress?: OrderAddress | string; address?: OrderAddress | string; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string };
+type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; paymentDetails?: string; transactionId?: string; total?: number; subtotal?: number; shipping?: number; discount?: number; customerName?: string; customerPhone?: string; customerEmail?: string; shippingAddress?: OrderAddress | string; address?: OrderAddress | string; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
 
-const orderStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled"];
+const orderStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled", "rejected"];
 const paymentStatuses = ["pending", "paid", "failed", "demo", "refunded"];
 
 function statusBadge(status: string | undefined) {
   const value = String(status ?? "pending").toLowerCase();
   if (value === "delivered" || value === "paid" || value === "success" || value === "completed") return "border-emerald-200 bg-emerald-50 text-emerald-800";
-  if (value === "cancelled" || value === "failed" || value === "refunded") return "border-red-200 bg-red-50 text-red-800";
+  if (value === "cancelled" || value === "rejected" || value === "failed" || value === "refunded") return "border-red-200 bg-red-50 text-red-800";
   if (value === "processing" || value === "shipped" || value === "approved") return "border-sky-200 bg-sky-50 text-sky-800";
   return "border-amber-200 bg-amber-50 text-amber-800";
 }
