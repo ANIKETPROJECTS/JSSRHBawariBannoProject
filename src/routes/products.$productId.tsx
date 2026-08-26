@@ -302,9 +302,6 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
           </div>
 
           <ProductInfoSections saree={saree} />
-          <p className="mt-5 text-xs text-muted-foreground">
-            Complimentary blouse stitching consultation · Ships in 3–5 days
-          </p>
           <ProductPolicies />
         </div>
       </section>
