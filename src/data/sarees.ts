@@ -20,6 +20,8 @@ export type Saree = {
   length: string;
   care: string;
   description: string;
+  productDetails?: string;
+  productSpecification?: string;
   addedOn: string;
   featured?: boolean;
 };

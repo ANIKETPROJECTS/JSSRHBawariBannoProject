@@ -152,6 +152,13 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
       delete document.subcategory;
       clearSubcategory = true;
     }
+    const coverImage = String(document.image ?? "").trim();
+    const extraImages = Array.isArray(document.images) ? document.images.map(String).map((image) => image.trim()).filter(Boolean) : [];
+    const images = [coverImage, ...extraImages.filter((image) => image !== coverImage)].filter(Boolean).slice(0, 5);
+    if (!coverImage) throw new Error("A cover image is required for every product.");
+    if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
+    document.image = coverImage;
+    document.images = images;
   }
   if (resource === "coupons") {
     const code = String(document.code ?? "").trim().toUpperCase();
