@@ -38,7 +38,18 @@ function AdminPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    api("/api/admin/me").then(() => setAuthenticated(true)).catch(() => setAuthenticated(false));
+    let active = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+    api("/api/admin/me", { signal: controller.signal })
+      .then(() => { if (active) setAuthenticated(true); })
+      .catch(() => { if (active) setAuthenticated(false); })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
   }, []);
   async function signOut() {
     try {
@@ -128,6 +139,13 @@ type InventoryEvent = {
   itemPrice?: number;
 };
 
+function inventoryStatus(stock: number | null) {
+  if (stock === null || !Number.isFinite(stock)) return { label: "Unavailable", className: "border-border bg-[#f7f4ef] text-muted-foreground" };
+  if (stock <= 0) return { label: "Out of Stock", className: "border-red-200 bg-red-50 text-red-700" };
+  if (stock <= 3) return { label: "Low Stock", className: "border-amber-200 bg-amber-50 text-amber-800" };
+  return { label: "Normal Stock", className: "border-emerald-200 bg-emerald-50 text-emerald-800" };
+}
+
 function InventoryPage() {
   const [events, setEvents] = useState<InventoryEvent[]>([]);
   const [products, setProducts] = useState<RecordItem[]>([]);
@@ -155,6 +173,7 @@ function InventoryPage() {
     const timer = window.setInterval(() => void load(), 5000);
     return () => window.clearInterval(timer);
   }, [productId, eventType, from, to]);
+  const productsById = new Map(products.map((product) => [String(product.id ?? product._id), product]));
   return <div>
     <div className="border border-[#ded5c9] bg-white p-5">
       <div className="flex flex-wrap items-end gap-3">
@@ -166,7 +185,7 @@ function InventoryPage() {
       </div>
     </div>
     <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white">
-      <table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Date & time</th><th className="px-4 py-4">Product</th><th className="px-4 py-4">Event</th><th className="px-4 py-4">Change</th><th className="px-4 py-4">Stock after</th><th className="px-4 py-4">Order</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading history…</td></tr> : events.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No inventory events match these filters.</td></tr> : events.map((event) => <tr key={event._id} onClick={() => setSelectedEvent(event)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedEvent(event); }} tabIndex={0} role="button" className="cursor-pointer border-b border-border last:border-0 hover:bg-[#fbf9f6] focus:bg-[#fbf9f6]"><td className="whitespace-nowrap px-4 py-4 text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td><td className="px-4 py-4 font-medium">{event.productName ?? event.productId}</td><td className="px-4 py-4 capitalize">{event.eventType ?? "adjustment"}</td><td className={`px-4 py-4 font-medium ${Number(event.quantity) < 0 ? "text-red-700" : "text-emerald-700"}`}>{Number(event.quantity) > 0 ? "+" : ""}{event.quantity}</td><td className="px-4 py-4">{event.nextStock ?? "—"}</td><td className="px-4 py-4 text-xs text-muted-foreground">{event.orderId ?? "—"}</td></tr>)}</tbody></table>
+      <table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Date & time</th><th className="px-4 py-4">Product</th><th className="px-4 py-4">Event</th><th className="px-4 py-4">Change</th><th className="px-4 py-4">Stock after</th><th className="px-4 py-4">Current status</th><th className="px-4 py-4">Order</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading history…</td></tr> : events.length === 0 ? <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No inventory events match these filters.</td></tr> : events.map((event) => { const currentProduct = productsById.get(String(event.productId)); const currentStock = currentProduct ? Number(currentProduct.stock ?? 0) : null; const status = inventoryStatus(currentStock); return <tr key={event._id} onClick={() => setSelectedEvent(event)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedEvent(event); }} tabIndex={0} role="button" className="cursor-pointer border-b border-border last:border-0 hover:bg-[#fbf9f6] focus:bg-[#fbf9f6]"><td className="whitespace-nowrap px-4 py-4 text-muted-foreground">{event.createdAt ? new Date(event.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td><td className="px-4 py-4 font-medium">{event.productName ?? event.productId}</td><td className="px-4 py-4 capitalize">{event.eventType ?? "adjustment"}</td><td className={`px-4 py-4 font-medium ${Number(event.quantity) < 0 ? "text-red-700" : "text-emerald-700"}`}>{Number(event.quantity) > 0 ? "+" : ""}{event.quantity}</td><td className="px-4 py-4">{event.nextStock ?? "—"}</td><td className="px-4 py-4"><div className="flex flex-col items-start gap-1"><span className={`inline-flex border px-2.5 py-1 text-[10px] uppercase tracking-[0.06em] ${status.className}`}>{status.label}</span>{currentStock !== null && <span className="text-xs text-muted-foreground">{currentStock} available now</span>}</div></td><td className="px-4 py-4 text-xs text-muted-foreground">{event.orderId ?? "—"}</td></tr>; })}</tbody></table>
     </div>
     {selectedEvent && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5" onClick={() => setSelectedEvent(null)}><div className="w-full max-w-lg border border-border bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}><div className="flex items-start justify-between gap-4 border-b border-border pb-4"><div><p className="text-[10px] uppercase tracking-[0.16em] text-gold">Inventory event</p><h2 className="mt-1 font-display text-2xl text-primary">Purchase details</h2></div><button type="button" onClick={() => setSelectedEvent(null)} className="text-2xl leading-none text-muted-foreground hover:text-primary" aria-label="Close details">×</button></div><div className="mt-5 grid gap-5 sm:grid-cols-2"><div><p className="text-eyebrow text-muted-foreground">Buyer</p><p className="mt-1 font-medium text-primary">{selectedEvent.buyerName || "Customer details unavailable"}</p><p className="mt-1 text-sm text-muted-foreground">{selectedEvent.buyerPhone ? `+91 ${selectedEvent.buyerPhone}` : "Phone unavailable"}</p><p className="mt-1 text-sm text-muted-foreground">{selectedEvent.buyerEmail || "Email unavailable"}</p></div><div><p className="text-eyebrow text-muted-foreground">Order</p><p className="mt-1 font-medium text-primary">{selectedEvent.orderId || "Manual adjustment"}</p><p className="mt-1 text-sm capitalize text-muted-foreground">{selectedEvent.orderStatus || "—"} · {selectedEvent.paymentStatus || "—"}</p><p className="mt-1 text-sm text-muted-foreground">{selectedEvent.paymentMethod || "Payment method unavailable"}</p></div><div><p className="text-eyebrow text-muted-foreground">Product purchased</p><p className="mt-1 font-medium text-primary">{selectedEvent.productName || selectedEvent.productId}</p><p className="mt-1 text-sm text-muted-foreground">Quantity: {Math.abs(Number(selectedEvent.quantity ?? 0))}</p><p className="mt-1 text-sm text-muted-foreground">{selectedEvent.itemPrice ? `Item price: ₹${Number(selectedEvent.itemPrice).toLocaleString("en-IN")}` : "Item price unavailable"}</p></div><div><p className="text-eyebrow text-muted-foreground">Stock movement</p><p className="mt-1 text-sm text-muted-foreground">Stock before: {selectedEvent.previousStock ?? "—"}</p><p className="mt-1 text-sm text-muted-foreground">Stock after: {selectedEvent.nextStock ?? "—"}</p><p className="mt-1 text-sm text-muted-foreground">Order total: {selectedEvent.orderTotal != null ? `₹${Number(selectedEvent.orderTotal).toLocaleString("en-IN")}` : "—"}</p></div></div><p className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">Click outside this panel or close it to return to inventory history.</p></div></div>}
   </div>;
