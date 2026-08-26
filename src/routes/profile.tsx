@@ -13,7 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
-import { clearCachedCustomer } from "@/components/site/CustomerGate";
+import { CustomerGate, clearCachedCustomer } from "@/components/site/CustomerGate";
 import { SiteShell } from "@/components/site/SiteShell";
 import { formatPrice, sarees } from "@/data/sarees";
 
@@ -47,6 +47,10 @@ const orders = [
 type CustomerOrder = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string };
 
 function Profile() {
+  return <CustomerGate><AuthenticatedProfile /></CustomerGate>;
+}
+
+function AuthenticatedProfile() {
   const [customer, setCustomer] = useState<{ name: string; email: string; phone: string; wishlist?: string[] } | null>(null);
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
   const [editing, setEditing] = useState(false);
