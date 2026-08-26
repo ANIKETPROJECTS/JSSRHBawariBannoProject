@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Boxes, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, Users, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -208,18 +208,27 @@ function OrdersPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
-  async function load() {
-    setLoading(true);
+  const requestVersion = useRef(0);
+  async function load(showLoading = true) {
+    const version = ++requestVersion.current;
+    if (showLoading) setLoading(true);
     try {
       const params = new URLSearchParams({ search, status, payment, sort, from, to });
-      setOrders(await api(`/api/admin/orders?${params}`));
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load orders."); }
-    finally { setLoading(false); }
+      const nextOrders = await api(`/api/admin/orders?${params}`);
+      if (version === requestVersion.current) setOrders(nextOrders);
+    } catch (error) {
+      if (version === requestVersion.current) toast.error(error instanceof Error ? error.message : "Could not load orders.");
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
+    }
   }
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), 5000);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(() => void load(false), 30000);
+    return () => {
+      window.clearInterval(timer);
+      requestVersion.current += 1;
+    };
   }, [search, status, payment, sort, from, to]);
   const revenue = orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0);
   const paidOrders = orders.filter((order) => ["paid", "success", "completed"].includes(String(order.paymentStatus).toLowerCase()));
