@@ -192,6 +192,9 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     const productDescription = String(document.productDescription ?? document.description ?? "").trim();
     document.productDescription = productDescription;
     document.description = productDescription;
+    document.newArrival = document.newArrival === true;
+    document.trending = document.trending === true;
+    document.bestseller = document.bestseller === true;
   }
   if (resource === "coupons") {
     const code = String(document.code ?? "").trim().toUpperCase();
