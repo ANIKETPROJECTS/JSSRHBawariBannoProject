@@ -254,6 +254,7 @@ async function recordPurchase(request: Request) {
     });
   }
   if (events.length) await database.collection("inventory_movements").insertMany(events);
+  const createdAt = new Date();
   await database.collection("orders").insertOne({
     orderId,
     customerId: customer?._id,
@@ -261,12 +262,13 @@ async function recordPurchase(request: Request) {
     customerEmail: customer?.email || undefined,
     customerPhone: customer?.phone || undefined,
     status: "pending",
+    statusHistory: [{ status: "pending", changedAt: createdAt }],
     paymentStatus: "demo",
     inventoryAdjusted: true,
     items: orderItems,
     total: Number(input.total ?? 0),
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt,
+    updatedAt: createdAt,
   });
   return json({ ok: true, orderId });
 }
@@ -494,7 +496,7 @@ async function adminOrders(request: Request, orderId?: string) {
     const source = existing ? { ...existing, ...input } : input;
     const status = String(source.status ?? "pending");
     const paymentStatus = String(source.paymentStatus ?? "demo");
-    const allowedStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled"];
+    const allowedStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled", "rejected"];
     if (!allowedStatuses.includes(status)) return fail("Invalid order status.");
     if (!paymentStatus || paymentStatus.length > 40) return fail("Invalid payment status.");
     const items = Array.isArray(source.items) ? source.items.filter((item) => item && typeof item === "object").map((item) => {
@@ -507,12 +509,21 @@ async function adminOrders(request: Request, orderId?: string) {
         price: Math.max(0, Number(row.price) || 0),
       };
     }).filter((item) => item.productId) : [];
+    const now = new Date();
+    const previousHistory = Array.isArray(existing?.statusHistory) ? existing.statusHistory : [];
+    const statusHistory = previousHistory.length
+      ? previousHistory
+      : [{ status: String(existing?.status ?? status), changedAt: existing?.createdAt ?? now }];
+    if (existing && String(existing.status ?? "pending") !== status) {
+      statusHistory.push({ status, changedAt: now });
+    }
     const document = {
       orderId: String(source.orderId ?? "").trim().slice(0, 80),
       customerName: String(source.customerName ?? "").trim().slice(0, 120),
       customerPhone: String(source.customerPhone ?? "").replace(/\D/g, "").slice(-10),
       customerEmail: String(source.customerEmail ?? "").trim().slice(0, 160),
       status,
+      statusHistory,
       paymentStatus,
       paymentMethod: String(source.paymentMethod ?? "Demo").trim().slice(0, 60),
       ...(source.paymentDetails !== undefined ? { paymentDetails: String(source.paymentDetails).trim().slice(0, 200) } : {}),
@@ -525,7 +536,7 @@ async function adminOrders(request: Request, orderId?: string) {
       shipping: Math.max(0, Number(source.shipping) || 0),
       discount: Math.max(0, Number(source.discount) || 0),
       total: Math.max(0, Number(source.total) || 0),
-      updatedAt: new Date(),
+      updatedAt: now,
     };
     if (document.customerEmail && !document.customerEmail.includes("@")) return fail("Enter a valid customer email.");
     if (orderId) {
@@ -545,12 +556,19 @@ async function updateOrder(request: Request, id: string) {
   if (!ObjectId.isValid(id)) return fail("Order not found.", 404);
   const input = await body(request);
   const status = String(input.status ?? "");
-  const allowed = ["pending", "approved", "processing", "shipped", "delivered", "cancelled"];
+    const allowed = ["pending", "approved", "processing", "shipped", "delivered", "cancelled", "rejected"];
   if (!allowed.includes(status)) return fail("Invalid order status.");
   const database = await db();
+  const existing = await database.collection("orders").findOne({ _id: new ObjectId(id) });
+  if (!existing) return fail("Order not found.", 404);
+  const now = new Date();
+  const history = Array.isArray(existing.statusHistory) && existing.statusHistory.length
+    ? existing.statusHistory
+    : [{ status: String(existing.status ?? "pending"), changedAt: existing.createdAt ?? now }];
+  if (String(existing.status ?? "pending") !== status) history.push({ status, changedAt: now });
   const result = await database.collection("orders").findOneAndUpdate(
     { _id: new ObjectId(id) },
-    { $set: { status, updatedAt: new Date() } },
+    { $set: { status, statusHistory: history, updatedAt: now } },
     { returnDocument: "after" },
   );
   return result ? json(result) : fail("Order not found.", 404);
