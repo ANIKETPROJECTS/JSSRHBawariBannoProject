@@ -3,6 +3,7 @@ import { ChevronRight, Minus, Plus, ShoppingBag, Tag, Trash2, X } from "lucide-r
 import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { cn } from "@/lib/utils";
+import { useCustomerAuth } from "./CustomerAuthContext";
 
 type CartItem = {
   product: Saree;
@@ -90,6 +91,7 @@ export function useCart() {
 
 function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, clearCart } = useCart();
+  const { openAuth } = useCustomerAuth();
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -102,8 +104,8 @@ function CartDrawer() {
       const sessionResponse = await fetch("/api/auth/me", { credentials: "same-origin" });
       if (!sessionResponse.ok) {
         closeCart();
-        toast.error("Please log in before proceeding to checkout.");
-        window.setTimeout(() => window.location.assign("/profile"), 450);
+        toast.info("Please log in before proceeding to checkout.");
+        openAuth();
         return;
       }
       const response = await fetch("/api/inventory/purchase", {

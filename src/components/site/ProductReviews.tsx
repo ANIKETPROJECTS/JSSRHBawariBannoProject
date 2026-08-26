@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { emptyReviewSummary, useReviewSummary, useReviews, type ReviewSummary } from "./ReviewsContext";
-import { useWishlist } from "./WishlistContext";
+import { useCustomerAuth } from "./CustomerAuthContext";
 
 type ReviewMedia = { id: string; name: string; type: "image" | "video"; contentType: string; size: number; url: string };
 type ProductReview = {
@@ -41,12 +41,11 @@ export function ProductRating({ summary, compact = false }: { summary: ReviewSum
 export function ProductReviews({ productId }: { productId: string }) {
   const contextSummary = useReviewSummary(productId);
   const { refresh: refreshSummaries } = useReviews();
-  const { authenticated: sessionAuthenticated, loaded: sessionLoaded } = useWishlist();
+  const { openAuth } = useCustomerAuth();
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [summary, setSummary] = useState<ReviewSummary>(contextSummary);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [checkingLogin, setCheckingLogin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
@@ -56,15 +55,6 @@ export function ProductReviews({ productId }: { productId: string }) {
   const previews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
   useEffect(() => () => previews.forEach(({ url }) => URL.revokeObjectURL(url)), [previews]);
   useEffect(() => setSummary(contextSummary), [contextSummary]);
-  useEffect(() => {
-    if (!sessionLoaded || !sessionAuthenticated) return;
-    const intentKey = `bawari-review-intent:${productId}`;
-    if (window.sessionStorage.getItem(intentKey) === "1") {
-      window.sessionStorage.removeItem(intentKey);
-      setShowForm(true);
-    }
-  }, [productId, sessionAuthenticated, sessionLoaded]);
-
   async function loadReviews() {
     setLoading(true);
     try {
@@ -104,29 +94,8 @@ export function ProductReviews({ productId }: { productId: string }) {
     setFiles([]);
   }
 
-  function sendToLogin() {
-    window.sessionStorage.setItem(`bawari-review-intent:${productId}`, "1");
-    const returnTo = `${window.location.pathname}#reviews`;
-    window.location.assign(`/profile?returnTo=${encodeURIComponent(returnTo)}`);
-  }
-
-  async function startReview() {
-    if (checkingLogin) return;
-    setCheckingLogin(true);
-    try {
-      const response = await fetch("/api/auth/me", { credentials: "same-origin" });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.customer) {
-        toast.info("Please log in to write a review.");
-        window.setTimeout(sendToLogin, 350);
-        return;
-      }
-      setShowForm(true);
-    } catch {
-      toast.error("Could not verify your login. Please try again.");
-    } finally {
-      setCheckingLogin(false);
-    }
+  function startReview() {
+    openAuth(() => setShowForm(true));
   }
 
   async function submitReview(event: React.FormEvent<HTMLFormElement>) {
@@ -147,8 +116,8 @@ export function ProductReviews({ productId }: { productId: string }) {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (response.status === 401) {
-          toast.error("Please log in before writing a review.");
-          window.setTimeout(() => window.location.assign("/profile"), 450);
+          toast.info("Please log in before writing a review.");
+          openAuth(() => setShowForm(true));
           return;
         }
         throw new Error(result.error ?? "Could not submit your review.");
@@ -173,11 +142,10 @@ export function ProductReviews({ productId }: { productId: string }) {
         </div>
         <button
           type="button"
-          onClick={() => showForm ? setShowForm(false) : void startReview()}
-          disabled={checkingLogin}
+          onClick={() => showForm ? setShowForm(false) : startReview()}
           className="bg-primary px-5 py-3 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
         >
-          {showForm ? "Close review form" : checkingLogin ? "Checking login…" : "Write a review"}
+          {showForm ? "Close review form" : "Write a review"}
         </button>
       </div>
 

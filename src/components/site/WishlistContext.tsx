@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useCustomerAuth } from "./CustomerAuthContext";
 
 type WishlistContextValue = {
   ids: string[];
@@ -12,6 +13,7 @@ type WishlistContextValue = {
 const WishlistContext = createContext<WishlistContextValue | null>(null);
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
+  const { openAuth } = useCustomerAuth();
   const [ids, setIds] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -62,8 +64,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         if (response.status === 401) {
-          toast.error("Please log in before saving items to your wishlist.");
-          window.setTimeout(() => window.location.assign("/profile"), 450);
+          toast.info("Please log in before saving items to your wishlist.");
+          openAuth();
         } else {
           toast.error(result.error ?? "Could not update your wishlist.");
         }
@@ -77,7 +79,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       toast.error("Could not update your wishlist.");
       return false;
     }
-  }, []);
+  }, [openAuth]);
 
   const value = useMemo(() => ({
     ids,

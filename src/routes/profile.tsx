@@ -13,7 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
-import { CustomerGate, clearCachedCustomer } from "@/components/site/CustomerGate";
+import { CustomerGate } from "@/components/site/CustomerGate";
 import { SiteShell } from "@/components/site/SiteShell";
 import { formatPrice, sarees } from "@/data/sarees";
 
@@ -73,7 +73,6 @@ function AuthenticatedProfile() {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
     } finally {
-      clearCachedCustomer();
       window.dispatchEvent(new Event("customer-logout"));
       window.location.assign("/profile");
     }
