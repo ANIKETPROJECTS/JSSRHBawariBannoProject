@@ -1,1 +1,2 @@
 - [MongoDB server target](mongodb-server-target.md) — use the Node Nitro target for the MongoDB Node driver.
+- [Admin relationship safety](admin-relationship-safety.md) — category deletion must be blocked while products or subcategories still reference it.

@@ -163,7 +163,18 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
 
 async function remove(resource: Resource, id: string) {
   if (!ObjectId.isValid(id)) return false;
-  const result = await (await db()).collection(resource).deleteOne({ _id: new ObjectId(id) });
+  const database = await db();
+  if (resource === "categories") {
+    const category = await database.collection("categories").findOne({ _id: new ObjectId(id) });
+    if (!category) return false;
+    const slug = String(category.slug ?? "");
+    const [productCount, childCount] = await Promise.all([
+      database.collection("products").countDocuments({ $or: [{ category: slug }, { subcategory: slug }] }),
+      database.collection("categories").countDocuments({ parentSlug: slug }),
+    ]);
+    if (productCount || childCount) throw new Error("Move or remove this category's products and subcategories before deleting it.");
+  }
+  const result = await database.collection(resource).deleteOne({ _id: new ObjectId(id) });
   return result.deletedCount > 0;
 }
 
@@ -423,12 +434,15 @@ async function adminOrders(request: Request, orderId?: string) {
 
   if (request.method === "POST" || (orderId && (request.method === "PUT" || request.method === "PATCH"))) {
     const input = await body(request);
-    const status = String(input.status ?? "pending");
-    const paymentStatus = String(input.paymentStatus ?? "demo");
+    const existing = orderId ? await collection.findOne({ _id: new ObjectId(orderId) }) : null;
+    if (orderId && !existing) return fail("Order not found.", 404);
+    const source = existing ? { ...existing, ...input } : input;
+    const status = String(source.status ?? "pending");
+    const paymentStatus = String(source.paymentStatus ?? "demo");
     const allowedStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
     if (!allowedStatuses.includes(status)) return fail("Invalid order status.");
     if (!paymentStatus || paymentStatus.length > 40) return fail("Invalid payment status.");
-    const items = Array.isArray(input.items) ? input.items.filter((item) => item && typeof item === "object").map((item) => {
+    const items = Array.isArray(source.items) ? source.items.filter((item) => item && typeof item === "object").map((item) => {
       const row = item as JsonRecord;
       return {
         productId: String(row.productId ?? "").trim(),
@@ -439,18 +453,18 @@ async function adminOrders(request: Request, orderId?: string) {
       };
     }).filter((item) => item.productId) : [];
     const document = {
-      orderId: String(input.orderId ?? "").trim().slice(0, 80),
-      customerName: String(input.customerName ?? "").trim().slice(0, 120),
-      customerPhone: String(input.customerPhone ?? "").replace(/\D/g, "").slice(-10),
-      customerEmail: String(input.customerEmail ?? "").trim().slice(0, 160),
+      orderId: String(source.orderId ?? "").trim().slice(0, 80),
+      customerName: String(source.customerName ?? "").trim().slice(0, 120),
+      customerPhone: String(source.customerPhone ?? "").replace(/\D/g, "").slice(-10),
+      customerEmail: String(source.customerEmail ?? "").trim().slice(0, 160),
       status,
       paymentStatus,
-      paymentMethod: String(input.paymentMethod ?? "Demo").trim().slice(0, 60),
+      paymentMethod: String(source.paymentMethod ?? "Demo").trim().slice(0, 60),
       items,
-      subtotal: Math.max(0, Number(input.subtotal) || 0),
-      shipping: Math.max(0, Number(input.shipping) || 0),
-      discount: Math.max(0, Number(input.discount) || 0),
-      total: Math.max(0, Number(input.total) || 0),
+      subtotal: Math.max(0, Number(source.subtotal) || 0),
+      shipping: Math.max(0, Number(source.shipping) || 0),
+      discount: Math.max(0, Number(source.discount) || 0),
+      total: Math.max(0, Number(source.total) || 0),
       updatedAt: new Date(),
     };
     if (document.customerEmail && !document.customerEmail.includes("@")) return fail("Enter a valid customer email.");
