@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, ChevronRight, Image, LayoutDashboard, LogOut, Megaphone, Menu, Package, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, Users } from "lucide-react";
+import { BarChart3, Boxes, ChevronRight, GripVertical, Image, LayoutDashboard, LogOut, Megaphone, Menu, Package, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -676,6 +676,14 @@ function ProductViewCrudPage() {
   async function load() { try { const [productItems, categoryItems] = await Promise.all([api("/api/admin/products"), api("/api/admin/categories")]); setProducts(productItems); setCategories(categoryItems); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load products."); } }
   useEffect(() => { void load(); }, []);
   const categoryParents = useMemo(() => categories.filter((category) => !category.parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0)), [categories]);
+  const categoryOptions = useMemo(() => categoryParents.flatMap((parent) => {
+    const parentSlug = String(parent.slug ?? "");
+    const parentLabel = String(parent.label ?? parent.name ?? parentSlug);
+    return [
+      { value: `parent:${parentSlug}`, label: `${parentLabel} (all)` },
+      ...childrenFor(parentSlug).map((child) => ({ value: `child:${String(child.slug ?? "")}`, label: `↳ ${String(child.label ?? child.name ?? child.slug)}` })),
+    ];
+  }), [categoryParents, categories]);
   const categoryBySlug = useMemo(() => new Map(categories.map((category) => [String(category.slug ?? ""), String(category.label ?? category.name ?? category.slug ?? "")])), [categories]);
   const childrenFor = (parentSlug: string) => categories.filter((category) => String(category.parentSlug ?? "") === parentSlug).sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0));
   const categoryName = (value: unknown) => categoryBySlug.get(String(value ?? "")) ?? String(value ?? "Unassigned");
