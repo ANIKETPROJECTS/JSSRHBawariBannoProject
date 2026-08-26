@@ -53,7 +53,9 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     cachedCustomer = customer;
     onComplete(customer);
     window.dispatchEvent(new Event("customer-login"));
-    if (window.location.pathname !== "/") window.location.assign("/");
+    const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+    const safeReturnTo = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/";
+    window.location.assign(safeReturnTo);
   }
   async function verify(event: React.FormEvent) {
     event.preventDefault(); setBusy(true);

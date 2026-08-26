@@ -424,7 +424,7 @@ function reviewSummaryShape() {
   return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
 }
 
-async function reviewSummaries(request: Request) {
+async function collectReviewSummaries(request: Request) {
   const url = new URL(request.url);
   const requestedIds = (url.searchParams.get("productIds") ?? "").split(",").map((id) => id.trim()).filter(Boolean);
   const match = { status: "approved", ...(requestedIds.length ? { productId: { $in: requestedIds } } : {}) };
@@ -452,7 +452,11 @@ async function reviewSummaries(request: Request) {
     };
   }
   for (const id of requestedIds) summaries[id] ??= reviewSummaryShape();
-  return json({ summaries });
+  return summaries;
+}
+
+async function reviewSummaries(request: Request) {
+  return json({ summaries: await collectReviewSummaries(request) });
 }
 
 async function createReview(request: Request) {
@@ -462,7 +466,7 @@ async function createReview(request: Request) {
   const form = await request.formData();
   const productId = String(form.get("productId") ?? "").trim();
   const product = await database.collection("products").findOne({ id: productId, published: { $ne: false } });
-  if (!product) return fail("Product not found.", 404);
+  if (!product && !sarees.some((item) => item.id === productId)) return fail("Product not found.", 404);
   const rating = Number(form.get("rating"));
   const title = String(form.get("title") ?? "").trim();
   const reviewBody = String(form.get("body") ?? "").trim();
@@ -504,7 +508,8 @@ async function productReviews(request: Request) {
   if (!productId) return fail("Product ID is required.");
   const database = await db();
   const reviews = await database.collection("reviews").find({ productId, status: "approved" }).sort({ createdAt: -1 }).limit(100).toArray();
-  return json({ reviews: reviews.map((review) => publicReview(review as ReviewRecord)), summary: (await reviewSummaries(new Request(`${url.origin}/api/reviews/summaries?productIds=${encodeURIComponent(productId)}`))).body });
+  const summaries = await collectReviewSummaries(new Request(`${url.origin}/api/reviews/summaries?productIds=${encodeURIComponent(productId)}`));
+  return json({ reviews: reviews.map((review) => publicReview(review as ReviewRecord)), summary: summaries[productId] ?? reviewSummaryShape() });
 }
 
 async function reviewMedia(request: Request, id: string) {
@@ -734,6 +739,8 @@ async function handleAdmin(request: Request, path: string) {
   if (orderMatch && (request.method === "PUT" || request.method === "PATCH")) return await updateOrder(request, orderMatch[1]);
   const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);
   if (customerMatch && request.method === "GET") return await customersHistory(request, customerMatch[1]);
+  const reviewMatch = path.match(/^\/api\/admin\/reviews(?:\/([^/]+))?$/);
+  if (reviewMatch) return await adminReviews(request, reviewMatch[1]);
   if (path === "/api/admin/settings") return await storeSettings(request);
   const match = path.match(/^\/api\/admin\/(heroes|categories|products)(?:\/([^/]+))?$/);
   if (!match) return fail("Not found.", 404);
@@ -749,6 +756,8 @@ export async function handleAdminApi(request: Request) {
   const url = new URL(request.url);
   try {
     if (url.pathname.startsWith("/api/auth/")) return await handleAuth(request, url.pathname);
+    if (url.pathname.startsWith("/api/review-media/")) return await reviewMedia(request, url.pathname.split("/").pop() ?? "");
+    if (url.pathname === "/api/reviews" || url.pathname === "/api/reviews/summaries") return await productReviews(request);
     if (url.pathname === "/api/inventory/purchase" && request.method === "POST") return await recordPurchase(request);
     if (url.pathname.startsWith("/api/admin/")) return await handleAdmin(request, url.pathname);
     if (url.pathname === "/api/catalog" && request.method === "GET") {

@@ -1,4 +1,5 @@
 import { useWishlist } from "./WishlistContext";
+import { useReviewSummary } from "./ReviewsContext";
 import { Link } from "@tanstack/react-router";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { useCart } from "./CartDrawer";
@@ -16,6 +17,7 @@ export function ProductCard({
 }) {
   const { ids, toggle } = useWishlist();
   const { addItem } = useCart();
+  const reviewSummary = useReviewSummary(saree.id);
   const isWishlisted = ids.includes(saree.id);
 
   return (
@@ -77,6 +79,18 @@ export function ProductCard({
         <h3 className="overflow-hidden text-2xl leading-tight text-ellipsis text-foreground transition-colors group-hover:text-primary whitespace-nowrap">
           {saree.name}
         </h3>
+        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+          {reviewSummary.count > 0 ? (
+            <>
+              <span className="tracking-[0.12em] text-gold" aria-label={`${reviewSummary.average} out of 5 stars`}>
+                {"★".repeat(Math.max(0, Math.min(5, Math.round(reviewSummary.average))))}
+              </span>
+              <span>{reviewSummary.average.toFixed(1)} ({reviewSummary.count})</span>
+            </>
+          ) : (
+            <span>No reviews yet</span>
+          )}
+        </div>
         <div className="mt-2 flex items-center gap-2">
           <p className="text-xl font-medium tracking-wide text-primary">{formatPrice(saree.price)}</p>
           <p className="text-base tracking-wide text-muted-foreground line-through">

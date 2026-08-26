@@ -3,7 +3,10 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Check, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
+import { ProductRating, ProductReviews } from "@/components/site/ProductReviews";
+import { ProductPolicies } from "@/components/site/ProductPolicies";
 import { useCart } from "@/components/site/CartDrawer";
+import { useReviewSummary } from "@/components/site/ReviewsContext";
 import { useWishlist } from "@/components/site/WishlistContext";
 import { formatPrice, sarees } from "@/data/sarees";
 import { cn } from "@/lib/utils";
@@ -47,6 +50,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const [active, setActive] = useState(0);
   const { addItem } = useCart();
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
+  const reviewSummary = useReviewSummary(saree.id);
   const [sharing, setSharing] = useState(false);
   const isWishlisted = wishlistIds.includes(saree.id);
 
@@ -109,7 +113,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
       </div>
 
       <section className="mx-auto mt-8 grid max-w-7xl gap-12 px-5 lg:grid-cols-2">
-        <div className="flex gap-4">
+        <div className="flex self-start gap-4">
           <div className="flex flex-col gap-3">
             {gallery.map((img, i) => (
               <button
@@ -132,13 +136,13 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               </button>
             ))}
           </div>
-          <div className="flex-1 border border-border bg-card">
+          <div className="aspect-[3/4] flex-1 border border-border bg-card">
             <img
               src={gallery[active]}
               alt={saree.name}
               width={900}
               height={1200}
-              className="aspect-[3/4] w-full object-cover"
+              className="h-full w-full object-cover"
             />
           </div>
         </div>
@@ -150,6 +154,9 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
             {formatPrice(saree.price)}
           </p>
           <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
+          <a href="#reviews" className="mt-3 inline-flex hover:opacity-80">
+            <ProductRating summary={reviewSummary} />
+          </a>
 
           <div className="mt-6 h-px bg-border" />
 
@@ -234,8 +241,11 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
           <p className="mt-5 text-xs text-muted-foreground">
             Complimentary blouse stitching consultation · Ships in 3–5 days
           </p>
+          <ProductPolicies />
         </div>
       </section>
+
+      <ProductReviews productId={saree.id} />
 
       <section className="mx-auto mt-24 max-w-7xl px-5">
         <h2 className="font-display text-3xl text-primary rule-gold">You may also like</h2>

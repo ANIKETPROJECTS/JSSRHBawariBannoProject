@@ -79,7 +79,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomersPage /> : tab === "settings" ? <SettingsPage /> : tab === "announcements" ? <AnnouncementsPage /> : tab === "reviews" ? <ComingSoonPage tab={tab} /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomersPage /> : tab === "settings" ? <SettingsPage /> : tab === "announcements" ? <AnnouncementsPage /> : tab === "reviews" ? <ReviewsPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -254,6 +254,103 @@ function MetricCard({ label, value, icon: Icon }: { label: string; value: string
 function ComingSoonPage({ tab }: { tab: "customers" | "reviews" }) {
   const details = { customers: ["Customer management", "Customer profiles and order history will appear here when customer accounts are connected."], reviews: ["Product reviews", "Moderate and publish customer reviews here once reviews are enabled on the storefront."] }[tab];
   return <div className="border border-[#ded5c9] bg-white p-8"><Settings className="size-6 text-gold" /><h2 className="mt-5 font-display text-3xl text-primary">{details[0]}</h2><p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">{details[1]}</p><span className="mt-6 inline-block bg-[#f4efe8] px-3 py-2 text-xs uppercase tracking-[0.14em] text-muted-foreground">Ready for the next commerce phase</span></div>;
+}
+
+type AdminReview = {
+  _id?: string;
+  productId: string;
+  productName?: string;
+  reviewerName?: string;
+  rating: number;
+  title: string;
+  body: string;
+  status: "pending" | "approved" | "rejected";
+  media?: { id: string; name: string; type: "image" | "video"; contentType: string; size: number; url: string }[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+function AdminStars({ value }: { value: number }) {
+  return <span className="tracking-[0.1em] text-gold" aria-label={`${value} out of 5 stars`}>{"★".repeat(Math.max(0, Math.min(5, value)))}{"☆".repeat(Math.max(0, 5 - Math.min(5, value)))}</span>;
+}
+
+function ReviewsPage() {
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
+  const [editing, setEditing] = useState<AdminReview | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [rating, setRating] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ search, status, rating });
+      setReviews(await api(`/api/admin/reviews?${params}`));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load reviews.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    const timer = window.setInterval(() => void load(), 5000);
+    return () => window.clearInterval(timer);
+  }, [search, status, rating]);
+
+  async function updateReview(review: AdminReview, changes: Partial<AdminReview>) {
+    if (!review._id) return;
+    try {
+      const updated = await api(`/api/admin/reviews/${review._id}`, { method: "PATCH", body: JSON.stringify({ ...review, ...changes }) });
+      setReviews((current) => current.map((item) => item._id === review._id ? updated : item));
+      setEditing((current) => current?._id === review._id ? updated : current);
+      toast.success("Review updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update review.");
+    }
+  }
+
+  async function saveReview(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editing?._id) return;
+    setBusy(true);
+    try {
+      const updated = await api(`/api/admin/reviews/${editing._id}`, { method: "PATCH", body: JSON.stringify(editing) });
+      setReviews((current) => current.map((item) => item._id === editing._id ? updated : item));
+      setEditing(null);
+      toast.success("Review saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save review.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeReview(review: AdminReview) {
+    if (!review._id || !window.confirm("Delete this review and its uploaded media? This cannot be undone.")) return;
+    try {
+      await api(`/api/admin/reviews/${review._id}`, { method: "DELETE" });
+      setReviews((current) => current.filter((item) => item._id !== review._id));
+      if (editing?._id === review._id) setEditing(null);
+      toast.success("Review deleted.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete review.");
+    }
+  }
+
+  function removeMedia(mediaId: string) {
+    setEditing((current) => current ? { ...current, media: (current.media ?? []).filter((media) => media.id !== mediaId) } : current);
+  }
+
+  return <div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{reviews.length} review{reviews.length === 1 ? "" : "s"}</p><h2 className="mt-1 font-display text-3xl text-primary">Product reviews</h2><p className="mt-2 text-sm text-muted-foreground">Moderate customer feedback before it appears on the storefront.</p></div><div className="flex gap-3 text-xs"><span className="border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">{reviews.filter((review) => review.status === "pending").length} pending</span><span className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-800">{reviews.filter((review) => review.status === "approved").length} approved</span></div></div>
+    <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 md:grid-cols-[1fr_180px_150px_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search product, reviewer, title…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={status} onChange={(event) => setStatus(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select><select value={rating} onChange={(event) => setRating(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All ratings</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} stars</option>)}</select><button type="button" onClick={() => { setSearch(""); setStatus("all"); setRating("all"); }} className="border border-border px-3 py-2.5 text-xs text-muted-foreground">Clear filters</button></div></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[920px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Review</th><th className="px-4 py-4">Product</th><th className="px-4 py-4">Rating</th><th className="px-4 py-4">Status</th><th className="px-4 py-4">Date</th><th className="px-4 py-4">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">Loading reviews…</td></tr> : reviews.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No reviews match these filters.</td></tr> : reviews.map((review) => <tr key={review._id} className="border-b border-border last:border-0"><td className="max-w-[300px] px-4 py-4"><p className="truncate font-medium text-primary">{review.title}</p><p className="mt-1 truncate text-xs text-muted-foreground">{review.reviewerName || "Bawari customer"} · {review.body}</p>{review.media?.length ? <p className="mt-1 text-[11px] text-gold">{review.media.length} media attachment{review.media.length === 1 ? "" : "s"}</p> : null}</td><td className="max-w-[220px] truncate px-4 py-4 text-muted-foreground">{review.productName || review.productId}</td><td className="px-4 py-4"><AdminStars value={review.rating} /><span className="ml-2 text-xs text-muted-foreground">{review.rating}/5</span></td><td className="px-4 py-4"><select value={review.status} onChange={(event) => void updateReview(review, { status: event.target.value as AdminReview["status"] })} className={`border px-2 py-1.5 text-xs capitalize outline-none ${review.status === "approved" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : review.status === "rejected" ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></td><td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground">{review.createdAt ? new Date(review.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "—"}</td><td className="px-4 py-4"><div className="flex gap-3"><button type="button" onClick={() => setEditing({ ...review, media: [...(review.media ?? [])] })} className="text-xs text-primary hover:underline">Edit</button><button type="button" onClick={() => void removeReview(review)} className="text-xs text-red-700 hover:underline">Delete</button></div></td></tr>)}</tbody></table></div>
+    {editing && <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={() => setEditing(null)}><form onSubmit={saveReview} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-2xl overflow-y-auto border border-border bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4 border-b border-border pb-5"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Review moderation</p><h3 className="mt-1 font-display text-2xl text-primary">Edit customer review</h3><p className="mt-1 text-xs text-muted-foreground">{editing.productName || editing.productId}</p></div><button type="button" onClick={() => setEditing(null)} className="text-xl text-muted-foreground" aria-label="Close">×</button></div><div className="mt-6 grid gap-5 sm:grid-cols-2"><label className="text-xs text-muted-foreground">Reviewer display name<input required maxLength={80} value={editing.reviewerName ?? ""} onChange={(event) => setEditing({ ...editing, reviewerName: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label><label className="text-xs text-muted-foreground">Rating<select value={editing.rating} onChange={(event) => setEditing({ ...editing, rating: Number(event.target.value) })} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold">{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} stars</option>)}</select></label><label className="text-xs text-muted-foreground sm:col-span-2">Review title<input required maxLength={120} value={editing.title} onChange={(event) => setEditing({ ...editing, title: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label><label className="text-xs text-muted-foreground sm:col-span-2">Review details<textarea required maxLength={5000} rows={6} value={editing.body} onChange={(event) => setEditing({ ...editing, body: event.target.value })} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-gold" /></label><label className="text-xs text-muted-foreground">Moderation status<select value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value as AdminReview["status"] })} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label></div>{editing.media?.length ? <div className="mt-6 border-t border-border pt-5"><p className="text-xs font-medium text-primary">Attached media</p><div className="mt-3 flex flex-wrap gap-3">{editing.media.map((media) => <div key={media.id} className="relative size-24 overflow-hidden border border-border bg-[#f4efe8]">{media.type === "video" ? <video src={media.url} controls className="h-full w-full object-cover" /> : <img src={media.url} alt={media.name} className="h-full w-full object-cover" />}<button type="button" onClick={() => removeMedia(media.id)} className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-white/90 text-red-700" aria-label={`Remove ${media.name}`}><Trash2 className="size-3" /></button></div>)}</div><p className="mt-2 text-[11px] text-muted-foreground">Removing an attachment deletes it from stored review media.</p></div> : <p className="mt-6 border-t border-border pt-5 text-xs text-muted-foreground">No media attached to this review.</p>}<div className="mt-6 flex justify-end gap-3 border-t border-border pt-5"><button type="button" onClick={() => setEditing(null)} className="border border-border px-4 py-3 text-xs text-muted-foreground">Cancel</button><button disabled={busy} className="bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : "Save review"}</button></div></form></div>}
+  </div>;
 }
 
 function AnnouncementsPage() {
