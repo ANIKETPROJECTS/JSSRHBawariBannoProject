@@ -32,7 +32,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-5">
-        <Link to="/" className="flex items-baseline gap-2">
+         <Link
+           to="/"
+           onClick={(event) => {
+             if (window.location.pathname !== "/") return;
+             event.preventDefault();
+             window.scrollTo({ top: 0, behavior: "smooth" });
+           }}
+           className="flex items-baseline gap-2"
+         >
           <span className="font-display text-3xl leading-none tracking-tight text-primary">
             Bawari Banno
           </span>
