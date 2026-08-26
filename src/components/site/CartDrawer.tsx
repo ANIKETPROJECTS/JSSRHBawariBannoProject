@@ -21,11 +21,16 @@ type CartContextValue = {
   closeCart: () => void;
 };
 
-const demoCoupons = [
-  { code: "BAWARI10", label: "10% off your order", discount: (subtotal: number) => Math.round(subtotal * 0.1) },
-  { code: "SILK1500", label: "₹1,500 off above ₹15,000", discount: (subtotal: number) => subtotal >= 15000 ? 1500 : 0 },
-  { code: "WELCOME500", label: "₹500 off your first order", discount: () => 500 },
-];
+type StoreCoupon = {
+  code: string;
+  label?: string;
+  discountType?: "percentage" | "fixed";
+  discountValue?: number;
+  minimumSubtotal?: number;
+  maxDiscount?: number | null;
+  productScope?: "all" | "specific";
+  productIds?: string[];
+};
 
 const CartContext = createContext<CartContextValue | null>(null);
 
@@ -93,8 +98,11 @@ function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, clearCart } = useCart();
   const { openAuth } = useCustomerAuth();
   const [coupon, setCoupon] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState("");
+  const [availableCoupons, setAvailableCoupons] = useState<StoreCoupon[]>([]);
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [orderConfirmation, setOrderConfirmation] = useState<string | null>(null);
 
@@ -111,7 +119,7 @@ function CartDrawer() {
       const response = await fetch("/api/inventory/purchase", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })), subtotal, shipping, discount, total }),
+        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })), couponCode: appliedCoupon, subtotal, shipping, discount, total }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
@@ -138,11 +146,25 @@ function CartDrawer() {
     };
   }, [closeCart, isOpen]);
 
+  useEffect(() => {
+    fetch("/api/store-config")
+      .then((response) => response.json())
+      .then((result) => setAvailableCoupons(Array.isArray(result.coupons) ? result.coupons : []))
+      .catch(() => setAvailableCoupons([]));
+  }, []);
+
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const shipping = subtotal === 0 || subtotal >= 15000 ? 0 : 250;
   const total = Math.max(0, subtotal + shipping - discount);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const freeShippingProgress = Math.min(100, (subtotal / 15000) * 100);
+
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    setAppliedCoupon("");
+    setDiscount(0);
+    setCouponMessage({ ok: false, text: "Your cart changed. Apply the coupon again to recalculate it." });
+  }, [subtotal]);
 
   return (
     <>
@@ -244,28 +266,37 @@ function CartDrawer() {
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const selectedCoupon = demoCoupons.find((item) => item.code === coupon);
-                      const couponDiscount = selectedCoupon?.discount(subtotal) ?? 0;
-                      if (!selectedCoupon) {
-                        setCouponMessage({ ok: false, text: "Coupon not recognised. Try one of the available codes below." });
-                        toast.error("Choose one of the demo coupons below.");
-                      } else if (couponDiscount === 0) {
-                        setCouponMessage({ ok: false, text: `${selectedCoupon.code} applies to orders above ₹15,000.` });
-                        toast.error("This coupon applies to orders above ₹15,000.");
-                      } else {
-                        setDiscount(couponDiscount);
-                        setCouponMessage({ ok: true, text: `${selectedCoupon.code} applied — you save ${formatPrice(couponDiscount)}.` });
-                        toast.success(`${selectedCoupon.code} applied — ${selectedCoupon.label}`);
+                    disabled={couponBusy || !coupon.trim()}
+                    onClick={async () => {
+                      setCouponBusy(true);
+                      try {
+                        const response = await fetch("/api/coupons/validate", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({ code: coupon, items: items.map(({ product, quantity }) => ({ productId: product.id, quantity })) }),
+                        });
+                        const result = await response.json().catch(() => ({}));
+                        if (!response.ok) throw new Error(result.error ?? "Coupon could not be applied.");
+                        setAppliedCoupon(String(result.code ?? coupon).toUpperCase());
+                        setDiscount(Math.max(0, Number(result.discount ?? 0)));
+                        setCouponMessage({ ok: true, text: `${String(result.code ?? coupon).toUpperCase()} applied — you save ${formatPrice(Number(result.discount ?? 0))}.` });
+                        toast.success(`${String(result.code ?? coupon).toUpperCase()} applied.`);
+                      } catch (error) {
+                        setAppliedCoupon("");
+                        setDiscount(0);
+                        setCouponMessage({ ok: false, text: error instanceof Error ? error.message : "Coupon could not be applied." });
+                        toast.error(error instanceof Error ? error.message : "Coupon could not be applied.");
+                      } finally {
+                        setCouponBusy(false);
                       }
                     }}
-                    className="border border-primary px-4 text-eyebrow text-primary hover:bg-primary hover:text-primary-foreground"
+                    className="border border-primary px-4 text-eyebrow text-primary hover:bg-primary hover:text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Apply
+                    {couponBusy ? "Checking…" : "Apply"}
                   </button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {demoCoupons.map(({ code }) => (
+                  {availableCoupons.map(({ code }) => (
                     <button
                       key={code}
                       type="button"
@@ -277,7 +308,7 @@ function CartDrawer() {
                   ))}
                 </div>
                 <p className="mt-3 text-[0.7rem] text-muted-foreground">
-                  Try a demo coupon: BAWARI10, SILK1500 or WELCOME500
+                  {availableCoupons.length ? "Available coupons from the store:" : "No active coupons are available right now."}
                 </p>
                 {couponMessage && <p role="status" className={`mt-3 border px-3 py-2 text-xs ${couponMessage.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}>{couponMessage.text}</p>}
               </div>

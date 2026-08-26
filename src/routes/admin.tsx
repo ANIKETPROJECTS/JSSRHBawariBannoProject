@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "settings";
+type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
@@ -21,6 +21,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "categories", label: "Categories", icon: Tags },
   { id: "heroes", label: "Hero slides", icon: Image },
   { id: "announcements", label: "Announcement bar", icon: Megaphone },
+  { id: "coupons", label: "Coupons", icon: Tags },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -90,7 +91,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -494,7 +495,7 @@ function SettingsPage() {
   </form>;
 }
 
-const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews">, Record<string, unknown>> = {
+const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
   products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], blouse: "", length: "", care: "", description: "", stock: 0, published: true, featured: false },
@@ -549,7 +550,59 @@ function HeroSlidesManager() {
   return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{items.length} slides</p><h2 className="mt-1 font-display text-3xl text-primary">Hero slides</h2><p className="mt-2 text-sm text-muted-foreground">Drag the handle to set the homepage sequence.{savingOrder && " Saving order…"}</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.heroes, order: items.length })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><div className="mt-7 space-y-3">{loading ? <p className="text-sm text-muted-foreground">Loading…</p> : items.length === 0 ? <div className="border border-dashed border-[#cfc3b5] bg-white p-10 text-center text-sm text-muted-foreground">No hero slides yet.</div> : items.map((item, index) => <div key={item._id} draggable onDragStart={() => setDraggedId(item._id ?? null)} onDragOver={(event) => { event.preventDefault(); setDragOverId(item._id ?? null); }} onDragLeave={() => setDragOverId(null)} onDrop={(event) => { event.preventDefault(); void drop(item._id ?? ""); }} onDragEnd={() => { setDraggedId(null); setDragOverId(null); }} className={`flex items-center gap-4 border bg-white p-4 transition-colors ${dragOverId === item._id ? "border-gold bg-gold/5" : "border-[#ded5c9]"} ${draggedId === item._id ? "opacity-50" : ""}`}><button type="button" draggable aria-label={`Drag ${String(item.title ?? "hero slide")} to reorder`} className="cursor-grab text-muted-foreground active:cursor-grabbing"><GripVertical className="size-5" /></button><span className="w-5 text-center text-xs text-muted-foreground">{index + 1}</span>{typeof item.image === "string" && item.image ? <img src={item.image} alt="" className="h-16 w-28 shrink-0 object-cover" /> : <div className="h-16 w-28 shrink-0 bg-[#f0e9df]" />}<div className="min-w-0 flex-1"><p className="truncate font-medium text-primary">{String(item.title ?? "Untitled slide")}</p><p className="mt-1 truncate text-xs text-muted-foreground">{String(item.subtitle ?? (item.published === false ? "Draft" : "Published"))}</p></div><button type="button" onClick={() => setEditing({ ...item })} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => void remove(item)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(item.title ?? "hero slide")}`}><Trash2 className="size-4" /></button></div>)}</div></div>;
 }
 
-function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews"> }) {
+type CouponRecord = RecordItem & { code?: string; label?: string; discountType?: "percentage" | "fixed"; discountValue?: number; minimumSubtotal?: number; maxDiscount?: number | null; expiresAt?: string | null; productScope?: "all" | "specific"; productIds?: string[]; active?: boolean };
+
+const emptyCoupon: CouponRecord = { code: "", label: "", discountType: "percentage", discountValue: 10, minimumSubtotal: 0, maxDiscount: null, expiresAt: null, productScope: "all", productIds: [], active: true };
+
+function CouponEditor({ initial, products, onDone }: { initial: CouponRecord; products: RecordItem[]; onDone: () => void }) {
+  const [form, setForm] = useState<CouponRecord>({ ...emptyCoupon, ...initial, productIds: Array.isArray(initial.productIds) ? initial.productIds.map(String) : [] });
+  const [busy, setBusy] = useState(false);
+  const set = (key: keyof CouponRecord, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
+  function toggleProduct(id: string) {
+    const selected = new Set(form.productIds ?? []);
+    if (selected.has(id)) selected.delete(id); else selected.add(id);
+    set("productIds", [...selected]);
+  }
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const { _id, createdAt, updatedAt, ...payload } = form;
+      await api(`/api/admin/coupons${_id ? `/${_id}` : ""}`, { method: _id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      toast.success("Coupon saved."); onDone();
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save coupon."); }
+    finally { setBusy(false); }
+  }
+  return <form onSubmit={submit} className="max-w-3xl border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Promotion rule</p><h2 className="mt-1 font-display text-3xl text-primary">{form._id ? "Edit coupon" : "Create coupon"}</h2><p className="mt-2 text-sm text-muted-foreground">Create a real coupon customers can apply at checkout.</p></div><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground">Coupon code<input required maxLength={40} value={form.code ?? ""} onChange={(event) => set("code", event.target.value.toUpperCase())} placeholder="FESTIVE15" className="mt-1 w-full border border-border px-3 py-2.5 text-sm uppercase" /></label><label className="text-xs text-muted-foreground">Customer-facing label<input maxLength={120} value={form.label ?? ""} onChange={(event) => set("label", event.target.value)} placeholder="15% off festive sarees" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Discount type<select value={form.discountType ?? "percentage"} onChange={(event) => set("discountType", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="percentage">Percentage (%)</option><option value="fixed">Fixed amount (₹)</option></select></label><label className="text-xs text-muted-foreground">Discount value<input required type="number" min="0.01" step="0.01" max={form.discountType === "percentage" ? 100 : undefined} value={Number(form.discountValue ?? 0)} onChange={(event) => set("discountValue", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Minimum eligible subtotal (₹)<input type="number" min="0" value={Number(form.minimumSubtotal ?? 0)} onChange={(event) => set("minimumSubtotal", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Maximum discount (optional)<input type="number" min="0" value={form.maxDiscount == null ? "" : Number(form.maxDiscount)} onChange={(event) => set("maxDiscount", event.target.value === "" ? null : Number(event.target.value))} placeholder="No cap" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Expiry date (optional)<input type="date" value={form.expiresAt ? String(form.expiresAt).slice(0, 10) : ""} onChange={(event) => set("expiresAt", event.target.value || null)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label></div><div className="mt-6 border-t border-border pt-5"><p className="text-xs text-muted-foreground">Products this coupon applies to</p><div className="mt-3 flex flex-wrap gap-4 text-sm"><label className="flex items-center gap-2"><input type="radio" checked={form.productScope !== "specific"} onChange={() => set("productScope", "all")} /> All products</label><label className="flex items-center gap-2"><input type="radio" checked={form.productScope === "specific"} onChange={() => set("productScope", "specific")} /> Specific products</label></div>{form.productScope === "specific" && <div className="mt-4 grid max-h-64 gap-2 overflow-y-auto border border-border bg-[#fbf9f6] p-3 sm:grid-cols-2">{products.map((product) => { const id = String(product.id ?? ""); const selected = (form.productIds ?? []).includes(id); return <label key={id} className={`flex cursor-pointer items-center gap-3 border p-2.5 ${selected ? "border-gold bg-gold/5" : "border-transparent bg-white"}`}><input type="checkbox" checked={selected} onChange={() => toggleProduct(id)} /><div className="size-10 shrink-0 overflow-hidden bg-[#f0e9df]">{product.image && <img src={String(product.image)} alt="" className="h-full w-full object-cover" />}</div><span className="min-w-0 truncate text-xs text-primary">{String(product.name ?? id)}</span></label>; })}</div>}</div><label className="mt-5 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active !== false} onChange={(event) => set("active", event.target.checked)} /> Active and available at checkout</label><button disabled={busy} className="mt-6 inline-flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" /> {busy ? "Saving…" : "Save coupon"}</button></form>;
+}
+
+function CouponManager() {
+  const [coupons, setCoupons] = useState<CouponRecord[]>([]);
+  const [products, setProducts] = useState<RecordItem[]>([]);
+  const [editing, setEditing] = useState<CouponRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  async function load() {
+    setLoading(true);
+    try { const [couponRows, productRows] = await Promise.all([api("/api/admin/coupons"), api("/api/admin/products")]); setCoupons(couponRows); setProducts(productRows); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not load coupons."); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void load(); }, []);
+  async function remove(coupon: CouponRecord) {
+    if (!coupon._id || !window.confirm(`Delete coupon ${coupon.code ?? ""}? This cannot be undone.`)) return;
+    try { await api(`/api/admin/coupons/${coupon._id}`, { method: "DELETE" }); await load(); toast.success("Coupon deleted."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete coupon."); }
+  }
+  async function toggle(coupon: CouponRecord) {
+    if (!coupon._id) return;
+    try { await api(`/api/admin/coupons/${coupon._id}`, { method: "PUT", body: JSON.stringify({ ...coupon, active: coupon.active === false }) }); await load(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not update coupon."); }
+  }
+  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to coupons</button><CouponEditor initial={editing} products={products} onDone={() => { setEditing(null); void load(); }} /></div>;
+  return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Store promotions</p><h2 className="mt-1 font-display text-3xl text-primary">Coupons</h2><p className="mt-2 text-sm text-muted-foreground">Create discounts and assign them to your full catalog or selected products.</p></div><button type="button" onClick={() => setEditing({ ...emptyCoupon })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Create coupon</button></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Total coupons" value={coupons.length} icon={Tags} /><MetricCard label="Active coupons" value={coupons.filter((coupon) => coupon.active !== false).length} icon={CheckCircle2} /><MetricCard label="Product catalog" value={products.length} icon={Package} /></div><div className="mt-6 grid gap-4 lg:grid-cols-2">{loading ? <p className="text-sm text-muted-foreground">Loading coupons…</p> : coupons.length === 0 ? <div className="border border-dashed border-[#cfc3b5] bg-white p-10 text-center text-sm text-muted-foreground lg:col-span-2">No coupons yet. Create your first promotion.</div> : coupons.map((coupon) => <article key={coupon._id} className="border border-[#ded5c9] bg-white p-5"><div className="flex items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-display text-2xl text-primary">{coupon.code}</h3><span className={`border px-2 py-1 text-[10px] uppercase tracking-[0.08em] ${coupon.active === false ? "border-border bg-[#f7f4ef] text-muted-foreground" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{coupon.active === false ? "Inactive" : "Active"}</span></div><p className="mt-2 text-sm text-muted-foreground">{coupon.label || `${coupon.discountType === "fixed" ? "₹" : ""}${coupon.discountValue ?? 0}${coupon.discountType === "percentage" ? "% off" : " off"}`}</p></div><div className="flex gap-2"><button type="button" onClick={() => setEditing(coupon)} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => void remove(coupon)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${coupon.code}`}><Trash2 className="size-4" /></button></div></div><div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 text-xs"><div><p className="text-muted-foreground">Discount</p><p className="mt-1 font-medium text-primary">{coupon.discountType === "fixed" ? `₹${Number(coupon.discountValue ?? 0).toLocaleString("en-IN")}` : `${coupon.discountValue ?? 0}%`}</p></div><div><p className="text-muted-foreground">Minimum subtotal</p><p className="mt-1 font-medium text-primary">{Number(coupon.minimumSubtotal ?? 0) ? `₹${Number(coupon.minimumSubtotal).toLocaleString("en-IN")}` : "No minimum"}</p></div><div><p className="text-muted-foreground">Applies to</p><p className="mt-1 font-medium text-primary">{coupon.productScope === "specific" ? `${coupon.productIds?.length ?? 0} selected products` : "All products"}</p></div><div><p className="text-muted-foreground">Availability</p><button type="button" onClick={() => void toggle(coupon)} className="mt-1 font-medium text-primary hover:underline">{coupon.active === false ? "Activate coupon" : "Deactivate coupon"}</button></div></div></article>)}</div></div>;
+}
+
+function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons"> }) {
   const [items, setItems] = useState<RecordItem[]>([]); const [editing, setEditing] = useState<RecordItem | null>(null); const [loading, setLoading] = useState(true);
   async function refresh() { setLoading(true); try { setItems(await api(`/api/admin/${resource}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load records."); } finally { setLoading(false); } }
   useEffect(() => {

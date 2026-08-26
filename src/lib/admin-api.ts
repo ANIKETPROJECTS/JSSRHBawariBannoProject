@@ -161,10 +161,12 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     const maxDiscount = document.maxDiscount === "" || document.maxDiscount == null ? null : Math.max(0, Number(document.maxDiscount));
     const productScope = String(document.productScope ?? "all") === "specific" ? "specific" : "all";
     const productIds = Array.isArray(document.productIds) ? document.productIds.map(String).filter(Boolean) : [];
+    const expiresAt = document.expiresAt === "" || document.expiresAt == null ? null : new Date(`${String(document.expiresAt).slice(0, 10)}T23:59:59.999Z`);
     if (!/^[A-Z0-9_-]{3,40}$/.test(code)) throw new Error("Coupon code must be 3–40 characters using letters, numbers, hyphens, or underscores.");
     if (!Number.isFinite(discountValue) || discountValue <= 0 || (discountType === "percentage" && discountValue > 100)) throw new Error("Enter a valid discount value.");
     if (!Number.isFinite(minimumSubtotal) || !Number.isFinite(maxDiscount ?? 0)) throw new Error("Enter valid coupon limits.");
     if (productScope === "specific" && !productIds.length) throw new Error("Choose at least one product for a specific-product coupon.");
+    if (expiresAt && Number.isNaN(expiresAt.getTime())) throw new Error("Enter a valid expiry date.");
     const duplicate = await collection.findOne({ code, ...(id && ObjectId.isValid(id) ? { _id: { $ne: new ObjectId(id) } } : {}) });
     if (duplicate) throw new Error("A coupon with this code already exists.");
     document.code = code;
@@ -175,6 +177,7 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     document.productScope = productScope;
     document.productIds = productScope === "specific" ? productIds : [];
     document.label = String(document.label ?? "").trim().slice(0, 120);
+    document.expiresAt = expiresAt;
     document.active = document.active !== false;
   }
   if (id && ObjectId.isValid(id)) {
@@ -202,10 +205,13 @@ type CouponCalculation = { ok: true; coupon: JsonRecord; discount: number; eligi
 async function calculateCoupon(database: Db, code: string, items: { productId: string; quantity: number; price: number }[]): Promise<CouponCalculation> {
   const normalizedCode = code.trim().toUpperCase();
   if (!normalizedCode) return { ok: true, coupon: {}, discount: 0, eligibleSubtotal: 0 };
-  const coupon = await database.collection("coupons").findOne({ code: normalizedCode, active: { $ne: false } }) as JsonRecord | null;
+  const coupon = await database.collection("coupons").findOne({ code: normalizedCode }) as JsonRecord | null;
   if (!coupon) return { ok: false, message: "Coupon not recognised." };
+  if (coupon.active === false) return { ok: false, message: `${normalizedCode} is currently inactive.` };
+  if (coupon.expiresAt && new Date(String(coupon.expiresAt)).getTime() < Date.now()) return { ok: false, message: `${normalizedCode} has expired.` };
   const productIds = Array.isArray(coupon.productIds) ? coupon.productIds.map(String) : [];
   const eligibleItems = coupon.productScope === "specific" ? items.filter((item) => productIds.includes(item.productId)) : items;
+  if (coupon.productScope === "specific" && !eligibleItems.length) return { ok: false, message: `${normalizedCode} does not apply to the products in your bag.` };
   const eligibleSubtotal = eligibleItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const minimumSubtotal = Math.max(0, Number(coupon.minimumSubtotal ?? 0));
   if (eligibleSubtotal < minimumSubtotal) return { ok: false, message: `${normalizedCode} applies above ₹${minimumSubtotal.toLocaleString("en-IN")}.` };
@@ -278,16 +284,38 @@ async function recordPurchase(request: Request) {
   );
   const orderNumber = Number(counter?.value ?? 1);
   const orderId = `BawriBanno${String(orderNumber).padStart(2, "0")}`;
-  const events = [];
-  const orderItems = [];
+  const orderItems: { productId: string; name: string; image: string; quantity: number; price: number }[] = [];
+  const selectedProducts: { product: JsonRecord; productId: string; quantity: number }[] = [];
   for (const item of items) {
     if (!item || typeof item !== "object") continue;
     const row = item as JsonRecord;
     const productId = typeof row.productId === "string" ? row.productId : "";
     const quantity = Math.max(1, Math.floor(Number(row.quantity) || 0));
     if (!productId || !quantity) continue;
-    const product = await database.collection("products").findOne({ id: productId });
+    const product = await database.collection("products").findOne({ id: productId }) as JsonRecord | null;
     if (!product || Number(product.stock ?? 0) < quantity) return fail(`${String(product?.name ?? productId)} is not available in that quantity.`, 409);
+    selectedProducts.push({ product, productId, quantity });
+    orderItems.push({
+      productId,
+      name: String(product.name ?? productId),
+      image: String(product.image ?? ""),
+      quantity,
+      price: Number(product.price ?? 0),
+    });
+  }
+  if (!orderItems.length) return fail("No valid products were found in your cart.");
+  const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const couponCode = String(input.couponCode ?? "").trim().toUpperCase();
+  const couponResult = await calculateCoupon(database, couponCode, orderItems);
+  if (!couponResult.ok) return fail(couponResult.message);
+  const settings = await database.collection("settings").findOne({ _id: "store" });
+  const shippingCharge = Math.max(0, Number(settings?.shippingCharges ?? 250));
+  const freeShippingThreshold = Math.max(0, Number(settings?.freeShippingThreshold ?? 15000));
+  const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingCharge;
+  const discount = couponResult.discount;
+  const total = Math.max(0, subtotal + shipping - discount);
+  const events = [];
+  for (const { product, productId, quantity } of selectedProducts) {
     const result = await database.collection("products").findOneAndUpdate(
       { id: productId, stock: { $gte: quantity } },
       { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
@@ -304,13 +332,6 @@ async function recordPurchase(request: Request) {
       nextStock: Number(result.stock ?? 0),
       createdAt: new Date(),
     });
-    orderItems.push({
-      productId,
-      name: product.name,
-      image: product.image,
-      quantity,
-      price: Number(product.price ?? 0),
-    });
   }
   if (events.length) await database.collection("inventory_movements").insertMany(events);
   const createdAt = new Date();
@@ -325,7 +346,11 @@ async function recordPurchase(request: Request) {
     paymentStatus: "demo",
     inventoryAdjusted: true,
     items: orderItems,
-    total: Number(input.total ?? 0),
+    subtotal,
+    shipping,
+    discount,
+    total,
+    ...(couponCode ? { couponCode } : {}),
     createdAt,
     updatedAt: createdAt,
   });
@@ -1207,11 +1232,12 @@ export async function handleAdminApi(request: Request) {
       ]);
       return json({ heroes, categories, products });
     }
+    if (url.pathname === "/api/coupons/validate" && request.method === "POST") return await validateCoupon(request);
     if (url.pathname === "/api/store-config" && request.method === "GET") {
       const database = await db();
       const [announcements, coupons, settings] = await Promise.all([
         database.collection("announcements").find({ active: true }).sort({ order: 1 }).toArray(),
-        database.collection("coupons").find({ active: true }).sort({ createdAt: -1 }).toArray(),
+        database.collection("coupons").find({ active: true, $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gte: new Date() } }] }).sort({ createdAt: -1 }).toArray(),
         database.collection("settings").findOne({ _id: "store" }),
       ]);
       return json({ announcements, coupons, settings });
