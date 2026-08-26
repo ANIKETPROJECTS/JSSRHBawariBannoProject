@@ -65,32 +65,32 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
-      <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "w-[72px] px-3"}`}>
-        <div className={`flex items-center ${sidebarOpen ? "justify-between" : "justify-center"}`}><Link to="/" className={`font-display text-primary ${sidebarOpen ? "text-3xl" : "text-xl"}`}>{sidebarOpen ? "Bawari Banno" : "BB"}</Link></div>
-        {sidebarOpen && <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>}
+      <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "pointer-events-none w-0 -translate-x-full px-0 opacity-0"}`}>
+        <div className="flex items-center justify-between"><Link to="/" className="font-display text-3xl text-primary">Bawari Banno</Link><button type="button" onClick={() => setSidebarOpen(false)} className="text-muted-foreground transition-colors hover:text-primary" aria-label="Close side panel" title="Close side panel"><X className="size-4" /></button></div>
+        <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>
         <nav className="mt-12 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
           {tabs.map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" onClick={() => setTab(id)} title={sidebarOpen ? undefined : label} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${sidebarOpen ? "" : "justify-center"} ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
-              <Icon className="size-4 shrink-0" /> {sidebarOpen && label}
+            <button key={id} type="button" onClick={() => setTab(id)} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
+              <Icon className="size-4 shrink-0" /> {label}
             </button>
           ))}
         </nav>
         <div className="mt-4 shrink-0 border-t border-[#ded5c9] pt-5">
         <button type="button" onClick={() => void signOut()} className="flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary">
-          <LogOut className="size-4 shrink-0" /> {sidebarOpen && "Sign out"}
+          <LogOut className="size-4 shrink-0" /> Sign out
         </button>
         </div>
       </aside>
-      <main className={`transition-all ${sidebarOpen ? "lg:ml-64" : "lg:ml-[72px]"}`}>
+      <main className={`transition-all ${sidebarOpen ? "lg:ml-64" : "lg:ml-0"}`}>
         <header className="flex items-center justify-between border-b border-[#ded5c9] bg-white px-5 py-5 md:px-10">
-          <div className="flex items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="text-muted-foreground hover:text-primary" aria-label="Toggle sidebar"><Menu className="size-5" /></button><div><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 font-display text-3xl text-primary">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
+          <div className="flex items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="text-muted-foreground hover:text-primary" aria-label={sidebarOpen ? "Close side panel" : "Open side panel"} title={sidebarOpen ? "Close side panel" : "Open side panel"}>{sidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}</button><div><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 font-display text-3xl text-primary">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
           <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">View storefront <ChevronRight className="size-3" /></Link>
         </header>
         <div className="border-b border-[#ded5c9] bg-white px-5 py-3 lg:hidden">
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerCrudPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -941,6 +941,102 @@ function CustomerEditor({ initial, onDone }: { initial: CustomerRecord; onDone: 
     finally { setBusy(false); }
   }
   return <form onSubmit={submit} className="border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Customer record</p><h3 className="mt-1 font-display text-2xl text-primary">{initial._id ? "Edit customer" : "Add customer"}</h3></div><button type="button" onClick={onDone} className="text-xs text-muted-foreground">Cancel</button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground">Full name<input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label><label className="text-xs text-muted-foreground">Email address<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label><label className="text-xs text-muted-foreground sm:col-span-2">Mobile number<input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value.replace(/\D/g, "") })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label></div><button disabled={busy} className="mt-6 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : "Save customer"}</button></form>;
+}
+
+function CustomerManagementPage() {
+  const [customers, setCustomers] = useState<CustomerRecord[]>([]);
+  const [selected, setSelected] = useState<{ customer: CustomerRecord; orders: CustomerOrder[] } | null>(null);
+  const [editing, setEditing] = useState<CustomerRecord | null>(null);
+  const [search, setSearch] = useState("");
+  const [city, setCity] = useState("all");
+  const [state, setState] = useState("all");
+  const [activity, setActivity] = useState("all");
+  const [paid, setPaid] = useState("all");
+  const [sortField, setSortField] = useState("joined");
+  const [sortDirection, setSortDirection] = useState("newest");
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ search, city: city === "all" ? "" : city, state: state === "all" ? "" : state, activity, paid, sortField, sortDirection });
+      setCustomers(await api(`/api/admin/customers?${params}`));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load customers.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 180);
+    return () => window.clearTimeout(timer);
+  }, [search, city, state, activity, paid, sortField, sortDirection]);
+
+  async function openCustomer(id: string) {
+    try {
+      setSelected(await api(`/api/admin/customers/${id}`));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load customer.");
+    }
+  }
+
+  async function remove(customer: CustomerRecord) {
+    if (!customer._id || !window.confirm(`Delete ${String(customer.name ?? "this customer")}? Existing orders will be kept.`)) return;
+    try {
+      await api(`/api/admin/customers/${customer._id}`, { method: "DELETE" });
+      setSelected(null);
+      await load();
+      toast.success("Customer deleted.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete customer.");
+    }
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setCity("all");
+    setState("all");
+    setActivity("all");
+    setPaid("all");
+    setSortField("joined");
+    setSortDirection("newest");
+  }
+
+  const cities = [...new Set(customers.map((customer) => customer.city).filter(Boolean) as string[])].sort();
+  const states = [...new Set(customers.map((customer) => customer.state).filter(Boolean) as string[])].sort();
+  const stats = customers[0]?.customerStats ?? {
+    orders: customers.reduce((sum, customer) => sum + Number(customer.orderCount ?? 0), 0),
+    revenue: customers.reduce((sum, customer) => sum + Number(customer.orderTotal ?? 0), 0),
+  };
+  const wishlistCount = customers.reduce((sum, customer) => sum + Number(customer.wishlistCount ?? customer.wishlist?.length ?? 0), 0);
+
+  if (editing) {
+    return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to customers</button><div className="max-w-xl"><CustomerEditor initial={editing} onDone={() => { setEditing(null); void load(); }} /></div></div>;
+  }
+
+  if (selected) {
+    const detailWishlistCount = selected.customer.wishlist?.length ?? selected.customer.wishlistCount ?? 0;
+    return <div>
+      <button type="button" onClick={() => setSelected(null)} className="mb-5 text-sm text-primary hover:underline">← Back to customers</button>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Customer profile</p><h2 className="mt-1 font-display text-3xl text-primary">{selected.customer.name || "Unnamed customer"}</h2><p className="mt-2 text-sm text-muted-foreground">Customer details, activity, and purchase history.</p></div>
+        <div className="flex gap-2"><button type="button" onClick={() => setEditing(selected.customer)} className="border border-primary px-4 py-2.5 text-xs text-primary hover:bg-primary hover:text-white">Edit customer</button><button type="button" onClick={() => void remove(selected.customer)} className="border border-red-200 px-4 py-2.5 text-xs text-red-700 hover:bg-red-50">Delete</button></div>
+      </div>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total orders" value={selected.orders.length} icon={ShoppingCart} /><MetricCard label="Total spent" value={`₹${selected.orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0).toLocaleString("en-IN")}`} icon={BarChart3} /><MetricCard label="Wishlist items" value={detailWishlistCount} icon={Heart} /><MetricCard label="Last activity" value={customerRelativeDate(selected.customer.lastActivity)} icon={UserCheck} /></div>
+      <div className="mt-6 grid gap-5 lg:grid-cols-[280px_1fr]">
+        <section className="border border-[#ded5c9] bg-white p-6"><div className="flex size-14 items-center justify-center rounded-full bg-primary text-xl text-white">{(selected.customer.name || "BB").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div><h3 className="mt-4 font-display text-2xl text-primary">{selected.customer.name || "Unnamed customer"}</h3><p className="mt-2 text-sm text-muted-foreground">{selected.customer.email || "Email not provided"}</p><p className="mt-1 text-sm text-muted-foreground">+91 {selected.customer.phone || "Phone not provided"}</p><div className="mt-5 space-y-2 border-t border-border pt-5 text-sm"><p><span className="text-muted-foreground">Location:</span> {selected.customer.city || selected.customer.state ? [selected.customer.city, selected.customer.state].filter(Boolean).join(", ") : "Not provided"}</p><p><span className="text-muted-foreground">Joined:</span> {customerDate(selected.customer.createdAt)}</p><p><span className="text-muted-foreground">Last activity:</span> {customerRelativeDate(selected.customer.lastActivity)}</p><p><span className="text-muted-foreground">Phone:</span> {selected.customer.verified ? "Verified" : "Not verified"}</p></div></section>
+        <section className="border border-[#ded5c9] bg-white p-6"><div className="flex items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Purchase history</p><h3 className="mt-1 font-display text-2xl text-primary">Customer orders</h3></div><p className="text-sm text-muted-foreground">{selected.orders.length} order{selected.orders.length === 1 ? "" : "s"}</p></div>{selected.orders.length === 0 ? <p className="mt-8 border-t border-border pt-8 text-sm text-muted-foreground">No purchases yet.</p> : <div className="mt-5 divide-y divide-border border-y border-border">{selected.orders.map((order, index) => <div key={`${order.orderId ?? "order"}-${index}`} className="flex flex-wrap items-center gap-4 py-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId || "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{customerDate(order.createdAt)}</p></div><p className="text-sm">{order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0} item(s)</p><p className="text-sm font-medium">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><span className={`border px-2 py-1 text-xs capitalize ${statusBadge(order.status)}`}>{titleCase(order.status)}</span></div>)}</div>}</section>
+      </div>
+    </div>;
+  }
+
+  return <div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Customer operations</p><h2 className="mt-1 font-display text-3xl text-primary">Customer Management</h2><p className="mt-2 text-sm text-muted-foreground">View and manage customer information.</p></div><button type="button" onClick={() => setEditing({ name: "", email: "", phone: "" })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add customer</button></div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total customers" value={customers.length} icon={Users} /><MetricCard label="Total orders" value={stats.orders} icon={ShoppingCart} /><MetricCard label="Total revenue" value={`₹${Number(stats.revenue).toLocaleString("en-IN")}`} icon={BarChart3} /><MetricCard label="Wishlists" value={wishlistCount} icon={Heart} /></div>
+    <section className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="flex items-center gap-2"><SlidersHorizontal className="size-4 text-gold" /><h3 className="font-display text-xl text-primary">Search &amp; Filter</h3></div><div className="mt-4 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_170px_170px]"><label className="relative block"><span className="sr-only">Search customers</span><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by phone, name, or email…" className="w-full border border-border py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gold" /></label><label><span className="sr-only">Sort customers by field</span><select value={sortField} onChange={(event) => setSortField(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="joined">Join date</option><option value="activity">Last activity</option><option value="orders">Total orders</option><option value="spend">Total spend</option></select></label><label><span className="sr-only">Sort customer direction</span><select value={sortDirection} onChange={(event) => setSortDirection(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label></div><p className="mt-5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">Advanced filters</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label><span className="sr-only">Filter by city</span><select value={city} onChange={(event) => setCity(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All cities</option>{cities.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label><span className="sr-only">Filter by state</span><select value={state} onChange={(event) => setState(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All states</option>{states.map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label><span className="sr-only">Filter by last activity</span><select value={activity} onChange={(event) => setActivity(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All activity</option><option value="today">Active today</option><option value="7-days">Active in 7 days</option><option value="30-days">Active in 30 days</option><option value="never">No activity</option></select></label><label><span className="sr-only">Filter by payment history</span><select value={paid} onChange={(event) => setPaid(event.target.value)} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All users</option><option value="paid">Paid users</option><option value="unpaid">No paid orders</option></select></label></div><button type="button" onClick={clearFilters} className="mt-4 border border-border px-3 py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear filters</button></section>
+    <section className="mt-5 overflow-hidden border border-[#ded5c9] bg-white"><div className="flex items-center justify-between border-b border-border bg-[#fbf9f6] px-5 py-4"><h3 className="font-display text-xl text-primary">Customers ({customers.length})</h3><p className="text-xs text-muted-foreground">{loading ? "Refreshing…" : "Live customer records"}</p></div><div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-left text-sm"><thead className="border-b border-border bg-white text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-4 py-4">Phone</th><th className="px-4 py-4">Name</th><th className="px-4 py-4">Email</th><th className="px-4 py-4">Total orders</th><th className="px-4 py-4">Total spent</th><th className="px-4 py-4">Wishlist</th><th className="px-4 py-4">Last activity</th><th className="px-4 py-4">Joined</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">Loading customers…</td></tr> : customers.length === 0 ? <tr><td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">No customers match these filters.</td></tr> : customers.map((customer) => <tr key={customer._id} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4 whitespace-nowrap"><p>+91 {customer.phone || "—"}</p>{customer.verified && <span className="mt-1 inline-flex border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-800">Verified</span>}</td><td className="px-4 py-4"><p className={customer.name ? "font-medium text-primary" : "italic text-muted-foreground"}>{customer.name || "Not provided"}</p></td><td className="px-4 py-4"><p className={customer.email ? "text-primary" : "italic text-muted-foreground"}>{customer.email || "Not provided"}</p></td><td className="px-4 py-4">{customer.orderCount ?? 0}</td><td className="px-4 py-4">₹{Number(customer.orderTotal ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4">{customer.wishlistCount ?? customer.wishlist?.length ?? 0}</td><td className="px-4 py-4 whitespace-nowrap text-xs text-muted-foreground">{customerRelativeDate(customer.lastActivity)}</td><td className="px-4 py-4 whitespace-nowrap text-xs text-muted-foreground">{customerDate(customer.createdAt)}</td><td className="px-4 py-4 text-right"><button type="button" onClick={() => customer._id && void openCustomer(customer._id)} className="inline-flex items-center gap-1.5 border border-primary px-3 py-1.5 text-xs text-primary hover:bg-primary hover:text-white"><Eye className="size-3.5" /> View</button></td></tr>)}</tbody></table></div></section>
+  </div>;
 }
 
 function CustomerCrudPage() {
