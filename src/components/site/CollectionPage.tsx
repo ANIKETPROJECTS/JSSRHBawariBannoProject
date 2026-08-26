@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { CategorySidebar, type Filters, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
-import { getProductColor } from "@/data/colors";
 
 type Sort = "featured" | "price-asc" | "price-desc" | "newest";
 

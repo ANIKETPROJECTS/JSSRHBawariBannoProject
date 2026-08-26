@@ -9,6 +9,7 @@ import { useCart } from "@/components/site/CartDrawer";
 import { useReviewSummary } from "@/components/site/ReviewsContext";
 import { useWishlist } from "@/components/site/WishlistContext";
 import { formatPrice, sarees, type SareeVariant } from "@/data/sarees";
+import { getProductColor } from "@/data/colors";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/products/$productId")({
@@ -289,6 +290,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 {variantOptions.map((variant) => {
                   const isSelected = variant.id === selectedVariant?.id;
                   const isAvailable = variant.stock > 0;
+                  const color = getProductColor(variant.color);
                   return (
                     <button
                       key={variant.id}
@@ -302,8 +304,11 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                       )}
                     >
                       <img src={variant.image} alt="" className="size-10 shrink-0 object-cover" />
-                      <span className="min-w-0">
-                        <span className="block truncate text-xs text-primary">{variant.color}</span>
+                       <span className="min-w-0">
+                         <span className="flex items-center gap-1.5 truncate text-xs text-primary">
+                           <span className="size-3 shrink-0 rounded-full border border-black/10" style={color ? { backgroundColor: color.hex } : undefined} />
+                           {color?.label ?? variant.color}
+                         </span>
                         <span className="mt-0.5 block text-[10px] text-muted-foreground">{isAvailable ? `${variant.stock} available` : "Sold out"}</span>
                       </span>
                     </button>

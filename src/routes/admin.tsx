@@ -372,7 +372,6 @@ function ReviewsPage() {
   const [rating, setRating] = useState("all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [openColorIndex, setOpenColorIndex] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -806,6 +805,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     variants: initialVariants,
   }));
   const [busy, setBusy] = useState(false);
+  const [openColorIndex, setOpenColorIndex] = useState<number | null>(null);
   const parents = categories.filter((category) => !category.parentSlug);
   const subcategories = categories.filter((category) => String(category.parentSlug ?? "") === String(form.category ?? ""));
   const set = (key: string, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
@@ -836,6 +836,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         const image = String(variant.image ?? "").trim();
         const variantImages = [image, ...String(variant.extraImages ?? "").split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean).filter((item) => item !== image)];
         if (!color) throw new Error(`Add a color name for variant ${index + 1}.`);
+        if (!productColors.some((option) => option.key === color)) throw new Error(`Choose a color from the approved palette for variant ${index + 1}.`);
         if (variantColors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
         variantColors.add(color.toLowerCase());
         if (!image) throw new Error(`Add a cover image for the ${color} variant.`);
@@ -915,7 +916,47 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
                     <button type="button" onClick={() => removeVariant(index)} className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-red-700"><Trash2 className="size-3.5" /> Remove</button>
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <label className="text-xs text-muted-foreground">Color name<input required value={variant.color} onChange={(event) => setVariant(index, "color", event.target.value)} placeholder="Sunlit Yellow" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                    <div className="relative text-xs text-muted-foreground">
+                      <span>Color name</span>
+                      <button
+                        type="button"
+                        role="combobox"
+                        aria-haspopup="listbox"
+                        aria-expanded={openColorIndex === index}
+                        onClick={() => setOpenColorIndex(openColorIndex === index ? null : index)}
+                        className="mt-1 flex w-full items-center justify-between border border-border bg-white px-3 py-2.5 text-left text-sm text-foreground"
+                      >
+                        <span className="flex items-center gap-2">
+                          {getProductColor(variant.color) ? (
+                            <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: getProductColor(variant.color)?.hex }} />
+                          ) : (
+                            <span className="size-4 rounded-full border border-dashed border-muted-foreground" />
+                          )}
+                          {getProductColor(variant.color)?.label ?? "Choose a color"}
+                        </span>
+                        <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", openColorIndex === index && "rotate-90")} />
+                      </button>
+                      {openColorIndex === index && (
+                        <div role="listbox" aria-label="Color options" className="absolute inset-x-0 top-full z-30 mt-1 max-h-56 overflow-y-auto border border-border bg-white p-1 shadow-lg">
+                          {productColors.map((option) => (
+                            <button
+                              key={option.key}
+                              type="button"
+                              role="option"
+                              aria-selected={variant.color === option.key}
+                              onClick={() => {
+                                setVariant(index, "color", option.key);
+                                setOpenColorIndex(null);
+                              }}
+                              className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-[#f4efe8]", variant.color === option.key && "bg-[#f4efe8] text-primary")}
+                            >
+                              <span className="size-4 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: option.hex }} />
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant cover image URL<input required value={variant.image} onChange={(event) => setVariant(index, "image", event.target.value)} placeholder="https://…/yellow-cover.jpg" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant extra image URLs <span>(optional, maximum 4)</span><textarea value={variant.extraImages} onChange={(event) => setVariant(index, "extraImages", event.target.value)} rows={3} placeholder={"https://…/yellow-detail-1.jpg\nhttps://…/yellow-detail-2.jpg"} className="mt-1 w-full resize-y border border-border bg-white px-3 py-2.5 text-sm" /></label>
