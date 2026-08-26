@@ -6,6 +6,7 @@ import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import searchIcon from "../../../attached_assets/search_(4)_1787337839736.png";
 import { useCart } from "./CartDrawer";
+import { useWishlist } from "./WishlistContext";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -19,6 +20,7 @@ const nav = [
 
 export function Header() {
   const { openCart, items } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -103,9 +105,14 @@ export function Header() {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-            className="p-1 transition-transform hover:scale-110"
+            className="relative p-1 transition-transform hover:scale-110"
           >
             <img src={wishlistIcon} alt="" className="size-6 object-contain" />
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.6rem] text-primary-foreground">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
           <Link
             to="/profile"

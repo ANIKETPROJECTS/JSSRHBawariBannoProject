@@ -52,6 +52,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   function finish(customer: Customer) {
     cachedCustomer = customer;
     onComplete(customer);
+    window.dispatchEvent(new Event("customer-login"));
     if (window.location.pathname !== "/") window.location.assign("/");
   }
   async function verify(event: React.FormEvent) {
