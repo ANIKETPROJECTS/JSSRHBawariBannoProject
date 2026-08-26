@@ -86,6 +86,14 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [closeAuth, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen || checking || !customer) return;
+    setIsOpen(false);
+    const callback = afterLogin;
+    setAfterLogin(null);
+    callback?.();
+  }, [afterLogin, checking, customer, isOpen]);
+
   const completeLogin = useCallback((nextCustomer: Customer) => {
     setCustomer(nextCustomer);
     setIsOpen(false);
