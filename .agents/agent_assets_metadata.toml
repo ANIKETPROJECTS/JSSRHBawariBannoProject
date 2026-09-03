@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "gKx2drmJ9eBAqoKryBdn6"
+uri = "file://motolux-admin-blueprint.md"
+type = "text"
+title = "Motolux Admin System Blueprint"
+description = "A Replit-ready Markdown implementation brief for building an automotive spare-parts admin panel with vehicle fitment, catalog, inventory, suppliers, orders, returns, customers, promotions, reports, and role-based access."
+logical_id = "3fa9e368-0c22-4c79-af25-9ab37cc4eab6"
+content_hash = "sha256:3c2d406f3c79b694897ea9648985f1cf5c7ce9b92b140abffe4ba211131f5727"
+size = 21687
+mtime_ms = 1788415237273
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/3fa9e368-0c22-4c79-af25-9ab37cc4eab6/970f5900-9c98-4c54-bd35-f3d134c7900b"
+storage_version_token = "1788415258663138"
+content_type = "text/markdown"
