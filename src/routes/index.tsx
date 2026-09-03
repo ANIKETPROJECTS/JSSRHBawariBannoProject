@@ -137,6 +137,7 @@ function Home() {
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/55 to-transparent" />
           <div className="hero-rays absolute inset-0" aria-hidden="true" />
+          <div className="hero-vignette absolute inset-0" aria-hidden="true" />
           <div className="hero-sparkles absolute inset-0" aria-hidden="true">
             <span className="hero-sparkle hero-sparkle-one" />
             <span className="hero-sparkle hero-sparkle-two" />
