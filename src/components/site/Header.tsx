@@ -88,12 +88,12 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-1 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-3">
           <button
             type="button"
             aria-label="Search"
             onClick={() => setSearchOpen((open) => !open)}
-            className="p-2 transition-transform hover:scale-110 sm:p-1"
+            className="p-1.5 transition-transform hover:scale-110 min-[420px]:p-2 sm:p-1"
           >
             <img src={searchIcon} alt="" className="size-5 object-contain sm:size-6" />
           </button>
@@ -101,7 +101,7 @@ export function Header() {
             type="button"
             aria-label="Shopping bag"
             onClick={openCart}
-            className="relative p-2 transition-transform hover:scale-110 sm:p-1"
+            className="relative p-1.5 transition-transform hover:scale-110 min-[420px]:p-2 sm:p-1"
           >
             <img src={cartIcon} alt="" className="size-5 object-contain sm:size-6" />
             {itemCount > 0 && (
@@ -113,7 +113,7 @@ export function Header() {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-            className="relative p-2 transition-transform hover:scale-110 sm:p-1"
+            className="relative p-1.5 transition-transform hover:scale-110 min-[420px]:p-2 sm:p-1"
           >
             <img src={wishlistIcon} alt="" className="size-5 object-contain sm:size-6" />
             {wishlistCount > 0 && (
@@ -125,7 +125,7 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-            className="p-2 transition-transform hover:scale-110 sm:p-1"
+            className="p-1.5 transition-transform hover:scale-110 min-[420px]:p-2 sm:p-1"
           >
             <img src={profileIcon} alt="" className="size-5 object-contain sm:size-6" />
           </Link>
@@ -133,14 +133,14 @@ export function Header() {
       </div>
       {searchOpen && <div className="border-t border-border bg-background px-4 py-3 shadow-sm sm:px-5 sm:py-4"><div className="mx-auto max-w-7xl"><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search sarees, fabrics, collections…" className="w-full border-b border-primary bg-transparent px-1 py-3 text-sm outline-none placeholder:text-muted-foreground sm:text-base" />{query.trim() && <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => <Link key={saree.id} to="/products/$productId" params={{ productId: saree.id }} onClick={() => { setSearchOpen(false); setQuery(""); }} className="flex min-w-0 items-center gap-3 border border-border p-2 hover:bg-secondary"><img src={saree.image} alt="" className="size-12 shrink-0 object-cover" /><span className="min-w-0 text-sm text-primary">{saree.name}</span></Link>)}</div>}</div></div>}
 
-      <nav className="flex items-center gap-5 overflow-x-auto px-4 py-3 text-sm md:hidden no-scrollbar sm:gap-6 sm:px-5 sm:text-base">
+      <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-sm md:hidden sm:gap-x-6 sm:px-5 sm:text-base">
         {nav.map((item) => (
           item.label === "Categories" ? (
-            <details key={`${item.label}-${item.to}`} className="shrink-0">
+            <details key={`${item.label}-${item.to}`} className="w-full shrink-0 sm:w-auto">
                 <summary className="list-none cursor-pointer whitespace-nowrap text-foreground">
                 Categories ⌄
               </summary>
-              <div className="mt-2 flex gap-3 border-l border-border pl-3 text-sm sm:gap-4 sm:pl-4 sm:text-base">
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-2 border-l border-border pl-3 text-sm sm:gap-x-4 sm:pl-4 sm:text-base">
                   <Link to="/categories/silk-sarees" className="whitespace-nowrap text-foreground">
                   Silk Sarees
                 </Link>

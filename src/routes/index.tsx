@@ -112,7 +112,7 @@ function Home() {
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-5">
               <div className="max-w-xl text-primary-foreground">
                 <p className="text-eyebrow text-gold">The Festive Edit · 2026</p>
-                <h1 className="mt-4 break-words font-display text-4xl font-light leading-[1.05] tracking-tight sm:text-5xl md:text-7xl">
+                <h1 className="mt-4 max-w-[18rem] break-words font-display text-3xl font-light leading-[1.08] tracking-tight min-[420px]:text-4xl sm:max-w-xl sm:text-5xl md:text-7xl">
                   Six yards, woven with a lifetime of patience.
                 </h1>
                 <p className="mt-5 max-w-md text-sm leading-relaxed text-primary-foreground/80">
@@ -133,8 +133,8 @@ function Home() {
 
       {/* Categories — horizontal circular scroller */}
       <section className="mx-auto max-w-[1440px] px-2 pt-2 sm:px-4 sm:pt-3">
-        <div className="no-scrollbar overflow-x-auto pb-3">
-          <div className="flex min-w-0 justify-between gap-0">
+        <div className="pb-3">
+          <div className="grid grid-cols-2 gap-4 px-2 min-[420px]:grid-cols-3 sm:flex sm:justify-between sm:gap-0 sm:px-0">
           {categoryEdits.slice(0, 7).map((category) => (
             <Link
               key={category.id}
@@ -174,11 +174,11 @@ function Home() {
       <ProductRail title="Shop by Fabric" products={sarees.slice(0, 5)} />
 
       <section className="mx-auto max-w-[1440px] px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
-        <h2 className="text-center font-display text-4xl font-light text-primary sm:text-5xl">
+        <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-5xl">
           Six yards in motion.
         </h2>
 
-        <div className="mt-7 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="mt-7 grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {sarees.slice(0, 5).map((saree, index) => (
             <figure key={saree.id} className="group relative aspect-[9/16] overflow-hidden bg-secondary">
               <img
@@ -211,9 +211,9 @@ function ProductRail({
 }) {
   return (
     <section className="mx-auto max-w-[1440px] px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
-      <h2 className="text-center font-display text-5xl font-light text-primary sm:text-6xl">{title}</h2>
+      <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
-      <div className="mt-8 grid grid-cols-5 gap-5 pb-3">
+      <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
           {products.map((saree) => (
           <ProductCard key={saree.id} saree={saree} tall showAddToCart />
         ))}
