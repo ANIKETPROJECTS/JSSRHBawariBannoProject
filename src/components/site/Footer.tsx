@@ -67,7 +67,7 @@ export function Footer() {
               New weaves, revival drops and atelier notes — once a month.
             </p>
             <form
-              className="mt-5 flex border-b border-primary-foreground/30 focus-within:border-gold"
+              className="mt-5 flex min-w-0 border-b border-primary-foreground/30 focus-within:border-gold"
               onSubmit={(e) => e.preventDefault()}
             >
               <label className="sr-only" htmlFor="newsletter">
@@ -77,9 +77,9 @@ export function Footer() {
                 id="newsletter"
                 type="email"
                 placeholder="your@email.com"
-                className="w-full bg-transparent py-2 text-sm outline-none placeholder:text-primary-foreground/45"
+                className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-primary-foreground/45"
               />
-              <button type="submit" className="text-eyebrow text-gold">
+              <button type="submit" className="shrink-0 text-eyebrow text-gold">
                 Join
               </button>
             </form>
