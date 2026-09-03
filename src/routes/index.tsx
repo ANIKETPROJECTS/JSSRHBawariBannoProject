@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
@@ -47,6 +47,7 @@ function Home() {
   const [activeHero, setActiveHero] = useState(0);
   const [transitioningFrom, setTransitioningFrom] = useState<number | null>(null);
   const activeHeroRef = useRef(0);
+  const heroFrameRef = useRef<HTMLDivElement>(null);
   const [liveHeroSlides, setLiveHeroSlides] = useState<typeof heroSlides | null>(null);
   const slides = liveHeroSlides ?? heroSlides;
   const currentHero = activeHero % slides.length;
@@ -76,38 +77,75 @@ function Home() {
     return () => window.clearInterval(timer);
   }, [slides.length]);
 
+  const handleHeroPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || !heroFrameRef.current) return;
+    const bounds = heroFrameRef.current.getBoundingClientRect();
+    const horizontal = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+    const vertical = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+    heroFrameRef.current.style.setProperty("--hero-tilt-x", `${(horizontal * 4).toFixed(2)}deg`);
+    heroFrameRef.current.style.setProperty("--hero-tilt-y", `${(vertical * -4).toFixed(2)}deg`);
+  };
+
+  const resetHeroPointer = () => {
+    heroFrameRef.current?.style.setProperty("--hero-tilt-x", "0deg");
+    heroFrameRef.current?.style.setProperty("--hero-tilt-y", "0deg");
+  };
+
   return (
     <SiteShell>
       {/* Hero */}
       <section className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden">
-          <img
-            src={slides[previousHero].image}
-            alt={slides[previousHero].alt}
-            width={1920}
-            height={1088}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          {transitioningFrom !== null && (
+        <div
+          ref={heroFrameRef}
+          className="hero-frame relative overflow-hidden"
+          onPointerMove={handleHeroPointerMove}
+          onPointerLeave={resetHeroPointer}
+        >
+          <div className="hero-tilt-layer absolute inset-0">
             <img
-              key={currentHero}
-              src={slides[currentHero].image}
-              alt={slides[currentHero].alt}
+              src={slides[previousHero].image}
+              alt={slides[previousHero].alt}
               width={1920}
               height={1088}
-              className="relative h-[68vh] min-h-[420px] w-full object-cover hero-fade-in"
+              className="hero-image absolute inset-0 h-full w-full object-cover"
             />
+          </div>
+          {transitioningFrom !== null && (
+            <div
+              key={currentHero}
+              className="hero-tilt-layer relative h-[68vh] min-h-[420px] w-full hero-fade-in"
+            >
+              <img
+                src={slides[currentHero].image}
+                alt={slides[currentHero].alt}
+                width={1920}
+                height={1088}
+                className="hero-image size-full object-cover"
+              />
+            </div>
           )}
           {transitioningFrom === null && (
-            <img
-              src={slides[currentHero].image}
-              alt={slides[currentHero].alt}
-              width={1920}
-              height={1088}
-              className="relative h-[68vh] min-h-[420px] w-full object-cover"
-            />
+            <div className="hero-tilt-layer relative h-[68vh] min-h-[420px] w-full">
+              <img
+                src={slides[currentHero].image}
+                alt={slides[currentHero].alt}
+                width={1920}
+                height={1088}
+                className="hero-image size-full object-cover"
+              />
+            </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/55 to-transparent" />
+          <div className="hero-rays absolute inset-0" aria-hidden="true" />
+          <div className="hero-sparkles absolute inset-0" aria-hidden="true">
+            <span className="hero-sparkle hero-sparkle-one" />
+            <span className="hero-sparkle hero-sparkle-two" />
+            <span className="hero-sparkle hero-sparkle-three" />
+            <span className="hero-sparkle hero-sparkle-four" />
+            <span className="hero-sparkle hero-sparkle-five" />
+          </div>
+          <div className="hero-curtain hero-curtain-left" aria-hidden="true" />
+          <div className="hero-curtain hero-curtain-right" aria-hidden="true" />
           <div className="absolute inset-0 flex items-center">
             <div className="mx-auto w-full max-w-7xl px-4 sm:px-5">
               <div className="max-w-xl text-primary-foreground">

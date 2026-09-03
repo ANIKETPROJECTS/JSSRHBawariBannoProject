@@ -184,8 +184,214 @@ form[class*="max-h-"] {
   animation: hero-fade-in 700ms ease-in-out both;
 }
 
+.hero-frame {
+  perspective: 1400px;
+  --hero-tilt-x: 0deg;
+  --hero-tilt-y: 0deg;
+}
+
+.hero-tilt-layer {
+  transform: rotateX(var(--hero-tilt-y)) rotateY(var(--hero-tilt-x));
+  transform-style: preserve-3d;
+  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+
+.hero-image {
+  animation: hero-ken-burns 18s ease-in-out infinite alternate;
+  filter: blur(0);
+  transform-origin: center center;
+  will-change: transform, filter;
+}
+
+.hero-rays {
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.34;
+  mix-blend-mode: screen;
+  background:
+    linear-gradient(126deg, rgba(247, 207, 112, 0.24), transparent 28%),
+    repeating-linear-gradient(
+      116deg,
+      transparent 0 9%,
+      rgba(247, 207, 112, 0.1) 10% 11.5%,
+      transparent 12.5% 21%
+    );
+  transform: translate(-12%, -18%) rotate(-3deg) scale(1.35);
+  animation: hero-rays-breathe 12s ease-in-out infinite;
+}
+
+.hero-vignette {
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 45%,
+    rgba(16, 8, 5, 0.12) 68%,
+    rgba(16, 8, 5, 0.58) 100%
+  );
+}
+
+.hero-sparkles {
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hero-sparkle {
+  position: absolute;
+  display: block;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 9999px;
+  background: #ffe7a1;
+  box-shadow:
+    0 0 0.3rem 0.1rem rgba(255, 224, 135, 0.95),
+    0 0 1rem 0.2rem rgba(219, 161, 42, 0.55);
+  opacity: 0;
+  animation: hero-sparkle-pulse 4.8s ease-in-out infinite;
+}
+
+.hero-sparkle::before,
+.hero-sparkle::after {
+  position: absolute;
+  content: "";
+  inset: 50% auto auto 50%;
+  width: 0.08rem;
+  height: 1.1rem;
+  border-radius: 9999px;
+  background: #fff4c9;
+  transform: translate(-50%, -50%);
+}
+
+.hero-sparkle::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.hero-sparkle-one {
+  top: 29%;
+  left: 72%;
+  animation-delay: -0.8s;
+}
+
+.hero-sparkle-two {
+  top: 39%;
+  left: 77%;
+  transform: scale(0.72);
+  animation-delay: -3.1s;
+}
+
+.hero-sparkle-three {
+  top: 48%;
+  left: 70%;
+  transform: scale(0.58);
+  animation-delay: -1.9s;
+}
+
+.hero-sparkle-four {
+  top: 57%;
+  left: 79%;
+  transform: scale(0.8);
+  animation-delay: -4.2s;
+}
+
+.hero-sparkle-five {
+  top: 67%;
+  left: 74%;
+  transform: scale(0.65);
+  animation-delay: -2.5s;
+}
+
+.hero-curtain {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  bottom: 0;
+  width: 51%;
+  pointer-events: none;
+  background: var(--color-ink);
+  animation-duration: 1300ms;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.18, 1);
+  animation-fill-mode: forwards;
+}
+
+.hero-curtain-left {
+  left: 0;
+  transform-origin: left center;
+  animation-name: hero-curtain-left;
+}
+
+.hero-curtain-right {
+  right: 0;
+  transform-origin: right center;
+  animation-name: hero-curtain-right;
+}
+
+@keyframes hero-ken-burns {
+  from {
+    transform: scale(1);
+    filter: blur(3px);
+  }
+  to {
+    transform: scale(1.05);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-rays-breathe {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: translate(-12%, -18%) rotate(-3deg) scale(1.35);
+  }
+  50% {
+    opacity: 0.42;
+    transform: translate(-5%, -12%) rotate(-1deg) scale(1.4);
+  }
+}
+
+@keyframes hero-sparkle-pulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  35%,
+  55% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+@keyframes hero-curtain-left {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes hero-curtain-right {
+  to {
+    transform: scaleX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-fade-in {
     animation-duration: 1ms;
+  }
+
+  .hero-image,
+  .hero-rays,
+  .hero-sparkle,
+  .hero-curtain {
+    animation: none;
+  }
+
+  .hero-curtain {
+    display: none;
+  }
+
+  .hero-tilt-layer {
+    transform: none;
+    transition: none;
   }
 }
