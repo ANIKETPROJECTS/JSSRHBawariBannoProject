@@ -109,10 +109,10 @@ function Home() {
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink/85 via-ink/55 to-transparent" />
           <div className="absolute inset-0 flex items-center">
-            <div className="mx-auto w-full max-w-7xl px-5">
+            <div className="mx-auto w-full max-w-7xl px-4 sm:px-5">
               <div className="max-w-xl text-primary-foreground">
                 <p className="text-eyebrow text-gold">The Festive Edit · 2026</p>
-                <h1 className="mt-4 font-display text-5xl font-light leading-[1.05] tracking-tight md:text-7xl">
+                <h1 className="mt-4 break-words font-display text-4xl font-light leading-[1.05] tracking-tight sm:text-5xl md:text-7xl">
                   Six yards, woven with a lifetime of patience.
                 </h1>
                 <p className="mt-5 max-w-md text-sm leading-relaxed text-primary-foreground/80">
@@ -121,7 +121,7 @@ function Home() {
                 </p>
                 <Link
                   to="/products"
-                  className="mt-8 inline-flex items-center gap-2 border border-gold bg-gold/95 px-8 py-3.5 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold"
+                  className="mt-8 inline-flex items-center gap-2 border border-gold bg-gold/95 px-6 py-3.5 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold sm:px-8"
                 >
                   Shop Now <ArrowRight className="size-3.5" strokeWidth={2} />
                 </Link>
@@ -140,7 +140,7 @@ function Home() {
               key={category.id}
               to="/categories/$category"
               params={{ category: category.id }}
-              className="group flex w-44 shrink-0 flex-col items-center gap-3 text-center"
+              className="group flex w-32 shrink-0 flex-col items-center gap-3 text-center sm:w-44"
             >
               <div className="rounded-full border border-gold/60 bg-gold/10 p-1 transition-colors duration-300 group-hover:border-primary group-hover:bg-gold/25">
                 <img
@@ -149,10 +149,10 @@ function Home() {
                   loading="lazy"
                   width={320}
                   height={320}
-                  className="size-44 rounded-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  className="size-32 rounded-full object-cover transition-transform duration-500 group-hover:scale-[1.04] sm:size-44"
                 />
               </div>
-              <span className="font-display text-lg leading-tight text-foreground transition-colors group-hover:text-primary sm:text-xl">
+                <span className="font-display text-base leading-tight text-foreground transition-colors group-hover:text-primary sm:text-xl">
                 {category.title}
               </span>
             </Link>

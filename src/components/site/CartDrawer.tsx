@@ -193,7 +193,7 @@ function CartDrawer() {
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between border-b border-border px-6 py-5">
+        <div className="flex items-center justify-between border-b border-border px-4 py-4 sm:px-6 sm:py-5">
           <div>
             <p className="text-eyebrow text-muted-foreground">Your selection</p>
             <h2 className="mt-1 font-display text-3xl font-light text-primary">Your bag</h2>
@@ -203,7 +203,7 @@ function CartDrawer() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {items.length === 0 ? (
             <div className="flex min-h-[55vh] flex-col items-center justify-center text-center">
               <ShoppingBag className="size-10 text-primary/60" strokeWidth={1.1} />
@@ -218,8 +218,8 @@ function CartDrawer() {
           ) : (
             <>
               <div className="border-b border-border pb-5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Free shipping on orders above ₹15,000</span>
+                <div className="flex items-start justify-between gap-3 text-[0.7rem] sm:text-xs">
+                  <span className="max-w-[15rem] leading-relaxed text-muted-foreground">Free shipping on orders above ₹15,000</span>
                   <span className="text-primary">{Math.round(freeShippingProgress)}%</span>
                 </div>
                 <div className="mt-3 h-1 bg-secondary">
@@ -229,10 +229,10 @@ function CartDrawer() {
 
               <div className="divide-y divide-border">
                 {items.map(({ product, quantity }) => (
-                  <div key={cartItemKey(product)} className="flex gap-4 py-5">
-                    <img src={product.image} alt={product.name} className="aspect-[3/4] w-20 shrink-0 object-cover" />
+                  <div key={cartItemKey(product)} className="flex gap-3 py-5 sm:gap-4">
+                    <img src={product.image} alt={product.name} className="aspect-[3/4] w-16 shrink-0 object-cover sm:w-20" />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start justify-between gap-2 sm:gap-3">
                         <div>
                           <p className="text-eyebrow text-muted-foreground">{product.fabric}</p>
                           <h3 className="mt-1 text-sm leading-snug text-foreground">{product.name}</h3>
@@ -259,7 +259,7 @@ function CartDrawer() {
                 ))}
               </div>
 
-              <div className="border-y border-border py-5">
+            <div className="border-y border-border py-5">
                 <div className="flex items-center gap-2">
                   <Tag className="size-4 text-primary" strokeWidth={1.4} />
                   <p className="text-sm text-foreground">Have a coupon?</p>
@@ -335,7 +335,7 @@ function CartDrawer() {
         </div>
 
         {items.length > 0 && (
-          <div className="border-t border-border bg-white px-6 py-5">
+          <div className="border-t border-border bg-white px-4 py-4 sm:px-6 sm:py-5">
             <button
               type="button"
               onClick={() => void checkout()}
@@ -350,7 +350,7 @@ function CartDrawer() {
       </aside>
       {orderConfirmation && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/45 p-5" role="dialog" aria-modal="true" aria-labelledby="order-confirmation-title">
-          <div className="w-full max-w-md border border-gold/40 bg-white p-8 text-center shadow-2xl">
+          <div className="w-full max-w-md border border-gold/40 bg-white p-6 text-center shadow-2xl sm:p-8">
             <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-gold bg-gold/10 text-2xl text-gold">✓</div>
             <p className="mt-6 text-eyebrow text-gold">Order confirmed</p>
             <h2 id="order-confirmation-title" className="mt-2 font-display text-4xl text-primary">Thank you for buying from us.</h2>

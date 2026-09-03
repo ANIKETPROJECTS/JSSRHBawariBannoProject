@@ -212,8 +212,8 @@ export function CollectionPage({
         </div>
       </div>
 
-      <section className="mx-auto mt-10 max-w-7xl px-5 pb-16">
-        <div className="flex flex-col gap-10 lg:flex-row">
+      <section className="mx-auto mt-8 max-w-7xl px-4 pb-16 sm:mt-10 sm:px-5">
+        <div className="flex flex-col gap-7 sm:gap-10 lg:flex-row">
           <CategorySidebar
             selection={selection}
             onSelect={setSelection}
@@ -224,16 +224,16 @@ export function CollectionPage({
           />
 
           <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
               <p className="text-sm text-muted-foreground">
                 {list.length} {list.length === 1 ? "saree" : "sarees"}
               </p>
-              <label className="flex items-center gap-3 text-sm">
+              <label className="flex w-full items-center justify-between gap-3 text-sm sm:w-auto sm:justify-start">
                 <span className="text-muted-foreground">Sort by</span>
                 <select
                   value={sort}
                   onChange={(event) => setSort(event.target.value as Sort)}
-                  className="border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-gold"
+                  className="min-w-0 border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-gold sm:w-auto"
                 >
                   {(Object.keys(sortLabels) as Sort[]).map((key) => (
                     <option key={key} value={key}>{sortLabels[key]}</option>
@@ -242,7 +242,7 @@ export function CollectionPage({
               </label>
             </div>
 
-            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-3">
+            <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3">
               {list.map((saree) => <ProductCard key={saree.id} saree={saree} showAddToCart />)}
             </div>
             {list.length === 0 && (

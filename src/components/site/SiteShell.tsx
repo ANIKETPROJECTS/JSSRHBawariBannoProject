@@ -46,9 +46,9 @@ export function PageHeading({
 }) {
   return (
     <div className="border-b border-border fabric-texture">
-      <div className="mx-auto max-w-7xl px-5 py-14">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-5 sm:py-14">
         <p className="text-eyebrow text-muted-foreground">{eyebrow}</p>
-        <h1 className="mt-3 font-display text-5xl text-primary md:text-6xl">{title}</h1>
+        <h1 className="mt-3 break-words font-display text-4xl text-primary sm:text-5xl md:text-6xl">{title}</h1>
         {intro && (
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
             {intro}

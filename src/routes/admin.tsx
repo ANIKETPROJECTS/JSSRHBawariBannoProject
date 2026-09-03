@@ -86,14 +86,14 @@ function AdminPage() {
         </div>
       </aside>
       <main className={`transition-all ${sidebarOpen ? "lg:ml-64" : "lg:ml-0"}`}>
-        <header className="flex items-center justify-between border-b border-[#ded5c9] bg-white px-5 py-5 md:px-10">
-          <div className="flex items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="text-muted-foreground hover:text-primary" aria-label={sidebarOpen ? "Close side panel" : "Open side panel"} title={sidebarOpen ? "Close side panel" : "Open side panel"}>{sidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}</button><div><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 font-display text-3xl text-primary">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
-          <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary">View storefront <ChevronRight className="size-3" /></Link>
+        <header className="flex items-center justify-between gap-4 border-b border-[#ded5c9] bg-white px-4 py-4 sm:px-5 sm:py-5 md:px-10">
+          <div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="shrink-0 text-muted-foreground hover:text-primary" aria-label={sidebarOpen ? "Close side panel" : "Open side panel"} title={sidebarOpen ? "Close side panel" : "Open side panel"}>{sidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}</button><div className="min-w-0"><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 truncate font-display text-2xl text-primary sm:text-3xl">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
+          <Link to="/" className="flex shrink-0 items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-primary sm:text-xs">View storefront <ChevronRight className="size-3" /></Link>
         </header>
         <div className="border-b border-[#ded5c9] bg-white px-5 py-3 lg:hidden">
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
-        <div className="mx-auto max-w-7xl p-5 md:p-10">
+        <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
           {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>

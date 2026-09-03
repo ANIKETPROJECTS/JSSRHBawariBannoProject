@@ -47,7 +47,7 @@ export function ProductCard({
             event.stopPropagation();
             void toggle(saree.id);
           }}
-          className={`absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-background/90 backdrop-blur-sm transition-colors ${
+          className={`absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-background/90 backdrop-blur-sm transition-colors sm:right-3 sm:top-3 ${
             isWishlisted ? "text-red-600" : "text-foreground/75 hover:text-red-600"
           }`}
         >
@@ -79,10 +79,10 @@ export function ProductCard({
         </button>
       </div>
       <div className="pt-4">
-        <h3 className="overflow-hidden text-2xl leading-tight text-ellipsis text-foreground transition-colors group-hover:text-primary whitespace-nowrap">
+        <h3 className="min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl">
           {saree.name}
         </h3>
-        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           {reviewSummary.count > 0 ? (
             <>
               <span className="tracking-[0.12em] text-gold" aria-label={`${reviewSummary.average} out of 5 stars`}>
@@ -94,9 +94,9 @@ export function ProductCard({
             <span>No reviews yet</span>
           )}
         </div>
-        <div className="mt-2 flex items-center gap-2">
-          <p className="text-xl font-medium tracking-wide text-primary">{formatPrice(saree.price)}</p>
-          {hasDiscount && <><p className="text-base tracking-wide text-muted-foreground line-through">{formatPrice(originalPrice)}</p><span className="text-xs font-medium text-red-700">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></>}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-lg font-medium tracking-wide text-primary sm:text-xl">{formatPrice(saree.price)}</p>
+          {hasDiscount && <><p className="text-sm tracking-wide text-muted-foreground line-through sm:text-base">{formatPrice(originalPrice)}</p><span className="text-[0.65rem] font-medium text-red-700 sm:text-xs">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></>}
           {showAddToCart && (
             <button
               type="button"

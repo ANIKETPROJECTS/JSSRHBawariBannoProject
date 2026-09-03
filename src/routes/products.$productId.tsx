@@ -218,8 +218,8 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
   return (
     <>
-      <div className="mx-auto max-w-7xl px-5 pt-8">
-        <nav className="text-xs text-muted-foreground">
+      <div className="mx-auto max-w-7xl overflow-hidden px-4 pt-6 sm:px-5 sm:pt-8">
+        <nav className="overflow-x-auto whitespace-nowrap text-xs text-muted-foreground">
           <Link to="/" className="hover:text-primary">
             Home
           </Link>
@@ -232,9 +232,9 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
         </nav>
       </div>
 
-      <section className="mx-auto mt-8 grid max-w-7xl gap-12 px-5 lg:grid-cols-2">
-        <div className="flex self-start gap-4">
-          <div className="flex flex-col gap-3">
+      <section className="mx-auto mt-6 grid max-w-7xl gap-8 px-4 sm:mt-8 sm:gap-12 sm:px-5 lg:grid-cols-2">
+        <div className="flex self-start gap-2 sm:gap-4">
+          <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-16 sm:gap-3">
             {gallery.map((img, i) => (
               <button
                 key={i}
@@ -269,7 +269,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
         <div>
           <p className="text-eyebrow text-muted-foreground">{saree.fabric}</p>
-          <h1 className="mt-3 font-display text-4xl text-primary md:text-5xl">{saree.name}</h1>
+          <h1 className="mt-3 font-display text-3xl text-primary sm:text-4xl md:text-5xl">{saree.name}</h1>
           <div className="mt-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{saree.description || "Product description will be added soon."}</p>
@@ -320,7 +320,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
           <div className="mt-6 h-px bg-border" />
 
-          <div className="mt-8 flex flex-wrap items-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
             <div className="flex items-center border border-border">
               <button
                 type="button"
@@ -345,19 +345,19 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               disabled={availableStock === 0}
               onClick={() => addItem(selectedProduct, qty)}
-              className="inline-flex flex-1 items-center justify-center gap-2 bg-primary px-8 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 bg-primary px-4 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:px-8"
             >
               <ShoppingBag className="size-4" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
             </button>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-wrap gap-2 sm:gap-3">
             <button
               type="button"
               aria-pressed={isWishlisted}
               onClick={() => void toggleWishlist(saree.id)}
               className={cn(
-                "inline-flex items-center justify-center gap-2 border px-5 py-3 text-eyebrow transition-colors",
+                "inline-flex min-w-0 flex-1 items-center justify-center gap-2 border px-3 py-3 text-[0.62rem] transition-colors sm:flex-none sm:px-5 sm:text-eyebrow",
                 isWishlisted
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-primary hover:border-gold hover:bg-gold/5",
@@ -374,7 +374,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               onClick={() => void shareProduct()}
               disabled={sharing}
-              className="inline-flex items-center justify-center gap-2 border border-border px-5 py-3 text-eyebrow text-primary transition-colors hover:border-gold hover:bg-gold/5 disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-border px-3 py-3 text-[0.62rem] text-primary transition-colors hover:border-gold hover:bg-gold/5 disabled:cursor-wait disabled:opacity-60 sm:flex-none sm:px-5 sm:text-eyebrow"
             >
               <Share2 className="size-4" strokeWidth={1.6} />
               {sharing ? "Sharing…" : "Share Product"}
@@ -388,9 +388,9 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
       <ProductReviews productId={saree.id} />
 
-      <section className="mx-auto mt-24 max-w-7xl px-5">
+      <section className="mx-auto mt-16 max-w-7xl px-4 sm:mt-24 sm:px-5">
         <h2 className="font-display text-3xl text-primary rule-gold">You may also like</h2>
-        <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
+        <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4">
           {related.map((item) => (
             <ProductCard key={item.id} saree={item} />
           ))}

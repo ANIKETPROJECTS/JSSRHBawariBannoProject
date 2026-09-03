@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="mt-24 bg-royal text-primary-foreground">
       <div className="fabric-texture">
-        <div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 md:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:gap-12 sm:px-5 sm:py-16 md:grid-cols-4">
           <div>
             <p className="font-display text-3xl">Bawari Banno</p>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/75">
@@ -87,7 +87,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-primary-foreground/15">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-xs text-primary-foreground/60">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-5 text-xs text-primary-foreground/60 sm:px-5 sm:py-6">
             <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
             <p>Crafted in India · Demo storefront</p>
           </div>

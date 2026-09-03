@@ -36,9 +36,9 @@ function Contact() {
   return (
     <SiteShell>
       <div className="border-b border-border bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-14">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-5 sm:py-14">
           <p className="text-eyebrow text-muted-foreground">Contact Us</p>
-          <h1 className="mt-3 font-display text-5xl font-light leading-[1.05] tracking-tight text-primary md:text-7xl">
+          <h1 className="mt-3 break-words font-display text-4xl font-light leading-[1.05] tracking-tight text-primary sm:text-5xl md:text-7xl">
             Come sit with the silks
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">

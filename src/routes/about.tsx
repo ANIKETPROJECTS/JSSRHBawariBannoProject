@@ -44,7 +44,7 @@ function About() {
         intro="Bawari Banno began as a counter in Mylapore in 1974. Fifty-two years on, we still buy the way we started — loom by loom, family by family."
       />
 
-      <section className="mx-auto mt-16 grid max-w-7xl items-center gap-12 px-5 md:grid-cols-2">
+      <section className="mx-auto mt-12 grid max-w-7xl items-center gap-8 px-4 sm:mt-16 sm:gap-12 sm:px-5 md:grid-cols-2">
         <img
           src={storyImage}
           alt="Folded silk sarees stacked on wooden shelves"
@@ -71,7 +71,7 @@ function About() {
       </section>
 
       <section className="mt-24 border-y border-border fabric-texture py-20">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 md:grid-cols-2">
+        <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 sm:gap-12 sm:px-5 md:grid-cols-2">
           <div className="order-2 md:order-1">
             <p className="text-eyebrow text-muted-foreground">Our Craft</p>
             <h2 className="mt-2 font-display text-4xl text-primary rule-gold">
