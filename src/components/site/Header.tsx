@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Menu, X } from "lucide-react";
 import { sarees } from "@/data/sarees";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
@@ -24,6 +25,7 @@ export function Header() {
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const closeTimer = useRef<number | undefined>(undefined);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
@@ -125,49 +127,58 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-            className="p-1.5 transition-transform hover:scale-110 min-[420px]:p-2 sm:p-1"
+            className="hidden p-1.5 transition-transform hover:scale-110 min-[420px]:p-2 md:block md:p-1"
           >
             <img src={profileIcon} alt="" className="size-5 object-contain sm:size-6" />
           </Link>
+          <button
+            type="button"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            className="flex p-1.5 transition-transform hover:scale-110 md:hidden"
+          >
+            {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <Menu className="size-5" strokeWidth={1.6} />}
+          </button>
         </div>
       </div>
       {searchOpen && <div className="border-t border-border bg-background px-4 py-3 shadow-sm sm:px-5 sm:py-4"><div className="mx-auto max-w-7xl"><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search sarees, fabrics, collections…" className="w-full border-b border-primary bg-transparent px-1 py-3 text-sm outline-none placeholder:text-muted-foreground sm:text-base" />{query.trim() && <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => <Link key={saree.id} to="/products/$productId" params={{ productId: saree.id }} onClick={() => { setSearchOpen(false); setQuery(""); }} className="flex min-w-0 items-center gap-3 border border-border p-2 hover:bg-secondary"><img src={saree.image} alt="" className="size-12 shrink-0 object-cover" /><span className="min-w-0 text-sm text-primary">{saree.name}</span></Link>)}</div>}</div></div>}
 
-      <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-sm md:hidden sm:gap-x-6 sm:px-5 sm:text-base">
-        {nav.map((item) => (
-          item.label === "Categories" ? (
-            <details key={`${item.label}-${item.to}`} className="w-full shrink-0 sm:w-auto">
-                <summary className="list-none cursor-pointer whitespace-nowrap text-foreground">
-                Categories ⌄
-              </summary>
-              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-2 border-l border-border pl-3 text-sm sm:gap-x-4 sm:pl-4 sm:text-base">
-                  <Link to="/categories/silk-sarees" className="whitespace-nowrap text-foreground">
-                  Silk Sarees
+      {mobileMenuOpen && (
+        <div className="border-t border-border bg-background px-4 py-3 shadow-sm md:hidden">
+          <nav className="grid gap-1 text-sm">
+            {nav.map((item) => (
+              item.label === "Categories" ? (
+                <details key={`${item.label}-${item.to}`} className="border-b border-border/70 pb-1">
+                  <summary className="cursor-pointer list-none py-2.5 text-foreground">
+                    Categories <span className="float-right text-xs">⌄</span>
+                  </summary>
+                  <div className="grid gap-1 border-l border-border pl-3 pb-2">
+                    <Link to="/categories/silk-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-muted-foreground">Silk Sarees</Link>
+                    <Link to="/categories/cotton-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-muted-foreground">Cotton Sarees</Link>
+                    <Link to="/categories/designer-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-muted-foreground">Designer Sarees</Link>
+                    <Link to="/categories/wedding-collection" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-muted-foreground">Wedding Collection</Link>
+                  </div>
+                </details>
+              ) : (
+                <Link
+                  key={`${item.label}-${item.to}`}
+                  to={item.to}
+                  activeOptions={{ exact: item.to === "/" }}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="border-b border-border/70 py-2.5 text-foreground"
+                  activeProps={{ className: "border-b border-border/70 py-2.5 text-primary" }}
+                >
+                  {item.label}
                 </Link>
-                  <Link to="/categories/cotton-sarees" className="whitespace-nowrap text-foreground">
-                  Cotton Sarees
-                </Link>
-                  <Link to="/categories/designer-sarees" className="whitespace-nowrap text-foreground">
-                  Designer Sarees
-                </Link>
-                  <Link to="/categories/wedding-collection" className="whitespace-nowrap text-foreground">
-                  Wedding Collection
-                </Link>
-              </div>
-            </details>
-          ) : (
-            <Link
-              key={`${item.label}-${item.to}`}
-              to={item.to}
-              activeOptions={{ exact: item.to === "/" }}
-              className="whitespace-nowrap text-foreground"
-              activeProps={{ className: "text-primary" }}
-            >
-              {item.label}
+              )
+            ))}
+            <Link to="/profile" onClick={() => setMobileMenuOpen(false)} className="py-2.5 text-foreground">
+              Account
             </Link>
-          )
-        ))}
-      </nav>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
