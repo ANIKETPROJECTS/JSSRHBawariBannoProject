@@ -150,9 +150,18 @@
   padding-inline: 24px;
 }
 
+.section-frame {
+  border: 1px solid #c9a45c;
+  border-radius: 5px;
+}
+
 @media (max-width: 639px) {
   .site-container {
     padding-inline: 16px;
+  }
+
+  .section-frame {
+    border-radius: 4px;
   }
 }
 

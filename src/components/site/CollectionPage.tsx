@@ -202,7 +202,7 @@ export function CollectionPage({
 
   return (
     <>
-      <div className="border-b border-border fabric-texture">
+      <div className="section-frame mx-2 fabric-texture sm:mx-3">
         <div className="mx-auto max-w-7xl px-5 py-10 md:py-11">
           <p className="text-eyebrow text-muted-foreground">{eyebrow}</p>
           <h1 className="mt-2 font-display text-5xl font-light leading-none tracking-tight text-primary md:text-6xl">
@@ -212,7 +212,7 @@ export function CollectionPage({
         </div>
       </div>
 
-      <section className="mx-auto mt-8 max-w-7xl px-4 pb-16 sm:mt-10 sm:px-5">
+      <section className="section-frame mx-2 mt-8 max-w-7xl px-4 pb-12 pt-8 sm:mx-3 sm:mt-10 sm:px-5 sm:pb-16 sm:pt-10">
         <div className="flex flex-col gap-7 sm:gap-10 lg:flex-row">
           <CategorySidebar
             selection={selection}

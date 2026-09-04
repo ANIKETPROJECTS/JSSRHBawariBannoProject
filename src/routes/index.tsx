@@ -69,14 +69,23 @@ function Home() {
   const [transitioningFrom, setTransitioningFrom] = useState<number | null>(null);
   const activeHeroRef = useRef(0);
   const [liveHeroSlides, setLiveHeroSlides] = useState<typeof heroSlides | null>(null);
+  const [liveProducts, setLiveProducts] = useState<typeof sarees | null>(null);
+  const [liveCategoryEdits, setLiveCategoryEdits] = useState<typeof categoryEdits | null>(null);
+  const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
   const slides = liveHeroSlides ?? heroSlides;
+  const homepageProducts = liveProducts ?? sarees;
+  const homepageCategoryEdits = liveCategoryEdits ?? categoryEdits;
   const currentHero = activeHero % slides.length;
   const previousHero = transitioningFrom === null ? currentHero : transitioningFrom % slides.length;
 
   useEffect(() => {
     fetch("/api/catalog")
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
-      .then((catalog: { heroes?: Array<{ image?: string; alt?: string }> }) => {
+      .then((catalog: {
+        heroes?: Array<{ image?: string; alt?: string }>;
+        products?: typeof sarees;
+        categories?: Array<{ id?: string; slug?: string; label?: string; image?: string }>;
+      }) => {
         const nextSlides = (catalog.heroes ?? [])
           .filter((slide) => slide.image)
           .map((slide, index) => {
@@ -88,8 +97,27 @@ function Home() {
             };
           });
         if (nextSlides.length) setLiveHeroSlides(nextSlides as typeof heroSlides);
+
+        if (catalog.products?.length) setLiveProducts(catalog.products);
+
+        const liveCategoryBySlug = new Map(
+          (catalog.categories ?? []).map((category) => [
+            String(category.slug ?? category.id ?? ""),
+            category,
+          ]),
+        );
+        const nextCategoryEdits = categoryEdits.slice(0, 4).map((fallback) => {
+          const category = liveCategoryBySlug.get(fallback.id);
+          return {
+            ...fallback,
+            title: String(category?.label ?? fallback.title),
+            image: String(category?.image || fallback.image),
+          };
+        });
+        if (nextCategoryEdits.length) setLiveCategoryEdits(nextCategoryEdits);
+        setCatalogState("ready");
       })
-      .catch(() => undefined);
+      .catch(() => setCatalogState("fallback"));
   }, []);
 
   useEffect(() => {
@@ -107,7 +135,7 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="w-full">
+      <section className="section-frame mx-2 w-auto p-2 sm:mx-3 sm:p-3">
         <div className="relative min-h-[520px] overflow-hidden bg-ink sm:min-h-[680px] lg:min-h-[min(78vh,760px)]">
           <img
             src={slides[previousHero].image}
@@ -185,7 +213,7 @@ function Home() {
       </section>
 
       {/* Categories — compact editorial grid */}
-      <section className="site-container overflow-hidden pb-0 pt-14 sm:pb-4 sm:pt-20">
+      <section className="site-container section-frame overflow-hidden pb-10 pt-10 sm:pb-12 sm:pt-16">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] lg:items-start lg:gap-12">
           <div className="max-w-lg lg:pt-1">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
@@ -220,10 +248,17 @@ function Home() {
                   <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-muted-foreground">Sarees with a story worth carrying forward.</p>
                 </div>
               </div>
+              <div className="flex items-start gap-4 border-b border-border py-4">
+                <span className="font-display text-3xl leading-none text-accent">04</span>
+                <div>
+                  <p className="text-eyebrow text-muted-foreground">A thoughtful wardrobe</p>
+                  <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-muted-foreground">Enduring pieces made for everyday ritual and celebration.</p>
+                </div>
+              </div>
             </div>
           </div>
           <div className="grid w-full grid-cols-2 gap-3 justify-self-stretch sm:gap-4">
-            {categoryEdits.slice(0, 4).map((category, index) => (
+            {homepageCategoryEdits.slice(0, 4).map((category, index) => (
               <Link
                 key={category.id}
                 to="/categories/$category"
@@ -252,20 +287,39 @@ function Home() {
         </div>
       </section>
 
-      <TrendShowcase
-        products={[...sarees].sort((a, b) => b.addedOn.localeCompare(a.addedOn)).slice(0, 5)}
-      />
+      {catalogState === "loading" ? (
+        <HomepageCatalogLoader />
+      ) : (
+        <>
+          <TrendShowcase
+            products={[...homepageProducts].sort((a, b) => b.addedOn.localeCompare(a.addedOn)).slice(0, 5)}
+          />
 
-      <ProductRail
-        title="Bestsellers"
-        products={sarees.filter((saree) => saree.featured).slice(0, 5)}
-      />
+          <ProductRail
+            title="Bestsellers"
+            products={homepageProducts.filter((saree) => saree.featured).slice(0, 5)}
+          />
 
-      <ProductRail title="Shop by Fabric" products={sarees.slice(0, 5)} />
+          <ProductRail title="Shop by Fabric" products={homepageProducts.slice(0, 5)} />
 
-      <DrapeCarousel products={sarees.slice(0, 5)} />
+          <DrapeCarousel products={homepageProducts.slice(0, 5)} />
+        </>
+      )}
 
     </SiteShell>
+  );
+}
+
+function HomepageCatalogLoader() {
+  return (
+    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14" aria-busy="true" aria-label="Loading the collection">
+      <div className="mx-auto h-10 w-48 animate-pulse bg-primary/5" />
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
+        {[0, 1, 2, 3].map((item) => (
+          <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -277,7 +331,7 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="site-container pt-12 sm:pt-16">
+    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14">
       <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
@@ -295,7 +349,7 @@ function TrendShowcase({ products }: { products: typeof sarees }) {
   if (!feature) return null;
 
   return (
-    <section className="site-container pb-4 pt-8 sm:pt-12">
+    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5 sm:mb-10">
         <div>
           <p className="text-eyebrow text-muted-foreground">Just arrived</p>
@@ -405,7 +459,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
   };
 
   return (
-    <section className="site-container pb-10 pt-12 sm:pb-12 sm:pt-16">
+    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
@@ -416,7 +470,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
         <span className="hidden text-eyebrow text-muted-foreground sm:block">Scroll the edit</span>
       </div>
 
-      <div className="relative mx-auto flex max-w-[980px] items-center gap-2 py-10 sm:gap-3">
+      <div className="relative mx-auto flex max-w-[840px] items-center gap-2 py-10 sm:gap-3">
         <button
           type="button"
           aria-label={`Previous drape: ${products[previousIndex].name}`}
@@ -436,7 +490,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
 
           <div
             key={activeProduct.id}
-            className="drape-center-in group relative z-10 aspect-[1.28] w-[58%] shrink-0 overflow-hidden bg-secondary shadow-2xl shadow-ink/10"
+            className="drape-center-in group relative z-10 aspect-[0.9] w-[52%] shrink-0 overflow-hidden bg-secondary shadow-2xl shadow-ink/10"
           >
           <video
             ref={videoRef}

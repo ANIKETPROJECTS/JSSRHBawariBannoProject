@@ -232,7 +232,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
         </nav>
       </div>
 
-      <section className="mx-auto mt-6 grid max-w-7xl gap-8 px-4 sm:mt-8 sm:gap-12 sm:px-5 lg:grid-cols-2">
+      <section className="section-frame mx-2 mt-6 grid max-w-7xl gap-8 px-4 py-5 sm:mx-3 sm:mt-8 sm:gap-12 sm:px-5 sm:py-8 lg:grid-cols-2">
         <div className="flex self-start gap-2 sm:gap-4">
           <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-16 sm:gap-3">
             {gallery.map((img, i) => (
@@ -388,7 +388,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
       <ProductReviews productId={saree.id} />
 
-      <section className="mx-auto mt-16 max-w-7xl px-4 sm:mt-24 sm:px-5">
+      <section className="section-frame mx-2 mt-16 max-w-7xl px-4 py-8 sm:mx-3 sm:mt-24 sm:px-5 sm:py-10">
         <h2 className="font-display text-3xl text-primary rule-gold">You may also like</h2>
         <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4">
           {related.map((item) => (
