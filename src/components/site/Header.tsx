@@ -59,7 +59,7 @@ export function Header() {
             onBlur={() => window.setTimeout(() => setSearchOpen(false), 140)}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search a saree, fabric or collection…"
-            className="ml-2 w-32 border-b border-primary bg-transparent px-1 py-2 font-display text-sm italic outline-none placeholder:text-muted-foreground sm:w-52 sm:text-base lg:w-72"
+            className="ml-2 w-32 cursor-text border-b border-primary bg-transparent px-1 py-2 font-display text-sm italic outline-none placeholder:text-muted-foreground sm:w-52 sm:text-base lg:w-72"
           />
           {searchOpen && query.trim() && (
             <div className="absolute left-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-border bg-background p-2 shadow-xl">
