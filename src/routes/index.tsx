@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
+import drapeFilm from "@/assets/drape-film.mp4";
 
 const heroSlides = [
   {
@@ -182,8 +183,8 @@ function Home() {
       </section>
 
       {/* Categories — staggered editorial collage */}
-      <section className="mx-auto max-w-[1320px] overflow-hidden px-5 pb-8 pt-14 sm:px-10 sm:pb-12 sm:pt-20">
-        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.9fr] lg:items-center lg:gap-12">
+      <section className="mx-auto max-w-[1240px] overflow-hidden px-5 pb-8 pt-14 sm:px-10 sm:pb-12 sm:pt-20">
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_minmax(0,1.1fr)] lg:items-center lg:gap-12">
           <div className="max-w-md lg:pt-0">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
             <h2 className="mt-3 font-display text-5xl font-medium leading-[0.92] tracking-tight text-primary sm:text-6xl lg:text-[4.25rem]">
@@ -200,7 +201,7 @@ function Home() {
               <p className="max-w-[12rem] text-xs leading-relaxed text-muted-foreground">A living archive of colour, craft and the art of the drape.</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <div className="grid max-w-[540px] grid-cols-2 gap-3 justify-self-end sm:gap-4">
             {categoryEdits.slice(0, 4).map((category, index) => (
               <Link
                 key={category.id}
@@ -209,7 +210,7 @@ function Home() {
                 className="category-reveal group relative overflow-hidden bg-secondary"
                 style={{ animationDelay: `${index * 120}ms` }}
               >
-                <div className="aspect-[0.76] overflow-hidden">
+                <div className="aspect-[0.82] overflow-hidden">
                   <img
                     src={category.image}
                     alt={category.title}
@@ -221,7 +222,7 @@ function Home() {
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-95" />
                 <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 text-primary-foreground sm:inset-x-4 sm:bottom-4">
-                  <span className="font-display text-base leading-none sm:text-xl">{category.title}</span>
+                  <span className="font-display text-base leading-none sm:text-2xl">{category.title}</span>
                   <ArrowRight className="mb-0.5 size-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
                 </div>
               </Link>
@@ -358,6 +359,8 @@ function TrendShowcase({ products }: { products: typeof sarees }) {
 
 function DrapeCarousel({ products }: { products: typeof sarees }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const previousIndex = (activeIndex - 1 + products.length) % products.length;
   const nextIndex = (activeIndex + 1) % products.length;
   const activeProduct = products[activeIndex];
@@ -368,8 +371,20 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
     setActiveIndex((index) => (index + direction + products.length) % products.length);
   };
 
+  const toggleVideo = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      void video.play();
+      setIsPlaying(true);
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  };
+
   return (
-    <section className="mx-auto max-w-[1440px] px-5 pb-20 pt-16 sm:px-10 sm:pb-24 sm:pt-24">
+    <section className="mx-auto max-w-[1440px] px-5 pb-16 pt-16 sm:px-10 sm:pb-20 sm:pt-24">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
@@ -380,22 +395,36 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
         <span className="hidden text-eyebrow text-muted-foreground sm:block">Scroll the edit</span>
       </div>
 
-      <div className="relative mx-auto h-[32rem] max-w-[1180px] overflow-hidden bg-secondary/25 sm:h-[39rem]">
-        <div className="absolute inset-y-0 left-[-22%] w-[47%] py-10 opacity-35 sm:left-[3%] sm:w-[23%] sm:py-14">
+      <div className="relative mx-auto h-[29rem] max-w-[1180px] overflow-hidden bg-secondary/20 sm:h-[35rem]">
+        <div className="absolute inset-y-10 left-[-19%] w-[43%] opacity-20 blur-[4px] sm:inset-y-12 sm:left-[6%] sm:w-[20%] sm:opacity-25">
           <img
             src={products[previousIndex].image}
             alt=""
-            className="size-full object-cover blur-[2px] grayscale-[20%]"
+            className="size-full object-cover grayscale-[30%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-background/30" />
         </div>
-        <div className="absolute inset-y-0 right-[-22%] w-[47%] py-10 opacity-35 sm:right-[3%] sm:w-[23%] sm:py-14">
+        <div className="absolute inset-y-16 left-[7%] hidden w-[19%] opacity-30 blur-[2px] sm:block">
+          <img
+            src={products[(previousIndex - 1 + products.length) % products.length].image}
+            alt=""
+            className="size-full object-cover grayscale-[20%]"
+          />
+        </div>
+        <div className="absolute inset-y-10 right-[-19%] w-[43%] opacity-20 blur-[4px] sm:inset-y-12 sm:right-[6%] sm:w-[20%] sm:opacity-25">
           <img
             src={products[nextIndex].image}
             alt=""
-            className="size-full object-cover blur-[2px] grayscale-[20%]"
+            className="size-full object-cover grayscale-[30%]"
           />
-          <div className="absolute inset-0 bg-gradient-to-l from-background/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-background/30" />
+        </div>
+        <div className="absolute inset-y-16 right-[7%] hidden w-[19%] opacity-30 blur-[2px] sm:block">
+          <img
+            src={products[(nextIndex + 1) % products.length].image}
+            alt=""
+            className="size-full object-cover grayscale-[20%]"
+          />
         </div>
 
         <button
@@ -417,27 +446,37 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
           <span className="hidden text-[0.58rem] uppercase tracking-[0.2em] [writing-mode:vertical-rl] sm:block">Next</span>
         </button>
 
-        <Link
+        <div
           key={activeProduct.id}
-          to="/products/$productId"
-          params={{ productId: activeProduct.id }}
-          className="drape-center-in group absolute left-1/2 top-1/2 z-10 h-[27rem] w-[min(67%,18rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:h-[35rem] sm:w-[min(44%,23rem)]"
+          className="drape-center-in group absolute left-1/2 top-0 z-10 h-[26rem] w-[min(64%,18rem)] -translate-x-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:h-[32rem] sm:w-[min(42%,23rem)]"
         >
-          <img
-            src={activeProduct.image}
-            alt={activeProduct.name}
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          <video
+            ref={videoRef}
+            key={drapeFilm}
+            src={drapeFilm}
+            poster={activeProduct.image}
+            autoPlay
+            loop
+            muted
+            playsInline
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            className="size-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-ink/10" />
-          <span className="absolute left-1/2 top-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary-foreground/80 bg-ink/25 text-primary-foreground backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
-            <Play className="ml-0.5 size-5 fill-current" strokeWidth={1.3} />
-          </span>
+          <button
+            type="button"
+            aria-label={isPlaying ? "Pause the drape film" : "Play the drape film"}
+            onClick={toggleVideo}
+            className="absolute left-1/2 top-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary-foreground/80 bg-ink/25 text-primary-foreground backdrop-blur-sm transition-transform duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          >
+            {isPlaying ? <Pause className="size-5" strokeWidth={1.3} /> : <Play className="ml-0.5 size-5 fill-current" strokeWidth={1.3} />}
+          </button>
           <div className="absolute inset-x-5 bottom-5 text-primary-foreground sm:inset-x-7 sm:bottom-7">
             <p className="text-eyebrow text-gold-soft">{activeProduct.fabric}</p>
             <h3 className="mt-1 font-display text-2xl leading-none sm:text-3xl">{activeProduct.name}</h3>
           </div>
-        </Link>
+        </div>
 
         <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
           {products.map((product, index) => (
