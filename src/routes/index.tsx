@@ -404,7 +404,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
           />
           <div className="absolute inset-0 bg-background/30" />
         </div>
-        <div className="absolute inset-y-16 left-[7%] hidden w-[19%] opacity-30 blur-[2px] sm:block">
+        <div className="absolute inset-y-16 left-[18%] hidden w-[19%] opacity-30 blur-[2px] sm:block">
           <img
             src={products[(previousIndex - 1 + products.length) % products.length].image}
             alt=""
@@ -419,7 +419,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
           />
           <div className="absolute inset-0 bg-background/30" />
         </div>
-        <div className="absolute inset-y-16 right-[7%] hidden w-[19%] opacity-30 blur-[2px] sm:block">
+        <div className="absolute inset-y-16 right-[18%] hidden w-[19%] opacity-30 blur-[2px] sm:block">
           <img
             src={products[(nextIndex + 1) % products.length].image}
             alt=""
