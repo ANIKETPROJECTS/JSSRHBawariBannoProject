@@ -395,38 +395,34 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
         <span className="hidden text-eyebrow text-muted-foreground sm:block">Scroll the edit</span>
       </div>
 
-      <div className="relative mx-auto h-[25rem] max-w-[1180px] overflow-hidden bg-secondary/20 sm:h-[31rem]">
-        <div className="absolute inset-y-10 left-[-17%] w-[42%] opacity-20 blur-[4px] sm:inset-y-12 sm:left-[3%] sm:w-[20%] sm:opacity-30">
+      <div className="relative mx-auto h-[28rem] max-w-[1180px] overflow-hidden sm:h-[34rem]">
+        <div className="absolute left-[-18%] top-1/2 aspect-[2/3] w-[42%] -translate-y-1/2 opacity-25 blur-[4px] sm:left-[3%] sm:w-[18%] sm:opacity-35">
           <img
             src={products[previousIndex].image}
             alt=""
             className="size-full object-cover grayscale-[30%]"
           />
-          <div className="absolute inset-0 bg-background/30" />
         </div>
-        <div className="absolute inset-y-12 left-[14%] hidden w-[20%] opacity-30 blur-[2px] sm:block">
+        <div className="absolute left-[13%] top-1/2 hidden aspect-[2/3] w-[18%] -translate-y-1/2 opacity-35 blur-[2px] sm:block">
           <img
             src={products[(previousIndex - 1 + products.length) % products.length].image}
             alt=""
             className="size-full object-cover grayscale-[20%]"
           />
-          <div className="absolute inset-0 bg-background/20" />
         </div>
-        <div className="absolute inset-y-10 right-[-17%] w-[42%] opacity-20 blur-[4px] sm:inset-y-12 sm:right-[3%] sm:w-[20%] sm:opacity-30">
+        <div className="absolute right-[-18%] top-1/2 aspect-[2/3] w-[42%] -translate-y-1/2 opacity-25 blur-[4px] sm:right-[3%] sm:w-[18%] sm:opacity-35">
           <img
             src={products[nextIndex].image}
             alt=""
             className="size-full object-cover grayscale-[30%]"
           />
-          <div className="absolute inset-0 bg-background/30" />
         </div>
-        <div className="absolute inset-y-12 right-[14%] hidden w-[20%] opacity-30 blur-[2px] sm:block">
+        <div className="absolute right-[13%] top-1/2 hidden aspect-[2/3] w-[18%] -translate-y-1/2 opacity-35 blur-[2px] sm:block">
           <img
             src={products[(nextIndex + 1) % products.length].image}
             alt=""
             className="size-full object-cover grayscale-[20%]"
           />
-          <div className="absolute inset-0 bg-background/20" />
         </div>
 
         <button
@@ -450,7 +446,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
 
         <div
           key={activeProduct.id}
-          className="drape-center-in group absolute left-1/2 top-1/2 z-10 aspect-[1.42] w-[min(72%,18rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:w-[min(30%,20rem)]"
+          className="drape-center-in group absolute left-1/2 top-1/2 z-10 aspect-[2/3] h-[22rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:h-[27rem]"
         >
           <video
             ref={videoRef}
