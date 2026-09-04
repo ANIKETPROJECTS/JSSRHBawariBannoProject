@@ -14,3 +14,59 @@ mtime_ms = 1788415237273
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/3fa9e368-0c22-4c79-af25-9ab37cc4eab6/970f5900-9c98-4c54-bd35-f3d134c7900b"
 storage_version_token = "1788415258663138"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "V91zR5JTiVDRKV__jPtAx"
+uri = "file://src/assets/hero-editorial-maroon.jpg"
+type = "image"
+title = "Hero image — Maroon palace courtyard"
+description = "Original editorial hero image for the Bawari Banno rotation."
+logical_id = "fbbf603f-eb95-4785-afe2-7deec1389385"
+content_hash = "sha256:86f8808449b0376a4b89f515b2abc92993d99f6a34153998cd14e1c921261fd4"
+size = 95703
+mtime_ms = 1788515622822
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/fbbf603f-eb95-4785-afe2-7deec1389385/e71765b0-ee5d-4ad9-b399-0b3c766845dd"
+storage_version_token = "1788515797464651"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "pZZ06EcPC4ljiZyUXBa8a"
+uri = "file://src/assets/hero-editorial-teal.jpg"
+type = "image"
+title = "Hero image — Teal heritage terrace"
+description = "Original editorial hero image for the Bawari Banno rotation."
+logical_id = "d21772f7-138b-4b3e-ad56-d29e0b7b5bed"
+content_hash = "sha256:d5b095167690ad7291e8e5f88b9488505fcdb01d09ed7034337d27fda0e2f98a"
+size = 131995
+mtime_ms = 1788515622826
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/d21772f7-138b-4b3e-ad56-d29e0b7b5bed/e134f449-b278-46a5-bbeb-519dfa91cdbb"
+storage_version_token = "1788515798760348"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "T26qGea5_Xv55In8z5ibK"
+uri = "file://src/assets/hero-editorial-emerald.jpg"
+type = "image"
+title = "Hero image — Emerald atelier"
+description = "Original editorial hero image for the Bawari Banno rotation."
+logical_id = "be607ff6-732f-436e-948c-60f710a3579e"
+content_hash = "sha256:fb1dfe1c82f115290b9efa77d129b87a50171859d1c3c69ddf5200ebf985135d"
+size = 83052
+mtime_ms = 1788515622830
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/be607ff6-732f-436e-948c-60f710a3579e/64091fba-f656-4ad4-9181-5462b5bbd776"
+storage_version_token = "1788515800046241"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "NUhR3mfVWRRrKFPxNIR1b"
+uri = "file://src/assets/atelier-film.mp4"
+type = "video"
+title = "Footer film — Bawari Banno atelier"
+description = "Local 16:9 cinematic footer film with slow movement and crossfades, ready for the video-backed footer."
+logical_id = "ba79ed9b-a538-4c0c-9b2a-87813b5365f3"
+content_hash = "sha256:3de2620314d838374ab8c4eb0c029c4b31f0c5ebdb011f30b8a83c03ee15793c"
+size = 1405109
+mtime_ms = 1788515631114
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/ba79ed9b-a538-4c0c-9b2a-87813b5365f3/facbba8b-265d-416f-8d51-c3964964e94c"
+storage_version_token = "1788515801394712"
+content_type = "video/mp4"

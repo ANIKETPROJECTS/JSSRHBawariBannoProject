@@ -2,9 +2,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey } from "@/data/colors";
-import heroImage from "@/assets/hero.jpg";
-import storyImage from "@/assets/story.jpg";
-import craftImage from "@/assets/craft.jpg";
+import maroonHeroImage from "@/assets/hero-editorial-maroon.jpg";
+import tealHeroImage from "@/assets/hero-editorial-teal.jpg";
+import emeraldHeroImage from "@/assets/hero-editorial-emerald.jpg";
 
 type Resource = "heroes" | "categories" | "products" | "announcements" | "coupons";
 type JsonRecord = Record<string, unknown>;
@@ -1242,9 +1242,9 @@ async function seedCatalog() {
   ];
   await Promise.all([
     database.collection("heroes").bulkWrite([
-      { updateOne: { filter: { order: 0 }, update: { $set: { title: "The Festive Edit", subtitle: "Six yards, woven with a lifetime of patience.", image: heroImage, alt: "Woman in a maroon Kanjivaram silk saree in a heritage courtyard", order: 0, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
-      { updateOne: { filter: { order: 1 }, update: { $set: { title: "Made by hand", subtitle: "Stories of craft, traced back to the loom.", image: storyImage, alt: "Handwoven saree craftsmanship and textile details", order: 1, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
-      { updateOne: { filter: { order: 2 }, update: { $set: { title: "The art of the drape", subtitle: "Traditional techniques, thoughtfully preserved.", image: craftImage, alt: "Artisan hands working with traditional saree weaving techniques", order: 2, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
+      { updateOne: { filter: { order: 0 }, update: { $set: { title: "The Festive Edit", subtitle: "Six yards, woven with a lifetime of patience.", image: maroonHeroImage, alt: "Woman in a maroon silk saree beneath a carved palace arch", order: 0, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
+      { updateOne: { filter: { order: 1 }, update: { $set: { title: "Made by hand", subtitle: "Stories of craft, traced back to the loom.", image: tealHeroImage, alt: "Woman in a teal silk saree on a sunlit heritage terrace", order: 1, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
+      { updateOne: { filter: { order: 2 }, update: { $set: { title: "The art of the drape", subtitle: "Traditional techniques, thoughtfully preserved.", image: emeraldHeroImage, alt: "Woman in an emerald handloom saree inside a textile atelier", order: 2, published: true, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } },
     ]),
     database.collection("categories").bulkWrite(categoryDocuments.map((category) => ({ updateOne: { filter: { slug: category.slug }, update: { $set: { ...category, updatedAt: now }, $setOnInsert: { createdAt: now } }, upsert: true } }))),
     database.collection("products").bulkWrite(sarees.map((product) => ({ updateOne: { filter: { id: product.id }, update: { $set: { ...product, published: true, updatedAt: now }, $setOnInsert: { stock: 10, createdAt: now } }, upsert: true } }))),

@@ -4,24 +4,26 @@ import { ArrowRight, Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
-import craftImage from "@/assets/craft.jpg";
-import heroImage from "@/assets/hero.jpg";
-import storyImage from "@/assets/story.jpg";
+import maroonHeroImage from "@/assets/hero-editorial-maroon.jpg";
+import tealHeroImage from "@/assets/hero-editorial-teal.jpg";
+import emeraldHeroImage from "@/assets/hero-editorial-emerald.jpg";
 
 const heroSlides = [
   {
-    image: heroImage,
-    alt: "Woman in a maroon Kanjivaram silk saree in a heritage courtyard",
+    image: maroonHeroImage,
+    alt: "Woman in a maroon silk saree beneath a carved palace arch",
   },
   {
-    image: storyImage,
-    alt: "Handwoven saree craftsmanship and textile details",
+    image: tealHeroImage,
+    alt: "Woman in a teal silk saree on a sunlit heritage terrace",
   },
   {
-    image: craftImage,
-    alt: "Artisan hands working with traditional saree weaving techniques",
+    image: emeraldHeroImage,
+    alt: "Woman in an emerald handloom saree inside a textile atelier",
   },
 ] as const;
+
+const legacyHeroImages = new Set(["/src/assets/hero.jpg", "/src/assets/story.jpg", "/src/assets/craft.jpg"]);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,7 +60,14 @@ function Home() {
       .then((catalog: { heroes?: Array<{ image?: string; alt?: string }> }) => {
         const nextSlides = (catalog.heroes ?? [])
           .filter((slide) => slide.image)
-          .map((slide) => ({ image: String(slide.image), alt: String(slide.alt ?? "Bawari Banno saree collection") }));
+          .map((slide, index) => {
+            const image = String(slide.image);
+            const replacement = legacyHeroImages.has(image) ? heroSlides[index % heroSlides.length] : null;
+            return {
+              image: replacement?.image ?? image,
+              alt: replacement?.alt ?? String(slide.alt ?? "Bawari Banno saree collection"),
+            };
+          });
         if (nextSlides.length) setLiveHeroSlides(nextSlides as typeof heroSlides);
       })
       .catch(() => undefined);
