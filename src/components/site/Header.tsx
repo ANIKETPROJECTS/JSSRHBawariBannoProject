@@ -36,15 +36,47 @@ export function Header() {
         Complimentary shipping across India · Private appointments available
       </div>
       <div className="relative mx-auto flex h-[4.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-7 lg:px-10">
-        <button
-          type="button"
-          aria-label="Search the collection"
-          onClick={() => setSearchOpen((open) => !open)}
-          className="flex items-center gap-2 rounded-full p-2 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:px-3"
-        >
-          <Search className="size-[1.05rem]" strokeWidth={1.4} />
-          <span className="hidden text-[0.65rem] font-medium uppercase tracking-[0.16em] lg:inline">Search</span>
-        </button>
+        <div className="relative flex min-w-0 items-center">
+          <button
+            type="button"
+            aria-label="Search the collection"
+            aria-expanded={searchOpen}
+            onClick={() => setSearchOpen((open) => !open)}
+            className="flex shrink-0 items-center gap-2 rounded-full bg-secondary/70 p-2 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:px-3"
+          >
+            <Search className="size-[1.05rem]" strokeWidth={1.4} />
+            <span className="hidden text-[0.65rem] font-medium uppercase tracking-[0.16em] lg:inline">Search</span>
+          </button>
+          {searchOpen && (
+            <input
+              id="site-search"
+              autoFocus
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search sarees, fabrics, collections…"
+              className="ml-2 w-32 border-b border-primary bg-transparent px-1 py-2 text-xs outline-none placeholder:text-muted-foreground sm:w-52 sm:text-sm lg:w-64"
+            />
+          )}
+          {searchOpen && query.trim() && (
+            <div className="absolute left-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-border bg-background p-2 shadow-xl">
+              {sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => (
+                <Link
+                  key={saree.id}
+                  to="/products/$productId"
+                  params={{ productId: saree.id }}
+                  onClick={() => { setSearchOpen(false); setQuery(""); }}
+                  className="flex min-w-0 items-center gap-3 p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <img src={saree.image} alt={saree.name} className="size-12 shrink-0 object-cover" />
+                  <span className="min-w-0 text-sm text-primary">{saree.name}</span>
+                </Link>
+              ))}
+              {sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).length === 0 && (
+                <p className="px-2 py-3 text-sm text-muted-foreground">No matching pieces found.</p>
+              )}
+            </div>
+          )}
+        </div>
         <Link
            to="/"
            onClick={(event) => {
@@ -145,8 +177,6 @@ export function Header() {
             )
           ))}
       </nav>
-       {searchOpen && <div className="border-t border-border bg-background px-4 py-4 shadow-sm sm:px-7"><div className="mx-auto max-w-[1440px]"><label htmlFor="site-search" className="sr-only">Search the collection</label><input id="site-search" autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search sarees, fabrics, collections…" className="w-full border-b border-primary bg-transparent px-1 py-3 text-sm outline-none placeholder:text-muted-foreground sm:text-base" />{query.trim() && <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">{sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => <Link key={saree.id} to="/products/$productId" params={{ productId: saree.id }} onClick={() => { setSearchOpen(false); setQuery(""); }} className="flex min-w-0 items-center gap-3 border border-border p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><img src={saree.image} alt={saree.name} className="size-12 shrink-0 object-cover" /><span className="min-w-0 text-sm text-primary">{saree.name}</span></Link>)}</div>}</div></div>}
-
       {mobileMenuOpen && (
          <div className="border-t border-border bg-background px-4 py-4 shadow-sm lg:hidden">
            <nav aria-label="Mobile navigation" className="grid gap-1 text-sm">
