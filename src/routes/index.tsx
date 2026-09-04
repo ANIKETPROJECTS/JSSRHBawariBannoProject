@@ -107,7 +107,7 @@ function Home() {
     <SiteShell>
       {/* Hero */}
       <section className="mx-auto max-w-none px-0">
-        <div className="relative min-h-[590px] overflow-hidden bg-ink sm:min-h-[680px] lg:min-h-[min(78vh,760px)]">
+        <div className="relative min-h-[520px] overflow-hidden bg-ink sm:min-h-[680px] lg:min-h-[min(78vh,760px)]">
           <img
             src={slides[previousHero].image}
             alt={slides[previousHero].alt}
@@ -122,7 +122,7 @@ function Home() {
               alt={slides[currentHero].alt}
               width={1920}
               height={1088}
-               className="hero-media relative h-[590px] min-h-[420px] w-full object-cover hero-fade-in sm:h-[680px] lg:h-[min(78vh,760px)]"
+               className="hero-media relative h-[520px] min-h-[420px] w-full object-cover hero-fade-in sm:h-[680px] lg:h-[min(78vh,760px)]"
             />
           )}
           {transitioningFrom === null && (
@@ -131,7 +131,7 @@ function Home() {
               alt={slides[currentHero].alt}
               width={1920}
               height={1088}
-             className="hero-media relative h-[590px] min-h-[420px] w-full object-cover sm:h-[680px] lg:h-[min(78vh,760px)]"
+             className="hero-media relative h-[520px] min-h-[420px] w-full object-cover sm:h-[680px] lg:h-[min(78vh,760px)]"
             />
           )}
           <div className="absolute inset-0 bg-gradient-to-r from-ink/80 via-ink/30 to-transparent" />
@@ -182,20 +182,20 @@ function Home() {
       </section>
 
       {/* Categories — staggered editorial collage */}
-      <section className="mx-auto max-w-[1440px] overflow-hidden px-5 pb-8 pt-20 sm:px-10 sm:pb-12 sm:pt-28">
-        <div className="grid gap-12 lg:grid-cols-[0.8fr_1.35fr] lg:items-start lg:gap-20">
-          <div className="max-w-sm lg:sticky lg:top-32">
+      <section className="mx-auto max-w-[1320px] overflow-hidden px-5 pb-6 pt-16 sm:px-10 sm:pb-10 sm:pt-20">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.35fr] lg:items-start lg:gap-14">
+          <div className="max-w-md lg:sticky lg:top-32 lg:pt-4">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
-            <h2 className="mt-3 font-display text-5xl font-medium leading-[0.95] tracking-tight text-primary sm:text-6xl">
+            <h2 className="mt-3 font-display text-5xl font-medium leading-[0.92] tracking-tight text-primary sm:text-6xl lg:text-7xl">
               By tradition,<br />by mood.
             </h2>
-            <p className="mt-6 max-w-xs text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-sm text-base leading-relaxed text-muted-foreground">
               An evolving wardrobe of Indian textiles, arranged by the feeling you want to carry with you.
             </p>
-            <Link to="/products" className="mt-8 inline-flex items-center gap-3 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <Link to="/products" className="mt-8 inline-flex items-center gap-3 border-b border-accent pb-2 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Explore the collection <ArrowRight className="size-3.5" strokeWidth={1.6} />
             </Link>
-            <div className="mt-16 hidden items-start gap-4 border-t border-border pt-4 sm:flex">
+            <div className="mt-12 hidden items-start gap-4 border-t border-border pt-4 sm:flex">
               <span className="font-display text-3xl text-accent">01</span>
               <p className="max-w-[12rem] text-xs leading-relaxed text-muted-foreground">A living archive of colour, craft and the art of the drape.</p>
             </div>
@@ -206,10 +206,10 @@ function Home() {
                 key={category.id}
                 to="/categories/$category"
                 params={{ category: category.id }}
-                className={`category-reveal group relative overflow-hidden bg-secondary ${index % 2 === 1 ? "mt-10 sm:mt-16" : ""}`}
+                className={`category-reveal group relative overflow-hidden bg-secondary ${index % 2 === 1 ? "mt-6 sm:mt-10" : ""}`}
                 style={{ animationDelay: `${index * 120}ms` }}
               >
-                <div className="aspect-[0.78] overflow-hidden">
+                <div className="aspect-[0.9] overflow-hidden">
                   <img
                     src={category.image}
                     alt={category.title}
