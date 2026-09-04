@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
@@ -241,35 +241,7 @@ function Home() {
 
       <ProductRail title="Shop by Fabric" products={sarees.slice(0, 5)} />
 
-      <section className="mx-auto max-w-[1440px] px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
-        <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
-          <div>
-            <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
-            <h2 className="mt-2 font-display text-4xl font-medium text-primary min-[420px]:text-5xl sm:text-6xl">
-              Six yards in motion.
-            </h2>
-          </div>
-        </div>
-
-        <div className="mt-7 grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          {sarees.slice(0, 5).map((saree, index) => (
-            <figure key={saree.id} className="group relative aspect-[9/16] overflow-hidden bg-secondary">
-              <img
-                src={saree.image}
-                alt={`Customer wearing ${saree.name}`}
-                loading="lazy"
-                className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-ink/10" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="flex size-11 items-center justify-center rounded-full border border-primary-foreground/80 bg-ink/20 text-primary-foreground backdrop-blur-sm transition-transform group-hover:scale-110">
-                  <Play className="ml-0.5 size-4 fill-current" strokeWidth={1.5} />
-                </span>
-              </div>
-            </figure>
-          ))}
-        </div>
-      </section>
+      <DrapeCarousel products={sarees.slice(0, 5)} />
 
     </SiteShell>
   );
@@ -380,6 +352,106 @@ function TrendShowcase({ products }: { products: typeof sarees }) {
       >
         See the drop <ArrowRight className="size-3.5" strokeWidth={1.6} />
       </Link>
+    </section>
+  );
+}
+
+function DrapeCarousel({ products }: { products: typeof sarees }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const previousIndex = (activeIndex - 1 + products.length) % products.length;
+  const nextIndex = (activeIndex + 1) % products.length;
+  const activeProduct = products[activeIndex];
+
+  if (!activeProduct) return null;
+
+  const goTo = (direction: number) => {
+    setActiveIndex((index) => (index + direction + products.length) % products.length);
+  };
+
+  return (
+    <section className="mx-auto max-w-[1440px] px-5 pb-20 pt-16 sm:px-10 sm:pb-24 sm:pt-24">
+      <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
+        <div>
+          <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
+          <h2 className="mt-2 font-display text-5xl font-medium leading-none text-primary sm:text-6xl">
+            Six yards in motion<span className="text-accent">.</span>
+          </h2>
+        </div>
+        <span className="hidden text-eyebrow text-muted-foreground sm:block">Scroll the edit</span>
+      </div>
+
+      <div className="relative mx-auto h-[32rem] max-w-[1180px] overflow-hidden bg-secondary/25 sm:h-[39rem]">
+        <div className="absolute inset-y-0 left-[-22%] w-[47%] py-10 opacity-35 sm:left-[3%] sm:w-[23%] sm:py-14">
+          <img
+            src={products[previousIndex].image}
+            alt=""
+            className="size-full object-cover blur-[2px] grayscale-[20%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent" />
+        </div>
+        <div className="absolute inset-y-0 right-[-22%] w-[47%] py-10 opacity-35 sm:right-[3%] sm:w-[23%] sm:py-14">
+          <img
+            src={products[nextIndex].image}
+            alt=""
+            className="size-full object-cover blur-[2px] grayscale-[20%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-background/80 via-transparent to-transparent" />
+        </div>
+
+        <button
+          type="button"
+          aria-label={`Previous drape: ${products[previousIndex].name}`}
+          onClick={() => goTo(-1)}
+          className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:left-8"
+        >
+          <ChevronLeft className="size-5" strokeWidth={1.2} />
+          <span className="hidden text-[0.58rem] uppercase tracking-[0.2em] [writing-mode:vertical-rl] sm:block">Previous</span>
+        </button>
+        <button
+          type="button"
+          aria-label={`Next drape: ${products[nextIndex].name}`}
+          onClick={() => goTo(1)}
+          className="absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:right-8"
+        >
+          <ChevronRight className="size-5" strokeWidth={1.2} />
+          <span className="hidden text-[0.58rem] uppercase tracking-[0.2em] [writing-mode:vertical-rl] sm:block">Next</span>
+        </button>
+
+        <Link
+          key={activeProduct.id}
+          to="/products/$productId"
+          params={{ productId: activeProduct.id }}
+          className="drape-center-in group absolute left-1/2 top-1/2 z-10 h-[27rem] w-[min(67%,18rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:h-[35rem] sm:w-[min(44%,23rem)]"
+        >
+          <img
+            src={activeProduct.image}
+            alt={activeProduct.name}
+            loading="lazy"
+            className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-ink/10" />
+          <span className="absolute left-1/2 top-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary-foreground/80 bg-ink/25 text-primary-foreground backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+            <Play className="ml-0.5 size-5 fill-current" strokeWidth={1.3} />
+          </span>
+          <div className="absolute inset-x-5 bottom-5 text-primary-foreground sm:inset-x-7 sm:bottom-7">
+            <p className="text-eyebrow text-gold-soft">{activeProduct.fabric}</p>
+            <h3 className="mt-1 font-display text-2xl leading-none sm:text-3xl">{activeProduct.name}</h3>
+          </div>
+        </Link>
+
+        <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+          {products.map((product, index) => (
+            <button
+              key={product.id}
+              type="button"
+              aria-label={`Show ${product.name}`}
+              aria-current={index === activeIndex}
+              onClick={() => setActiveIndex(index)}
+              className={`h-px transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${index === activeIndex ? "w-8 bg-primary" : "w-3 bg-muted-foreground/60 hover:bg-primary"}`}
+            />
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
