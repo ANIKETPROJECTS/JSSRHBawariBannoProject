@@ -387,7 +387,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
   };
 
   return (
-    <section className="mx-auto max-w-[1440px] px-5 pb-16 pt-16 sm:px-10 sm:pb-20 sm:pt-24">
+    <section className="mx-auto max-w-[1440px] px-5 pb-10 pt-12 sm:px-10 sm:pb-12 sm:pt-16">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
@@ -398,59 +398,28 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
         <span className="hidden text-eyebrow text-muted-foreground sm:block">Scroll the edit</span>
       </div>
 
-      <div className="relative mx-auto h-[28rem] max-w-[1180px] overflow-hidden sm:h-[34rem]">
-        <div className="absolute left-[-18%] top-1/2 aspect-[2/3] w-[42%] -translate-y-1/2 opacity-25 blur-[4px] sm:left-[3%] sm:w-[18%] sm:opacity-35">
-          <img
-            src={products[previousIndex].image}
-            alt=""
-            className="size-full object-cover grayscale-[30%]"
-          />
-        </div>
-        <div className="absolute left-[13%] top-1/2 hidden aspect-[2/3] w-[18%] -translate-y-1/2 opacity-35 blur-[2px] sm:block">
-          <img
-            src={products[(previousIndex - 1 + products.length) % products.length].image}
-            alt=""
-            className="size-full object-cover grayscale-[20%]"
-          />
-        </div>
-        <div className="absolute right-[-18%] top-1/2 aspect-[2/3] w-[42%] -translate-y-1/2 opacity-25 blur-[4px] sm:right-[3%] sm:w-[18%] sm:opacity-35">
-          <img
-            src={products[nextIndex].image}
-            alt=""
-            className="size-full object-cover grayscale-[30%]"
-          />
-        </div>
-        <div className="absolute right-[13%] top-1/2 hidden aspect-[2/3] w-[18%] -translate-y-1/2 opacity-35 blur-[2px] sm:block">
-          <img
-            src={products[(nextIndex + 1) % products.length].image}
-            alt=""
-            className="size-full object-cover grayscale-[20%]"
-          />
-        </div>
-
+      <div className="relative mx-auto flex max-w-[980px] items-center gap-2 py-10 sm:gap-3">
         <button
           type="button"
           aria-label={`Previous drape: ${products[previousIndex].name}`}
           onClick={() => goTo(-1)}
-          className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:left-8"
+          className="z-20 flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:size-9"
         >
           <ChevronLeft className="size-5" strokeWidth={1.2} />
-          <span className="hidden text-[0.58rem] uppercase tracking-[0.2em] [writing-mode:vertical-rl] sm:block">Previous</span>
         </button>
-        <button
-          type="button"
-          aria-label={`Next drape: ${products[nextIndex].name}`}
-          onClick={() => goTo(1)}
-          className="absolute right-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:right-8"
-        >
-          <ChevronRight className="size-5" strokeWidth={1.2} />
-          <span className="hidden text-[0.58rem] uppercase tracking-[0.2em] [writing-mode:vertical-rl] sm:block">Next</span>
-        </button>
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
+          <div className="relative min-w-0 flex-1 basis-0 self-stretch overflow-hidden opacity-35 blur-[2px]">
+            <img
+              src={products[previousIndex].image}
+              alt=""
+              className="size-full object-cover grayscale-[20%]"
+            />
+          </div>
 
-        <div
-          key={activeProduct.id}
-          className="drape-center-in group absolute left-1/2 top-1/2 z-10 aspect-[2/3] h-[22rem] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:h-[27rem]"
-        >
+          <div
+            key={activeProduct.id}
+            className="drape-center-in group relative z-10 aspect-[1.28] w-[58%] shrink-0 overflow-hidden bg-secondary shadow-2xl shadow-ink/10"
+          >
           <video
             ref={videoRef}
             key={drapeFilm}
@@ -477,9 +446,27 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
             <p className="text-eyebrow text-gold-soft">{activeProduct.fabric}</p>
             <h3 className="mt-1 font-display text-2xl leading-none sm:text-3xl">{activeProduct.name}</h3>
           </div>
+          </div>
+
+          <div className="relative min-w-0 flex-1 basis-0 self-stretch overflow-hidden opacity-35 blur-[2px]">
+            <img
+              src={products[nextIndex].image}
+              alt=""
+              className="size-full object-cover grayscale-[20%]"
+            />
+          </div>
         </div>
 
-        <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+        <button
+          type="button"
+          aria-label={`Next drape: ${products[nextIndex].name}`}
+          onClick={() => goTo(1)}
+          className="z-20 flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:size-9"
+        >
+          <ChevronRight className="size-5" strokeWidth={1.2} />
+        </button>
+
+        <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
           {products.map((product, index) => (
             <button
               key={product.id}
