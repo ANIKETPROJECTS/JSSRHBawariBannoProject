@@ -27,6 +27,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const closeTimer = useRef<number | undefined>(undefined);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
 
@@ -41,22 +42,25 @@ export function Header() {
             type="button"
             aria-label="Search the collection"
             aria-expanded={searchOpen}
-            onClick={() => setSearchOpen((open) => !open)}
+            onClick={() => {
+              setSearchOpen(true);
+              window.requestAnimationFrame(() => searchInputRef.current?.focus());
+            }}
             className="flex shrink-0 items-center gap-2 rounded-full bg-secondary/70 p-2 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:px-3"
           >
             <Search className="size-[1.05rem]" strokeWidth={1.4} />
             <span className="hidden text-[0.65rem] font-medium uppercase tracking-[0.16em] lg:inline">Search</span>
           </button>
-          {searchOpen && (
-            <input
-              id="site-search"
-              autoFocus
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search sarees, fabrics, collections…"
-              className="ml-2 w-32 border-b border-primary bg-transparent px-1 py-2 text-xs outline-none placeholder:text-muted-foreground sm:w-52 sm:text-sm lg:w-64"
-            />
-          )}
+          <input
+            ref={searchInputRef}
+            id="site-search"
+            value={query}
+            onFocus={() => setSearchOpen(true)}
+            onBlur={() => window.setTimeout(() => setSearchOpen(false), 140)}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search a saree, fabric or collection…"
+            className="ml-2 w-32 border-b border-primary bg-transparent px-1 py-2 font-display text-sm italic outline-none placeholder:text-muted-foreground sm:w-52 sm:text-base lg:w-72"
+          />
           {searchOpen && query.trim() && (
             <div className="absolute left-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-border bg-background p-2 shadow-xl">
               {sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => (

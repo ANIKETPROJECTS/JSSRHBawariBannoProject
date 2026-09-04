@@ -4,9 +4,9 @@ import { ArrowRight, Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
-import maroonHeroImage from "@/assets/hero-editorial-maroon.jpg";
-import tealHeroImage from "@/assets/hero-editorial-teal.jpg";
-import emeraldHeroImage from "@/assets/hero-editorial-emerald.jpg";
+import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
+import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
+import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
 
 const heroSlides = [
   {

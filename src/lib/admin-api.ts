@@ -2,9 +2,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey } from "@/data/colors";
-import maroonHeroImage from "@/assets/hero-editorial-maroon.jpg";
-import tealHeroImage from "@/assets/hero-editorial-teal.jpg";
-import emeraldHeroImage from "@/assets/hero-editorial-emerald.jpg";
+import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
+import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
+import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
 
 type Resource = "heroes" | "categories" | "products" | "announcements" | "coupons";
 type JsonRecord = Record<string, unknown>;
