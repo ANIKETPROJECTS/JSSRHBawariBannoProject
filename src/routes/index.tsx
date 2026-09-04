@@ -450,7 +450,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
 
         <div
           key={activeProduct.id}
-          className="drape-center-in group absolute left-1/2 top-0 z-10 aspect-[1.42] w-[min(72%,18rem)] -translate-x-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:w-[min(30%,20rem)]"
+          className="drape-center-in group absolute left-1/2 top-1/2 z-10 aspect-[1.42] w-[min(72%,18rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-secondary shadow-2xl shadow-ink/10 sm:w-[min(30%,20rem)]"
         >
           <video
             ref={videoRef}
