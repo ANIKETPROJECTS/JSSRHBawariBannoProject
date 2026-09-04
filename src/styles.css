@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
@@ -10,8 +11,8 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --font-display: "Inter", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", "Helvetica Neue", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -43,40 +44,61 @@
 :root {
   --radius: 0.25rem;
 
-  /* Warm parchment canvas with maroon + gold jewel accents */
-  --background: #ffffff;
-  --foreground: oklch(0.24 0.03 30);
-  --card: oklch(0.993 0.006 90);
-  --card-foreground: oklch(0.24 0.03 30);
-  --popover: oklch(0.993 0.006 90);
-  --popover-foreground: oklch(0.24 0.03 30);
+  --background: #fdfcf9;
+  --foreground: #27231f;
+  --card: #f9f7f1;
+  --card-foreground: #27231f;
+  --popover: #fdfcf9;
+  --popover-foreground: #27231f;
+  --primary: #712e36;
+  --primary-foreground: #fdfcf9;
+  --secondary: #f2eee6;
+  --secondary-foreground: #4b3a33;
+  --muted: #ede9e1;
+  --muted-foreground: #776f68;
+  --accent: #b99560;
+  --accent-foreground: #2b211b;
+  --destructive: #a43e40;
+  --destructive-foreground: #fdfcf9;
+  --border: #dfd8cd;
+  --input: #d7cfc4;
+  --ring: #b99560;
+  --gold: #b99560;
+  --gold-soft: #e5d4b3;
+  --ink: #211b18;
+  --emerald-deep: #3e5c53;
+  --sidebar: #f4f0e9;
+  --sidebar-foreground: #332b26;
+  --sidebar-border: #dfd8cd;
+  --gradient-royal: linear-gradient(135deg, #59242e, #813943);
+  --shadow-luxe: 0 20px 45px -28px rgb(82 42 32 / 0.38);
+}
 
-  --primary: oklch(0.36 0.13 18.5); /* deep maroon */
-  --primary-foreground: oklch(0.98 0.012 85);
-  --secondary: oklch(0.94 0.022 80);
-  --secondary-foreground: oklch(0.32 0.09 20);
-  --muted: oklch(0.945 0.016 82);
-  --muted-foreground: oklch(0.5 0.03 40);
-  --accent: oklch(0.72 0.12 78); /* gold */
-  --accent-foreground: oklch(0.24 0.05 30);
-  --destructive: oklch(0.55 0.2 27);
-  --destructive-foreground: oklch(0.98 0.01 85);
-
-  --border: oklch(0.88 0.025 78);
-  --input: oklch(0.88 0.025 78);
-  --ring: oklch(0.72 0.12 78);
-
-  --gold: oklch(0.74 0.13 79);
-  --gold-soft: oklch(0.9 0.06 84);
-  --ink: oklch(0.2 0.03 30);
-  --emerald-deep: oklch(0.38 0.09 165);
-
-  --sidebar: oklch(0.965 0.014 84);
-  --sidebar-foreground: oklch(0.28 0.03 30);
-  --sidebar-border: oklch(0.88 0.025 78);
-
-  --gradient-royal: linear-gradient(135deg, oklch(0.3 0.11 18), oklch(0.4 0.14 22));
-  --shadow-luxe: 0 18px 45px -25px oklch(0.36 0.13 18.5 / 0.55);
+.dark {
+  --background: #28211f;
+  --foreground: #f4eee4;
+  --card: #332927;
+  --card-foreground: #f4eee4;
+  --popover: #332927;
+  --popover-foreground: #f4eee4;
+  --primary: #d69d94;
+  --primary-foreground: #2c211f;
+  --secondary: #403431;
+  --secondary-foreground: #f4eee4;
+  --muted: #413633;
+  --muted-foreground: #c1b3a8;
+  --accent: #c9a66e;
+  --accent-foreground: #2c211f;
+  --border: #574943;
+  --input: #574943;
+  --ring: #c9a66e;
+  --gold: #c9a66e;
+  --gold-soft: #79614a;
+  --ink: #181312;
+  --emerald-deep: #8eb3a2;
+  --sidebar: #332927;
+  --sidebar-foreground: #f4eee4;
+  --sidebar-border: #574943;
 }
 
 @layer base {
@@ -96,6 +118,7 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
 
   h1,
@@ -184,8 +207,29 @@ form[class*="max-h-"] {
   animation: hero-fade-in 700ms ease-in-out both;
 }
 
+.hero-media {
+  animation: hero-scale 10s ease-out both;
+}
+
+.footer-film-media {
+  animation: film-drift 16s ease-in-out infinite alternate;
+}
+
+@keyframes hero-scale {
+  from { transform: scale(1.04); }
+  to { transform: scale(1); }
+}
+
+@keyframes film-drift {
+  from { transform: scale(1.02) translate3d(-1%, 0, 0); }
+  to { transform: scale(1.08) translate3d(1%, -1%, 0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-fade-in {
+  .hero-fade-in,
+  .hero-media,
+  .footer-film-media {
     animation-duration: 1ms;
+    animation-iteration-count: 1;
   }
 }
