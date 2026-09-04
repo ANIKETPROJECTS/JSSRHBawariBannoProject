@@ -107,7 +107,7 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="mx-auto max-w-none px-0">
+      <section className="w-full">
         <div className="relative min-h-[520px] overflow-hidden bg-ink sm:min-h-[680px] lg:min-h-[min(78vh,760px)]">
           <img
             src={slides[previousHero].image}
@@ -144,7 +144,7 @@ function Home() {
             <span className="ml-2 text-eyebrow text-primary-foreground/60">/ 03</span>
           </div>
           <div className="absolute inset-0 flex items-end pb-14 sm:items-center sm:pb-0">
-            <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-10">
+            <div className="site-container">
               <div className="max-w-[34rem] text-primary-foreground">
                 <p className="text-eyebrow text-gold-soft">{heroDetails[currentHero % heroDetails.length].eyebrow}</p>
                 <h1 className="mt-4 max-w-[19rem] break-words font-display text-[2.65rem] font-medium leading-[0.98] tracking-[-0.035em] min-[420px]:text-5xl sm:max-w-xl sm:text-6xl md:text-8xl">
@@ -162,28 +162,30 @@ function Home() {
               </div>
             </div>
           </div>
-          <div className="absolute bottom-6 right-5 flex items-center gap-2 sm:bottom-8 sm:right-10" aria-label="Hero slides">
-            {slides.map((slide, index) => (
-              <button
-                key={`${slide.image}-${index}`}
-                type="button"
-                aria-label={`Show slide ${index + 1}`}
-                aria-current={index === currentHero}
-                onClick={() => {
-                  setTransitioningFrom(currentHero);
-                  activeHeroRef.current = index;
-                  setActiveHero(index);
-                  window.setTimeout(() => setTransitioningFrom(null), 750);
-                }}
-                className={`h-px transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-4 focus-visible:ring-offset-ink ${index === currentHero ? "w-10 bg-gold" : "w-5 bg-primary-foreground/60 hover:bg-primary-foreground"}`}
-              />
-            ))}
+           <div className="absolute inset-x-0 bottom-6 sm:bottom-8" aria-label="Hero slides">
+             <div className="site-container flex justify-end gap-2">
+               {slides.map((slide, index) => (
+                 <button
+                   key={`${slide.image}-${index}`}
+                   type="button"
+                   aria-label={`Show slide ${index + 1}`}
+                   aria-current={index === currentHero}
+                   onClick={() => {
+                     setTransitioningFrom(currentHero);
+                     activeHeroRef.current = index;
+                     setActiveHero(index);
+                     window.setTimeout(() => setTransitioningFrom(null), 750);
+                   }}
+                   className={`h-px transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-4 focus-visible:ring-offset-ink ${index === currentHero ? "w-10 bg-gold" : "w-5 bg-primary-foreground/60 hover:bg-primary-foreground"}`}
+                 />
+               ))}
+             </div>
           </div>
         </div>
       </section>
 
       {/* Categories — compact editorial grid */}
-      <section className="mx-auto max-w-[1120px] overflow-hidden px-5 pb-0 pt-14 sm:px-10 sm:pb-4 sm:pt-20">
+      <section className="site-container overflow-hidden pb-0 pt-14 sm:pb-4 sm:pt-20">
         <div className="grid gap-8 lg:grid-cols-[0.86fr_minmax(0,1fr)] lg:items-start lg:gap-12">
           <div className="max-w-md lg:pt-1">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
@@ -259,7 +261,7 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="mx-auto max-w-[1440px] px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+    <section className="site-container pt-12 sm:pt-16">
       <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
@@ -277,7 +279,7 @@ function TrendShowcase({ products }: { products: typeof sarees }) {
   if (!feature) return null;
 
   return (
-    <section className="mx-auto max-w-[1320px] px-5 pb-4 pt-8 sm:px-10 sm:pt-12">
+    <section className="site-container pb-4 pt-8 sm:pt-12">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5 sm:mb-10">
         <div>
           <p className="text-eyebrow text-muted-foreground">Just arrived</p>
@@ -387,7 +389,7 @@ function DrapeCarousel({ products }: { products: typeof sarees }) {
   };
 
   return (
-    <section className="mx-auto max-w-[1440px] px-5 pb-10 pt-12 sm:px-10 sm:pb-12 sm:pt-16">
+    <section className="site-container pb-10 pt-12 sm:pb-12 sm:pt-16">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
