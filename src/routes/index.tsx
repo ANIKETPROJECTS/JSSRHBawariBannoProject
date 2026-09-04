@@ -206,7 +206,7 @@ function Home() {
               </div>
             </div>
           </div>
-          <div className="grid w-full max-w-[480px] grid-cols-2 gap-3 justify-self-start sm:gap-4">
+          <div className="grid w-full grid-cols-2 gap-3 justify-self-stretch sm:gap-4">
             {categoryEdits.slice(0, 4).map((category, index) => (
               <Link
                 key={category.id}
