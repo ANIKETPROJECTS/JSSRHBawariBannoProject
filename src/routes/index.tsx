@@ -198,11 +198,27 @@ function Home() {
             <Link to="/products" className="mt-6 inline-flex items-center gap-3 border-b border-accent pb-2 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Explore the collection <ArrowRight className="size-3.5" strokeWidth={1.6} />
             </Link>
-            <div className="mt-10 flex items-start gap-4 border-t border-border pt-4 sm:mt-12">
-              <span className="font-display text-3xl leading-none text-accent">01</span>
-              <div>
-                <p className="text-eyebrow text-muted-foreground">The house edit</p>
-                <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-muted-foreground">A living archive of colour, craft and the art of the drape.</p>
+            <div className="mt-10 border-t border-border sm:mt-12">
+              <div className="flex items-start gap-4 border-b border-border py-4">
+                <span className="font-display text-3xl leading-none text-accent">01</span>
+                <div>
+                  <p className="text-eyebrow text-muted-foreground">The house edit</p>
+                  <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-muted-foreground">A living archive of colour, craft and the art of the drape.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 border-b border-border py-4">
+                <span className="font-display text-3xl leading-none text-accent">02</span>
+                <div>
+                  <p className="text-eyebrow text-muted-foreground">Woven slowly</p>
+                  <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-muted-foreground">Hand-finished textiles chosen for their character and quiet detail.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 border-b border-border py-4">
+                <span className="font-display text-3xl leading-none text-accent">03</span>
+                <div>
+                  <p className="text-eyebrow text-muted-foreground">Made to keep</p>
+                  <p className="mt-1 max-w-[15rem] text-xs leading-relaxed text-muted-foreground">Sarees with a story worth carrying forward.</p>
+                </div>
               </div>
             </div>
           </div>
