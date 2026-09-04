@@ -135,7 +135,7 @@ function Home() {
              className="hero-media relative h-[520px] min-h-[420px] w-full object-cover sm:h-[680px] lg:h-[min(78vh,760px)]"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-ink/80 via-ink/30 to-transparent" />
+           <div className="hero-text-gradient absolute inset-0" />
           <div className="pointer-events-none absolute inset-4 border border-primary-foreground/15 sm:inset-7" />
           <div className="pointer-events-none absolute right-6 top-7 hidden text-right text-primary-foreground sm:block lg:right-10 lg:top-10">
             <span className="font-display text-7xl leading-none text-primary-foreground/20 lg:text-8xl">
@@ -147,10 +147,10 @@ function Home() {
             <div className="site-container">
               <div className="max-w-[34rem] text-primary-foreground">
                 <p className="text-eyebrow text-gold-soft">{heroDetails[currentHero % heroDetails.length].eyebrow}</p>
-                <h1 className="mt-4 max-w-[19rem] break-words font-display text-[2.65rem] font-medium leading-[0.98] tracking-[-0.035em] min-[420px]:text-5xl sm:max-w-xl sm:text-6xl md:text-8xl">
+                <h1 className="mt-4 max-w-[19rem] break-words font-display text-[2rem] font-medium leading-[0.9] tracking-[-0.035em] min-[420px]:text-[2.35rem] sm:max-w-xl sm:text-5xl md:text-[4.75rem]">
                   {heroDetails[currentHero % heroDetails.length].title}
                 </h1>
-                <p className="mt-5 max-w-md text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
+                <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
                   {heroDetails[currentHero % heroDetails.length].description}
                 </p>
                 <Link
@@ -186,8 +186,8 @@ function Home() {
 
       {/* Categories — compact editorial grid */}
       <section className="site-container overflow-hidden pb-0 pt-14 sm:pb-4 sm:pt-20">
-        <div className="grid gap-8 lg:grid-cols-[0.86fr_minmax(0,1fr)] lg:items-start lg:gap-12">
-          <div className="max-w-md lg:pt-1">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] lg:items-start lg:gap-12">
+          <div className="max-w-lg lg:pt-1">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
             <h2 className="mt-3 font-display text-5xl font-medium leading-[0.92] tracking-tight text-primary sm:text-6xl lg:text-[4.25rem]">
               By tradition,<br />by mood.
@@ -206,7 +206,7 @@ function Home() {
               </div>
             </div>
           </div>
-          <div className="grid max-w-[440px] grid-cols-2 gap-3 justify-self-end sm:gap-4">
+          <div className="grid w-full max-w-[480px] grid-cols-2 gap-3 justify-self-start sm:gap-4">
             {categoryEdits.slice(0, 4).map((category, index) => (
               <Link
                 key={category.id}

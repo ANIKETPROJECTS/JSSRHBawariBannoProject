@@ -224,6 +224,10 @@ form[class*="max-h-"] {
   animation: none;
 }
 
+.hero-text-gradient {
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.5) 0%, rgb(0 0 0 / 0) 60%);
+}
+
 .category-reveal {
   animation: category-reveal 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
