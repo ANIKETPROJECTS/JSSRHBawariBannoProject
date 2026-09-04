@@ -35,7 +35,7 @@ const details = [
 function Contact() {
   return (
     <SiteShell>
-      <div className="border-b border-border bg-white">
+      <div className="section-frame mx-2 bg-white sm:mx-3">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-5 sm:py-14">
           <p className="text-eyebrow text-muted-foreground">Contact Us</p>
           <h1 className="mt-3 break-words font-display text-4xl font-light leading-[1.05] tracking-tight text-primary sm:text-5xl md:text-7xl">
@@ -47,7 +47,7 @@ function Contact() {
         </div>
       </div>
 
-      <section className="mx-auto mt-16 grid max-w-7xl gap-16 bg-white px-5 pb-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-24">
+      <section className="section-frame mx-2 mt-16 grid max-w-7xl gap-12 bg-white px-4 py-6 sm:mx-3 sm:gap-16 sm:px-5 sm:py-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-24">
         <form
           onSubmit={(event) => {
             event.preventDefault();

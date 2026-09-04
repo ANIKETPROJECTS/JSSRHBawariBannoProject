@@ -145,6 +145,7 @@ export function CollectionPage({
   });
   const [liveCategories, setLiveCategories] = useState<CategoryNode[] | null>(null);
   const [liveProducts, setLiveProducts] = useState<Saree[] | null>(null);
+  const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">(products ? "ready" : "loading");
 
   useEffect(() => {
     fetch("/api/catalog")
@@ -155,11 +156,12 @@ export function CollectionPage({
           if (nextCategories.length) setLiveCategories(nextCategories);
         }
         if (!products && Array.isArray(catalog.products)) setLiveProducts(sareesFromRecords(catalog.products));
+        setCatalogState("ready");
       })
-      .catch(() => undefined);
+      .catch(() => setCatalogState("fallback"));
   }, []);
 
-  const activeProducts = products ?? liveProducts ?? sarees;
+  const activeProducts = products ?? (catalogState === "loading" ? [] : liveProducts ?? sarees);
   const collectionProducts = productFilter ? activeProducts.filter(productFilter) : activeProducts;
   const activeCategories = liveCategories ?? categories;
   const availableColors = useMemo<ProductColorOption[]>(() => {
@@ -225,9 +227,13 @@ export function CollectionPage({
 
           <div className="flex-1">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-              <p className="text-sm text-muted-foreground">
-                {list.length} {list.length === 1 ? "saree" : "sarees"}
-              </p>
+              {catalogState === "loading" && !products ? (
+                <p className="text-sm text-muted-foreground">Loading the collection…</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {list.length} {list.length === 1 ? "saree" : "sarees"}
+                </p>
+              )}
               <label className="flex w-full items-center justify-between gap-3 text-sm sm:w-auto sm:justify-start">
                 <span className="text-muted-foreground">Sort by</span>
                 <select
@@ -242,10 +248,16 @@ export function CollectionPage({
               </label>
             </div>
 
-            <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3">
-              {list.map((saree) => <ProductCard key={saree.id} saree={saree} showAddToCart />)}
-            </div>
-            {list.length === 0 && (
+            {catalogState === "loading" && !products ? (
+              <div className="mt-7 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading the collection">
+                {[0, 1, 2].map((item) => <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />)}
+              </div>
+            ) : (
+              <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3">
+                {list.map((saree) => <ProductCard key={saree.id} saree={saree} showAddToCart />)}
+              </div>
+            )}
+            {catalogState !== "loading" && list.length === 0 && (
               <p className="mt-10 text-sm text-muted-foreground">
                 Nothing here yet — try another category or clear a filter.
               </p>

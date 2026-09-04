@@ -75,6 +75,12 @@ function Home() {
   const slides = liveHeroSlides ?? heroSlides;
   const homepageProducts = liveProducts ?? sarees;
   const homepageCategoryEdits = liveCategoryEdits ?? categoryEdits;
+  const curatedBestsellers = homepageProducts.filter((saree) => saree.featured || saree.bestseller);
+  const curatedBestsellerIds = new Set(curatedBestsellers.map((saree) => saree.id));
+  const homepageBestsellers = [
+    ...curatedBestsellers,
+    ...homepageProducts.filter((saree) => !curatedBestsellerIds.has(saree.id)),
+  ].slice(0, 5);
   const currentHero = activeHero % slides.length;
   const previousHero = transitioningFrom === null ? currentHero : transitioningFrom % slides.length;
 
@@ -135,7 +141,7 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="section-frame mx-2 w-auto p-2 sm:mx-3 sm:p-3">
+      <section className="section-frame section-frame--zari mx-2 w-auto p-2 sm:mx-3 sm:p-3">
         <div className="relative min-h-[520px] overflow-hidden bg-ink sm:min-h-[680px] lg:min-h-[min(78vh,760px)]">
           <img
             src={slides[previousHero].image}
@@ -213,7 +219,7 @@ function Home() {
       </section>
 
       {/* Categories — compact editorial grid */}
-      <section className="site-container section-frame overflow-hidden pb-10 pt-10 sm:pb-12 sm:pt-16">
+      <section className="site-container section-frame section-frame--zari overflow-hidden pb-10 pt-10 sm:pb-12 sm:pt-16">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] lg:items-start lg:gap-12">
           <div className="max-w-lg lg:pt-1">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
@@ -297,7 +303,7 @@ function Home() {
 
           <ProductRail
             title="Bestsellers"
-            products={homepageProducts.filter((saree) => saree.featured).slice(0, 5)}
+            products={homepageBestsellers}
           />
 
           <ProductRail title="Shop by Fabric" products={homepageProducts.slice(0, 5)} />

@@ -5,7 +5,7 @@ import atelierFilm from "@/assets/atelier-film.mp4";
 
 export function Footer() {
   return (
-    <footer className="section-frame relative mx-2 mt-24 overflow-hidden bg-royal text-primary-foreground sm:mx-3">
+    <footer className="section-frame section-frame--zari relative mx-2 mt-24 overflow-hidden bg-royal text-primary-foreground sm:mx-3">
       <video
         className="footer-film-media pointer-events-none absolute inset-0 size-full object-cover"
         autoPlay

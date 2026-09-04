@@ -44,7 +44,7 @@ function About() {
         intro="Bawari Banno began as a counter in Mylapore in 1974. Fifty-two years on, we still buy the way we started — loom by loom, family by family."
       />
 
-      <section className="mx-auto mt-12 grid max-w-7xl items-center gap-8 px-4 sm:mt-16 sm:gap-12 sm:px-5 md:grid-cols-2">
+      <section className="section-frame mx-2 mt-12 grid max-w-7xl items-center gap-8 px-4 py-6 sm:mx-3 sm:mt-16 sm:gap-12 sm:px-5 sm:py-10 md:grid-cols-2">
         <img
           src={storyImage}
           alt="Folded silk sarees stacked on wooden shelves"
@@ -70,7 +70,7 @@ function About() {
         </div>
       </section>
 
-      <section className="mt-24 border-y border-border fabric-texture py-20">
+      <section className="section-frame mx-2 mt-24 fabric-texture px-4 py-10 sm:mx-3 sm:px-5 sm:py-16">
         <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 sm:gap-12 sm:px-5 md:grid-cols-2">
           <div className="order-2 md:order-1">
             <p className="text-eyebrow text-muted-foreground">Our Craft</p>
@@ -105,7 +105,7 @@ function About() {
         </div>
       </section>
 
-      <section className="mx-auto mt-24 max-w-7xl px-5">
+      <section className="section-frame mx-2 mt-24 max-w-7xl px-4 py-8 sm:mx-3 sm:px-5 sm:py-10">
         <p className="text-eyebrow text-muted-foreground">Heritage</p>
         <h2 className="mt-2 font-display text-4xl text-primary rule-gold">Fifty-two years</h2>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
