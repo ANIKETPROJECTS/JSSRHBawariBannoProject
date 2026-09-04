@@ -19,24 +19,24 @@ export function Footer() {
       </video>
       <div className="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/65 to-ink/75" />
       <div className="fabric-texture relative">
-        <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-10 sm:py-16">
-          <div className="flex flex-wrap items-end justify-between gap-8 border-b border-primary-foreground/25 pb-10 sm:pb-14">
+        <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-10 sm:py-9">
+          <div className="flex flex-wrap items-end justify-between gap-5 border-b border-primary-foreground/25 pb-6 sm:pb-8">
             <div className="max-w-lg">
               <p className="text-eyebrow text-gold-soft">The house note</p>
-              <p className="mt-4 font-display text-4xl leading-[0.95] tracking-tight sm:text-6xl">Made to be remembered.</p>
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-primary-foreground/80">A living archive of Indian textiles, gathered with care and sent from our atelier to yours.</p>
+              <p className="mt-2 font-display text-3xl leading-[0.95] tracking-tight sm:text-5xl">Made to be remembered.</p>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-primary-foreground/80">A living archive of Indian textiles, gathered with care and sent from our atelier to yours.</p>
             </div>
             <span className="text-eyebrow text-primary-foreground/70">Bawari Banno · 1974—2026</span>
           </div>
         </div>
-        <div className="mx-auto grid max-w-[1440px] gap-10 px-5 pb-12 sm:gap-12 sm:px-10 sm:pb-16 md:grid-cols-4">
+        <div className="mx-auto grid max-w-[1440px] gap-7 px-5 pb-7 sm:gap-8 sm:px-10 sm:pb-9 md:grid-cols-4">
           <div>
-            <p className="font-display text-4xl tracking-tight">Bawari Banno</p>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/75">
+            <p className="font-display text-3xl tracking-tight">Bawari Banno</p>
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-primary-foreground/75">
               Handpicked handloom and heirloom sarees, sourced directly from weaving clusters
               across India since 1974.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-4 flex gap-3">
               {[Instagram, Facebook, Youtube].map((Icon, i) => (
                 <a
                   key={i}
@@ -52,7 +52,7 @@ export function Footer() {
 
           <div>
             <p className="text-eyebrow text-gold-soft">Explore</p>
-            <ul className="mt-5 space-y-3 text-sm text-primary-foreground/80">
+            <ul className="mt-3 space-y-2 text-sm text-primary-foreground/80">
               <li>
                 <Link to="/products" className="hover:text-gold">
                   All Sarees
@@ -78,7 +78,7 @@ export function Footer() {
 
           <div>
             <p className="text-eyebrow text-gold-soft">Visit</p>
-            <address className="mt-5 space-y-2 text-sm not-italic leading-relaxed text-primary-foreground/80">
+            <address className="mt-3 space-y-1.5 text-sm not-italic leading-relaxed text-primary-foreground/80">
               <p>14 Mylapore Silk Street, Chennai 600004</p>
               <p>+91 98400 21774</p>
               <p>care@vastraa.example</p>
@@ -87,11 +87,11 @@ export function Footer() {
 
           <div>
             <p className="text-eyebrow text-gold-soft">The Loom Letter</p>
-            <p className="mt-5 text-sm text-primary-foreground/75">
+            <p className="mt-3 text-sm text-primary-foreground/75">
               New weaves, revival drops and atelier notes — once a month.
             </p>
             <form
-              className="mt-5 flex min-w-0 border-b border-primary-foreground/30 focus-within:border-gold"
+              className="mt-3 flex min-w-0 border-b border-primary-foreground/30 focus-within:border-gold"
               onSubmit={(e) => e.preventDefault()}
             >
               <label className="sr-only" htmlFor="newsletter">
@@ -111,7 +111,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-primary-foreground/25">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-xs text-primary-foreground/65 sm:px-10 sm:py-6">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-xs text-primary-foreground/65 sm:px-10 sm:py-4">
             <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
             <p>Crafted in India · Demo storefront</p>
           </div>
