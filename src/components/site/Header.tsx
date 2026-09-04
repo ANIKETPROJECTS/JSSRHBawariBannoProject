@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { sarees } from "@/data/sarees";
@@ -18,6 +18,16 @@ const nav = [
   { to: "/contact", label: "Contact Us" },
 ] as const;
 
+type SearchItem = {
+  id: string;
+  name: string;
+  fabric?: string;
+  category?: string;
+  image: string;
+};
+
+const searchPrompts = ["for silk sarees", "for handloom cotton", "for wedding edits"];
+
 export function Header() {
   const { openCart, items } = useCart();
   const { count: wishlistCount } = useWishlist();
@@ -26,10 +36,67 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [searchItems, setSearchItems] = useState<SearchItem[]>(sarees);
+  const [hintIndex, setHintIndex] = useState(0);
+  const [hintText, setHintText] = useState("");
+  const [hintDeleting, setHintDeleting] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
+  const focusSearch = () => {
+    setSearchOpen(true);
+    window.requestAnimationFrame(() => {
+      const input = window.matchMedia("(min-width: 1024px)").matches ? desktopSearchInputRef.current : mobileSearchInputRef.current;
+      input?.focus();
+    });
+  };
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/catalog")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
+      .then((catalog: { products?: Array<{ id?: string; name?: string; fabric?: string; category?: string; image?: string }> }) => {
+        const liveItems = (catalog.products ?? [])
+          .filter((product) => product.id && product.name && product.image)
+          .map((product) => ({
+            id: String(product.id),
+            name: String(product.name),
+            fabric: product.fabric,
+            category: product.category,
+            image: String(product.image),
+          }));
+        if (active && liveItems.length) setSearchItems(liveItems);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (query) return;
+    const prompt = searchPrompts[hintIndex];
+    const isComplete = !hintDeleting && hintText === prompt;
+    const isEmpty = hintDeleting && hintText.length === 0;
+    const timer = window.setTimeout(() => {
+      if (isComplete) {
+        setHintDeleting(true);
+      } else if (isEmpty) {
+        setHintDeleting(false);
+        setHintIndex((index) => (index + 1) % searchPrompts.length);
+      } else if (hintDeleting) {
+        setHintText(prompt.slice(0, Math.max(0, hintText.length - 1)));
+      } else {
+        setHintText(prompt.slice(0, hintText.length + 1));
+      }
+    }, isComplete ? 1200 : isEmpty ? 350 : hintDeleting ? 55 : 90);
+    return () => window.clearTimeout(timer);
+  }, [hintDeleting, hintIndex, hintText, query]);
+
+  const matchingItems = searchItems
+    .filter((item) => `${item.name} ${item.fabric ?? ""} ${item.category ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()))
+    .slice(0, 4);
+  const searchPlaceholder = query ? "" : `Search ${hintText || "..."}`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur-xl">
@@ -42,28 +109,25 @@ export function Header() {
             type="button"
             aria-label="Search the collection"
             aria-expanded={searchOpen}
-            onClick={() => {
-              setSearchOpen(true);
-              window.requestAnimationFrame(() => searchInputRef.current?.focus());
-            }}
+            onClick={focusSearch}
             className="flex shrink-0 items-center gap-2 rounded-full bg-secondary/70 p-2 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:px-3"
           >
             <Search className="size-[1.05rem]" strokeWidth={1.4} />
             <span className="hidden text-[0.65rem] font-medium uppercase tracking-[0.16em] lg:inline">Search</span>
           </button>
           <input
-            ref={searchInputRef}
-            id="site-search"
+            ref={desktopSearchInputRef}
+            id="site-search-desktop"
             value={query}
             onFocus={() => setSearchOpen(true)}
-            onBlur={() => window.setTimeout(() => setSearchOpen(false), 140)}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search a saree, fabric or collection…"
-            className="ml-2 w-32 cursor-text border-b border-primary bg-transparent px-1 py-2 font-display text-sm italic outline-none placeholder:text-muted-foreground sm:w-52 sm:text-base lg:w-72"
+            placeholder={searchPlaceholder}
+            aria-label="Search products"
+            className="ml-2 hidden w-32 cursor-text border-b border-primary bg-transparent px-1 py-2 text-sm outline-none placeholder:text-muted-foreground sm:w-52 sm:text-base lg:block lg:w-72"
           />
           {searchOpen && query.trim() && (
             <div className="absolute left-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-border bg-background p-2 shadow-xl">
-              {sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).slice(0, 4).map((saree) => (
+              {matchingItems.map((saree) => (
                 <Link
                   key={saree.id}
                   to="/products/$productId"
@@ -75,7 +139,7 @@ export function Header() {
                   <span className="min-w-0 text-sm text-primary">{saree.name}</span>
                 </Link>
               ))}
-              {sarees.filter((saree) => `${saree.name} ${saree.fabric} ${saree.category}`.toLowerCase().includes(query.toLowerCase())).length === 0 && (
+              {matchingItems.length === 0 && (
                 <p className="px-2 py-3 text-sm text-muted-foreground">No matching pieces found.</p>
               )}
             </div>
@@ -137,6 +201,40 @@ export function Header() {
           >
             {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <Menu className="size-5" strokeWidth={1.6} />}
           </button>
+        </div>
+      </div>
+
+      <div className={`border-t border-border bg-background px-4 py-3 shadow-sm lg:hidden ${searchOpen ? "block" : "hidden"}`}>
+        <div className="relative mx-auto max-w-xl">
+          <input
+            ref={mobileSearchInputRef}
+            id="site-search-mobile"
+            value={query}
+            onFocus={() => setSearchOpen(true)}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            aria-label="Search products"
+            className="w-full cursor-text border-b border-primary bg-transparent px-1 py-2 text-base outline-none placeholder:text-muted-foreground"
+          />
+          {query.trim() && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-3 border border-border bg-background p-2 shadow-xl">
+              {matchingItems.map((saree) => (
+                <Link
+                  key={saree.id}
+                  to="/products/$productId"
+                  params={{ productId: saree.id }}
+                  onClick={() => { setSearchOpen(false); setQuery(""); }}
+                  className="flex min-w-0 items-center gap-3 p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <img src={saree.image} alt={saree.name} className="size-12 shrink-0 object-cover" />
+                  <span className="min-w-0 text-sm text-primary">{saree.name}</span>
+                </Link>
+              ))}
+              {matchingItems.length === 0 && (
+                <p className="px-2 py-3 text-sm text-muted-foreground">No matching pieces found.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
