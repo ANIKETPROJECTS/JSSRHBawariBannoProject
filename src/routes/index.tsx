@@ -183,7 +183,7 @@ function Home() {
       </section>
 
       {/* Categories — compact editorial grid */}
-      <section className="mx-auto max-w-[1120px] overflow-hidden px-5 pb-8 pt-14 sm:px-10 sm:pb-12 sm:pt-20">
+      <section className="mx-auto max-w-[1120px] overflow-hidden px-5 pb-0 pt-14 sm:px-10 sm:pb-4 sm:pt-20">
         <div className="grid gap-8 lg:grid-cols-[0.86fr_minmax(0,1fr)] lg:items-start lg:gap-12">
           <div className="max-w-md lg:pt-1">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
@@ -277,7 +277,7 @@ function TrendShowcase({ products }: { products: typeof sarees }) {
   if (!feature) return null;
 
   return (
-    <section className="mx-auto max-w-[1320px] px-5 pb-4 pt-16 sm:px-10 sm:pt-24">
+    <section className="mx-auto max-w-[1320px] px-5 pb-4 pt-8 sm:px-10 sm:pt-12">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5 sm:mb-10">
         <div>
           <p className="text-eyebrow text-muted-foreground">Just arrived</p>
