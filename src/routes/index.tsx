@@ -230,8 +230,7 @@ function Home() {
         </div>
       </section>
 
-      <ProductRail
-        title="New Trends"
+      <TrendShowcase
         products={[...sarees].sort((a, b) => b.addedOn.localeCompare(a.addedOn)).slice(0, 5)}
       />
 
@@ -292,6 +291,95 @@ function ProductRail({
           <ProductCard key={saree.id} saree={saree} tall showAddToCart />
         ))}
       </div>
+    </section>
+  );
+}
+
+function TrendShowcase({ products }: { products: typeof sarees }) {
+  const [feature, ...supporting] = products;
+
+  if (!feature) return null;
+
+  return (
+    <section className="mx-auto max-w-[1320px] px-5 pb-4 pt-16 sm:px-10 sm:pt-24">
+      <div className="mb-8 flex items-end justify-between border-b border-border pb-5 sm:mb-10">
+        <div>
+          <p className="text-eyebrow text-muted-foreground">Just arrived</p>
+          <h2 className="mt-2 font-display text-5xl font-medium leading-none tracking-tight text-primary sm:text-6xl">
+            New trends<span className="text-accent">.</span>
+          </h2>
+        </div>
+        <Link
+          to="/new-arrival"
+          className="hidden items-center gap-2 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:inline-flex"
+        >
+          See the drop <ArrowRight className="size-3.5" strokeWidth={1.6} />
+        </Link>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[1.25fr_0.75fr] sm:gap-5">
+        <Link
+          to="/products/$productId"
+          params={{ productId: feature.id }}
+          className="trend-reveal group relative min-h-[25rem] overflow-hidden bg-ink sm:min-h-0"
+        >
+          <img
+            src={feature.image}
+            alt={feature.name}
+            loading="lazy"
+            width={1100}
+            height={760}
+            className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent" />
+          <div className="absolute left-5 top-5 flex items-center gap-2 text-primary-foreground sm:left-7 sm:top-7">
+            <span className="flex size-7 items-center justify-center rounded-full border border-gold/70 text-xs text-gold">01</span>
+            <span className="text-eyebrow text-primary-foreground/80">The latest drape</span>
+          </div>
+          <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4 text-primary-foreground sm:inset-x-7 sm:bottom-7">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-gold-soft">{feature.fabric}</p>
+              <h3 className="mt-1 font-display text-3xl leading-none sm:text-4xl">{feature.name}</h3>
+            </div>
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary-foreground/70 transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-ink">
+              <ArrowRight className="size-4" strokeWidth={1.5} />
+            </span>
+          </div>
+        </Link>
+
+        <div className="grid grid-cols-2 gap-3 sm:gap-5">
+          {supporting.slice(0, 4).map((saree, index) => (
+            <Link
+              key={saree.id}
+              to="/products/$productId"
+              params={{ productId: saree.id }}
+              className="trend-reveal group relative aspect-square overflow-hidden bg-secondary"
+              style={{ animationDelay: `${(index + 1) * 100}ms` }}
+            >
+              <img
+                src={saree.image}
+                alt={saree.name}
+                loading="lazy"
+                width={540}
+                height={540}
+                className="size-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent" />
+              <div className="absolute inset-x-3 bottom-3 text-primary-foreground sm:inset-x-4 sm:bottom-4">
+                <span className="block text-[0.6rem] text-gold-soft">0{index + 2}</span>
+                <span className="mt-1 block truncate font-display text-base leading-none sm:text-lg">{saree.name}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <Link
+        to="/new-arrival"
+        className="mt-6 inline-flex items-center gap-2 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:hidden"
+      >
+        See the drop <ArrowRight className="size-3.5" strokeWidth={1.6} />
+      </Link>
     </section>
   );
 }
