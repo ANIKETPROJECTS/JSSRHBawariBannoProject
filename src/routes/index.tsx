@@ -182,34 +182,34 @@ function Home() {
       </section>
 
       {/* Categories — staggered editorial collage */}
-      <section className="mx-auto max-w-[1320px] overflow-hidden px-5 pb-6 pt-16 sm:px-10 sm:pb-10 sm:pt-20">
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.35fr] lg:items-start lg:gap-14">
-          <div className="max-w-md lg:sticky lg:top-32 lg:pt-4">
+      <section className="mx-auto max-w-[1320px] overflow-hidden px-5 pb-8 pt-14 sm:px-10 sm:pb-12 sm:pt-20">
+        <div className="grid gap-8 lg:grid-cols-[0.72fr_1.9fr] lg:items-center lg:gap-12">
+          <div className="max-w-md lg:pt-0">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
-            <h2 className="mt-3 font-display text-5xl font-medium leading-[0.92] tracking-tight text-primary sm:text-6xl lg:text-7xl">
+            <h2 className="mt-3 font-display text-5xl font-medium leading-[0.92] tracking-tight text-primary sm:text-6xl lg:text-[4.25rem]">
               By tradition,<br />by mood.
             </h2>
-            <p className="mt-6 max-w-sm text-base leading-relaxed text-muted-foreground">
+            <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground sm:text-base">
               An evolving wardrobe of Indian textiles, arranged by the feeling you want to carry with you.
             </p>
-            <Link to="/products" className="mt-8 inline-flex items-center gap-3 border-b border-accent pb-2 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <Link to="/products" className="mt-6 inline-flex items-center gap-3 border-b border-accent pb-2 text-eyebrow text-primary transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
               Explore the collection <ArrowRight className="size-3.5" strokeWidth={1.6} />
             </Link>
-            <div className="mt-12 hidden items-start gap-4 border-t border-border pt-4 sm:flex">
+            <div className="mt-8 hidden items-start gap-4 border-t border-border pt-3 sm:flex">
               <span className="font-display text-3xl text-accent">01</span>
               <p className="max-w-[12rem] text-xs leading-relaxed text-muted-foreground">A living archive of colour, craft and the art of the drape.</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {categoryEdits.slice(0, 4).map((category, index) => (
               <Link
                 key={category.id}
                 to="/categories/$category"
                 params={{ category: category.id }}
-                className={`category-reveal group relative overflow-hidden bg-secondary ${index % 2 === 1 ? "mt-6 sm:mt-10" : ""}`}
+                className="category-reveal group relative overflow-hidden bg-secondary"
                 style={{ animationDelay: `${index * 120}ms` }}
               >
-                <div className="aspect-[0.9] overflow-hidden">
+                <div className="aspect-[0.76] overflow-hidden">
                   <img
                     src={category.image}
                     alt={category.title}
@@ -220,8 +220,8 @@ function Home() {
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-95" />
-                <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-2 text-primary-foreground sm:inset-x-6 sm:bottom-6">
-                  <span className="font-display text-xl leading-none sm:text-3xl">{category.title}</span>
+                <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 text-primary-foreground sm:inset-x-4 sm:bottom-4">
+                  <span className="font-display text-base leading-none sm:text-xl">{category.title}</span>
                   <ArrowRight className="mb-0.5 size-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1" strokeWidth={1.5} />
                 </div>
               </Link>
