@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: "bawari-banno",
+      cwd: __dirname,
       script: ".output/server/index.mjs",
       interpreter: "node",
       exec_mode: "fork",
