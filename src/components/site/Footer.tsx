@@ -69,11 +69,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/terms-and-conditions" className="hover:text-gold">
-                  Terms &amp; Conditions
-                </Link>
-              </li>
-              <li>
                 <Link to="/products" className="hover:text-gold">
                   Wedding Collection
                 </Link>
@@ -84,9 +79,17 @@ export function Footer() {
           <div>
             <p className="text-eyebrow text-gold-soft">Visit</p>
             <address className="mt-3 space-y-1.5 text-sm not-italic leading-relaxed text-primary-foreground/80">
-              <p>14 Mylapore Silk Street, Chennai 600004</p>
+              <p>
+                Hubtown Greenwood CHS,
+                <br />
+                Flat No. 805/A Wing, 8th Floor,
+                <br />
+                Pokhran Road No. 1, Vartak Nagar,
+                <br />
+                Thane (W), 400606
+              </p>
               <p>+91 98400 21774</p>
-              <p>care@vastraa.example</p>
+              <p>info@bawaribanno.com</p>
             </address>
           </div>
 

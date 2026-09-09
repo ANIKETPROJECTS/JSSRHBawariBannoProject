@@ -13,12 +13,12 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Write to the Bawari Banno atelier or visit our Mylapore, Chennai store. Address, phone, email and store hours.",
+          "Write to the Bawari Banno atelier or visit us in Thane, Maharashtra. Address, phone, email and store hours.",
       },
       { property: "og:title", content: "Contact & Visit — Bawari Banno" },
       {
         property: "og:description",
-        content: "Reach the Bawari Banno atelier in Mylapore, Chennai — address, phone and email.",
+        content: "Reach the Bawari Banno atelier in Thane, Maharashtra — address, phone and email.",
       },
     ],
   }),
@@ -26,9 +26,13 @@ export const Route = createFileRoute("/contact")({
 });
 
 const details = [
-  { icon: locationIcon, label: "Atelier", value: "14 Mylapore Silk Street, Chennai 600004" },
+  {
+    icon: locationIcon,
+    label: "Atelier",
+    value: "Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor, Pokhran Road No. 1, Vartak Nagar, Thane (W), 400606",
+  },
   { icon: phoneIcon, label: "Phone", value: "+91 98400 21774" },
-  { icon: mailIcon, label: "Email", value: "care@vastraa.example" },
+  { icon: mailIcon, label: "Email", value: "info@bawaribanno.com" },
   { icon: clockIcon, label: "Hours", value: "Mon–Sat, 10:30am – 8:00pm" },
 ];
 
@@ -42,7 +46,7 @@ function Contact() {
             Come sit with the silks
           </h1>
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
-            Questions on a weave, a bridal commission, or blouse measurements? Write to us, or visit our atelier in Mylapore.
+            Questions on a weave, a bridal commission, or blouse measurements? Write to us, or visit our atelier in Thane.
           </p>
         </div>
       </div>
@@ -172,11 +176,11 @@ function Contact() {
             </div>
             <div className="flex items-center justify-between gap-4 p-5">
               <div>
-                <p className="font-display text-2xl font-light text-primary">Mylapore, Chennai</p>
-                <p className="mt-1 text-xs text-muted-foreground">Two minutes from Kapaleeshwarar Temple tank</p>
+                <p className="font-display text-2xl font-light text-primary">Thane, Maharashtra</p>
+                <p className="mt-1 text-xs text-muted-foreground">Hubtown Greenwood CHS, Vartak Nagar</p>
               </div>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Mylapore%2C+Chennai"
+                href="https://www.google.com/maps/search/?api=1&query=Hubtown%20Greenwood%20CHS%2C%20Thane%20West"
                 target="_blank"
                 rel="noreferrer"
                 className="shrink-0 text-xs text-primary underline decoration-gold underline-offset-4 hover:text-ink"

@@ -82,7 +82,7 @@ const sections = [
     title: "Changes and contact",
     paragraphs: [
       "We may update these terms when our services, policies, or legal obligations change. The version published on this page applies to future use and orders after its effective date.",
-      "For questions about an order or these terms, contact care@vastraa.example or visit our atelier at 14 Mylapore Silk Street, Chennai 600004.",
+      "For questions about an order or these terms, contact info@bawaribanno.com or visit our atelier at Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor, Pokhran Road No. 1, Vartak Nagar, Thane (W), 400606.",
     ],
   },
 ] as const;
