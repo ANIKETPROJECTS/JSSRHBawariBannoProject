@@ -31,7 +31,7 @@ const details = [
     label: "Atelier",
     value: "Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor, Pokhran Road No. 1, Vartak Nagar, Thane (W), 400606",
   },
-  { icon: phoneIcon, label: "Phone", value: "+91 98400 21774" },
+  { icon: phoneIcon, label: "Phone", value: "+91 84597 69859" },
   { icon: mailIcon, label: "Email", value: "info@bawaribanno.com" },
   { icon: clockIcon, label: "Hours", value: "Mon–Sat, 10:30am – 8:00pm" },
 ];

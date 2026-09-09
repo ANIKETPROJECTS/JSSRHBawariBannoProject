@@ -88,7 +88,7 @@ export function Footer() {
                 <br />
                 Thane (W), 400606
               </p>
-              <p>+91 98400 21774</p>
+              <p>+91 84597 69859</p>
               <p>info@bawaribanno.com</p>
             </address>
           </div>

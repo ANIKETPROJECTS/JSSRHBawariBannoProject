@@ -17,7 +17,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <Header />
               <main className="min-w-0 flex-1">{children}</main>
               <a
-                href="https://wa.me/919619523254"
+                href="https://wa.me/918459769859"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Chat with us on WhatsApp"
