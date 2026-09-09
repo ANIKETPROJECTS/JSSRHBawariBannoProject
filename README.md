@@ -50,3 +50,45 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## VPS production deployment with PM2
+
+This project builds a standalone Node/Nitro server. On the VPS, use Node.js
+22.12.0 or newer, install PM2 once, and run the following from the project
+root:
+
+```sh
+npm install
+npm run build
+pm2 start ecosystem.config.cjs
+pm2 save
+```
+
+The included `ecosystem.config.cjs` starts the production server on
+`0.0.0.0:3020`. It runs the built output directly, so do not use
+`npm run dev` or `npm run preview` in production.
+
+Before starting PM2, configure the production environment variables required
+by the store on the VPS. Do not commit their values to this repository:
+
+```sh
+export MONGODB_URI="your-mongodb-connection-string"
+export SESSION_SECRET="your-long-random-session-secret"
+export ADMIN_EMAIL="your-admin-email"
+export ADMIN_PASSWORD="your-admin-password"
+```
+
+For a persistent server reboot setup, run the command printed by:
+
+```sh
+pm2 startup
+```
+
+Useful PM2 commands:
+
+```sh
+pm2 status
+pm2 logs bawari-banno
+pm2 restart bawari-banno
+pm2 stop bawari-banno
+```
