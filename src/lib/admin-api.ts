@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey } from "@/data/colors";
+import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-assets";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -172,7 +173,8 @@ function normalizeProductVariants(value: unknown, productId: string) {
 
 async function list(resource: Resource) {
   const collection = (await db()).collection(resource);
-  return collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
+  const records = await collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
+  return records.map((record) => normalizeCatalogRecord(record as Record<string, unknown>));
 }
 
 async function save(resource: Resource, id: string | undefined, input: JsonRecord) {
@@ -1348,7 +1350,11 @@ export async function handleAdminApi(request: Request) {
         database.collection("categories").find({ published: { $ne: false } }).sort({ order: 1 }).toArray(),
         database.collection("products").find({ published: { $ne: false } }).sort({ createdAt: -1 }).toArray(),
       ]);
-      return json({ heroes, categories, products });
+      return json({
+        heroes: heroes.map((record) => normalizeCatalogRecord(record as Record<string, unknown>)),
+        categories: categories.map((record) => normalizeCatalogRecord(record as Record<string, unknown>)),
+        products: products.map((record) => normalizeCatalogRecord(record as Record<string, unknown>)),
+      });
     }
     if (url.pathname === "/api/coupons/validate" && request.method === "POST") return await validateCoupon(request);
     if (url.pathname === "/api/store-config" && request.method === "GET") {
