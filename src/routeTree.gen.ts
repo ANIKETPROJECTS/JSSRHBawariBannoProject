@@ -16,6 +16,7 @@ import { Route as BestsellerRouteImport } from './routes/bestseller'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as NewArrivalRouteImport } from './routes/new-arrival'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
@@ -57,6 +58,11 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
+  id: '/terms-and-conditions',
+  path: '/terms-and-conditions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrendingRoute = TrendingRouteImport.update({
   id: '/trending',
   path: '/trending',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
   '/wishlist': typeof WishlistRoute
   '/categories/$category': typeof CategoriesCategoryRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
   '/wishlist': typeof WishlistRoute
   '/categories/$category': typeof CategoriesCategoryRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
   '/profile': typeof ProfileRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
   '/wishlist': typeof WishlistRoute
   '/categories/$category': typeof CategoriesCategoryRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/new-arrival'
     | '/profile'
+    | '/terms-and-conditions'
     | '/trending'
     | '/wishlist'
     | '/categories/$category'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/new-arrival'
     | '/profile'
+    | '/terms-and-conditions'
     | '/trending'
     | '/wishlist'
     | '/categories/$category'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/new-arrival'
     | '/profile'
+    | '/terms-and-conditions'
     | '/trending'
     | '/wishlist'
     | '/categories/$category'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   NewArrivalRoute: typeof NewArrivalRoute
   ProfileRoute: typeof ProfileRoute
+  TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TrendingRoute: typeof TrendingRoute
   WishlistRoute: typeof WishlistRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
@@ -237,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms-and-conditions': {
+      id: '/terms-and-conditions'
+      path: '/terms-and-conditions'
+      fullPath: '/terms-and-conditions'
+      preLoaderRoute: typeof TermsAndConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trending': {
       id: '/trending'
       path: '/trending'
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   NewArrivalRoute: NewArrivalRoute,
   ProfileRoute: ProfileRoute,
+  TermsAndConditionsRoute: TermsAndConditionsRoute,
   TrendingRoute: TrendingRoute,
   WishlistRoute: WishlistRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,

@@ -69,6 +69,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/terms-and-conditions" className="hover:text-gold">
+                  Terms &amp; Conditions
+                </Link>
+              </li>
+              <li>
                 <Link to="/products" className="hover:text-gold">
                   Wedding Collection
                 </Link>
