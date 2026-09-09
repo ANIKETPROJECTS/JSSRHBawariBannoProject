@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, RotateCcw } from "lucide-react";
-import { categories, type CategoryNode } from "@/data/sarees";
+import { categories, type CategoryNode, type Saree } from "@/data/sarees";
 import { productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
 
@@ -18,21 +18,49 @@ type Props = {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
   categoryData?: CategoryNode[];
+  productsForCategories?: ReadonlyArray<Pick<Saree, "category" | "subcategory">>;
   availableColors?: ReadonlyArray<{ key: string; label: string; hex: string }>;
 };
 
-export function CategorySidebar({ selection, onSelect, filters, onFiltersChange, categoryData, availableColors }: Props) {
+export function CategorySidebar({
+  selection,
+  onSelect,
+  filters,
+  onFiltersChange,
+  categoryData,
+  productsForCategories,
+  availableColors,
+}: Props) {
   const [open, setOpen] = useState<string[]>(["silk"]);
   const categoryItems = categoryData ?? categories;
   const colorOptions = availableColors ?? productColors;
+  const visibleCategoryItems = useMemo(() => {
+    if (!productsForCategories) return categoryItems;
+
+    return categoryItems
+      .map((category) => {
+        const visibleChildren = category.children?.filter((subcategory) =>
+          productsForCategories.some(
+            (product) =>
+              product.category === category.id && product.subcategory === subcategory.id,
+          ),
+        );
+        return visibleChildren?.length
+          ? { ...category, children: visibleChildren }
+          : { ...category, children: undefined };
+      })
+      .filter((category) =>
+        productsForCategories.some((product) => product.category === category.id),
+      );
+  }, [categoryItems, productsForCategories]);
 
   useEffect(() => {
     if (!selection.category) return;
-    const selected = categoryItems.find((category) => category.id === selection.category);
+    const selected = visibleCategoryItems.find((category) => category.id === selection.category);
     if (selected?.children?.length) {
       setOpen((current) => current.includes(selected.id) ? current : [...current, selected.id]);
     }
-  }, [categoryItems, selection.category]);
+  }, [selection.category, visibleCategoryItems]);
 
   const toggle = (id: string) =>
     setOpen((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -58,7 +86,7 @@ export function CategorySidebar({ selection, onSelect, filters, onFiltersChange,
             </button>
           </li>
 
-          {categoryItems.map((cat) => {
+           {visibleCategoryItems.map((cat) => {
             const isOpen = open.includes(cat.id);
             const active = selection.category === cat.id;
             return (

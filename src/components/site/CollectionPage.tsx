@@ -234,6 +234,7 @@ export function CollectionPage({
             filters={filters}
             onFiltersChange={setFilters}
             categoryData={activeCategories}
+            productsForCategories={collectionProducts}
             availableColors={availableColors}
           />
 
