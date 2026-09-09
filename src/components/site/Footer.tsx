@@ -118,7 +118,7 @@ export function Footer() {
         <div className="border-t border-primary-foreground/25">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-xs text-primary-foreground/65 sm:px-10 sm:py-4">
             <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
-            <p>Crafted in India · Demo storefront</p>
+            <p>Crafted in India · Website owned by Sejal Yadav</p>
           </div>
         </div>
       </div>
