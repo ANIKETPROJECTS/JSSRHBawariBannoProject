@@ -23,18 +23,25 @@ export function Footer() {
           <div className="flex flex-wrap items-end justify-between gap-5 border-b border-primary-foreground/25 pb-6 sm:pb-8">
             <div className="max-w-lg">
               <p className="text-eyebrow text-gold-soft">The house note</p>
-              <p className="mt-2 font-display text-3xl leading-[0.95] tracking-tight sm:text-5xl">Made to be remembered.</p>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-primary-foreground/80">A living archive of Indian textiles, gathered with care and sent from our atelier to yours.</p>
+              <p className="mt-2 font-display text-3xl leading-[0.95] tracking-tight sm:text-5xl">
+                Made to be remembered.
+              </p>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed text-primary-foreground/80">
+                A living archive of Indian textiles, gathered with care and sent from our atelier to
+                yours.
+              </p>
             </div>
-            <span className="text-eyebrow text-primary-foreground/70">Bawari Banno · 1974—2026</span>
+            <span className="text-eyebrow text-primary-foreground/70">
+              Bawari Banno · 1974—2026
+            </span>
           </div>
         </div>
         <div className="mx-auto grid max-w-[1440px] gap-7 px-5 pb-7 sm:gap-8 sm:px-10 sm:pb-9 md:grid-cols-4">
           <div>
             <p className="font-display text-3xl tracking-tight">Bawari Banno</p>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-primary-foreground/75">
-              Handpicked handloom and heirloom sarees, sourced directly from weaving clusters
-              across India since 1974.
+              Handpicked handloom and heirloom sarees, sourced directly from weaving clusters across
+              India since 1974.
             </p>
             <div className="mt-4 flex gap-3">
               {[Instagram, Facebook, Youtube].map((Icon, i) => (
@@ -42,7 +49,7 @@ export function Footer() {
                   key={i}
                   href="#"
                   aria-label="Social link"
-                   className="rounded-full border border-primary-foreground/25 p-2.5 transition-colors hover:border-gold hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                  className="rounded-full border border-primary-foreground/25 p-2.5 transition-colors hover:border-gold hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                 >
                   <Icon className="size-4" strokeWidth={1.5} />
                 </a>
@@ -121,7 +128,7 @@ export function Footer() {
         <div className="border-t border-primary-foreground/25">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-xs text-primary-foreground/65 sm:px-10 sm:py-4">
             <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
-            <p>Crafted in India · Website owned by Sejal Yadav</p>
+            <p>Crafted in India · Website owned by Sejal Sheshmani Yadav</p>
           </div>
         </div>
       </div>

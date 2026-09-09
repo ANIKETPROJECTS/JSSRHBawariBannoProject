@@ -54,6 +54,7 @@ export type CollectionPageProps = {
   description: string;
   products?: Saree[];
   productFilter?: (saree: Saree) => boolean;
+  minimumProducts?: Saree[];
   initialSelection?: Selection;
 };
 
@@ -133,6 +134,7 @@ export function CollectionPage({
   description,
   products,
   productFilter,
+  minimumProducts,
   initialSelection = { category: null, subcategory: null },
 }: CollectionPageProps) {
   const [selection, setSelection] = useState<Selection>(initialSelection);
@@ -162,7 +164,17 @@ export function CollectionPage({
   }, []);
 
   const activeProducts = products ?? (catalogState === "loading" ? [] : liveProducts ?? sarees);
-  const collectionProducts = productFilter ? activeProducts.filter(productFilter) : activeProducts;
+  const collectionProducts = useMemo(() => {
+    const filtered = productFilter ? activeProducts.filter(productFilter) : activeProducts;
+    if (!productFilter || filtered.length >= 2) return filtered;
+
+    const fallbackPool = minimumProducts?.length ? minimumProducts : sarees;
+    const seenIds = new Set(filtered.map((product) => product.id));
+    const supplements = fallbackPool
+      .filter((product) => !seenIds.has(product.id))
+      .slice(0, 2 - filtered.length);
+    return [...filtered, ...supplements];
+  }, [activeProducts, minimumProducts, productFilter]);
   const activeCategories = liveCategories ?? categories;
   const availableColors = useMemo<ProductColorOption[]>(() => {
     const seen = new Set(productColors.map((color) => color.key));
