@@ -951,6 +951,238 @@ async function adminVendors(request: Request, vendorId?: string) {
   return json(vendors.map((vendor) => serializeVendor(vendor, summaries.get(String(vendor._id)) ?? { invoiceCount: 0, productCount: 0, lifetimeSpend: 0 })));
 }
 
+function invoiceDate(value: unknown, fallback = new Date()) {
+  const parsed = value ? new Date(String(value)) : fallback;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function serializeInvoice(invoice: JsonRecord, vendor?: JsonRecord, lines: JsonRecord[] = []) {
+  return {
+    ...invoice,
+    _id: invoice._id ? String(invoice._id) : undefined,
+    vendor: vendor ? { _id: String(vendor._id), vendorCode: vendor.vendorCode, businessName: vendor.businessName } : undefined,
+    lines: lines.map((line) => ({ ...line, _id: line._id ? String(line._id) : undefined })),
+  };
+}
+
+async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
+  const database = await db();
+  const invoices = database.collection("purchase_invoices");
+  const lines = database.collection("purchase_invoice_lines");
+  const actor = adminIdentity(request) ?? "admin";
+  if (invoiceId && !ObjectId.isValid(invoiceId)) return fail("Purchase invoice not found.", 404);
+
+  async function buildInvoice(input: JsonRecord, current?: JsonRecord) {
+    const vendorId = String(input.vendorId ?? current?.vendorId ?? "").trim();
+    if (!ObjectId.isValid(vendorId)) throw new Error("Choose a valid vendor.");
+    const vendor = await database.collection("vendors").findOne({ _id: new ObjectId(vendorId) });
+    if (!vendor) throw new Error("Choose an existing vendor.");
+    const vendorInvoiceNumber = String(input.vendorInvoiceNumber ?? current?.vendorInvoiceNumber ?? "").trim().slice(0, 80);
+    if (!vendorInvoiceNumber) throw new Error("Vendor invoice number is required.");
+    const parsedInvoiceDate = invoiceDate(input.invoiceDate ?? current?.invoiceDate);
+    if (!parsedInvoiceDate) throw new Error("Enter a valid invoice date.");
+    const paymentMethod = ["prepaid", "cod", "credit", "bank_transfer"].includes(String(input.paymentMethod ?? current?.paymentMethod))
+      ? String(input.paymentMethod ?? current?.paymentMethod) : "credit";
+    const paymentStatus = ["paid", "pending", "partially_paid"].includes(String(input.paymentStatus ?? current?.paymentStatus))
+      ? String(input.paymentStatus ?? current?.paymentStatus) : "pending";
+    const taxType = ["igst", "cgst_sgst"].includes(String(input.taxType ?? current?.taxType)) ? String(input.taxType ?? current?.taxType) : undefined;
+    const taxRate = Math.min(100, Math.max(0, Number(input.taxRate ?? current?.taxRate ?? 0)));
+    if (!Number.isFinite(taxRate)) throw new Error("Enter a valid tax rate.");
+    if (taxRate > 0 && !taxType) throw new Error("Choose a tax type when tax is applied.");
+    const rawLines = Array.isArray(input.lines) ? input.lines as JsonRecord[] : [];
+    if (!rawLines.length) throw new Error("Add at least one invoice line.");
+    const lineDocuments: JsonRecord[] = [];
+    for (const [index, rawLine] of rawLines.entries()) {
+      const productId = String(rawLine.productId ?? "").trim();
+      const product = await database.collection("products").findOne({ id: productId });
+      if (!product) throw new Error(`Line ${index + 1}: choose an existing product.`);
+      const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+      const variantId = String(rawLine.variantId ?? "").trim();
+      const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
+      if (productVariants.length && !variant) throw new Error(`Line ${index + 1}: choose a valid product color.`);
+      if (variantId && !variant) throw new Error(`Line ${index + 1}: choose a valid product color.`);
+      const quantityPurchased = Math.trunc(Number(rawLine.quantityPurchased ?? rawLine.quantity ?? 0));
+      const costPricePerUnit = Number(rawLine.costPricePerUnit ?? rawLine.costPrice ?? 0);
+      if (!Number.isInteger(quantityPurchased) || quantityPurchased <= 0) throw new Error(`Line ${index + 1}: quantity must be a positive whole number.`);
+      if (!Number.isFinite(costPricePerUnit) || costPricePerUnit < 0) throw new Error(`Line ${index + 1}: enter a valid cost price.`);
+      lineDocuments.push({
+        productId,
+        variantId: variantId || undefined,
+        vendorProductCode: String(rawLine.vendorProductCode ?? "").trim().slice(0, 80),
+        itemName: String(rawLine.itemName ?? variant?.color ?? product.name ?? productId).trim().slice(0, 180),
+        quantityPurchased,
+        costPricePerUnit: Math.round(costPricePerUnit * 100) / 100,
+        lineAmount: Math.round(quantityPurchased * costPricePerUnit * 100) / 100,
+      });
+    }
+    const subtotal = Math.round(lineDocuments.reduce((sum, line) => sum + Number(line.lineAmount ?? 0), 0) * 100) / 100;
+    const taxAmount = Math.round(subtotal * taxRate / 100 * 100) / 100;
+    return {
+      document: {
+        vendorId,
+        vendorInvoiceNumber,
+        invoiceDate: parsedInvoiceDate,
+        placeOfSupply: String(input.placeOfSupply ?? current?.placeOfSupply ?? "").trim().slice(0, 80),
+        paymentMethod,
+        paymentStatus,
+        status: current?.status === "posted" ? "posted" : "draft",
+        subtotal,
+        taxType,
+        taxRate,
+        taxAmount,
+        totalPayable: Math.round((subtotal + taxAmount) * 100) / 100,
+        receivedDate: invoiceDate(input.receivedDate ?? current?.receivedDate, parsedInvoiceDate) ?? parsedInvoiceDate,
+        tripId: String(input.tripId ?? current?.tripId ?? "").trim() || undefined,
+        notes: String(input.notes ?? current?.notes ?? "").trim().slice(0, 2000),
+      },
+      lineDocuments,
+      vendor,
+    };
+  }
+
+  async function detail(id: string) {
+    const invoice = await invoices.findOne({ _id: new ObjectId(id) }) as JsonRecord | null;
+    if (!invoice) return null;
+    const [vendor, invoiceLines] = await Promise.all([
+      database.collection("vendors").findOne({ _id: new ObjectId(String(invoice.vendorId)) }),
+      lines.find({ purchaseInvoiceId: id }).sort({ _id: 1 }).toArray(),
+    ]);
+    return serializeInvoice(invoice, vendor ?? undefined, invoiceLines);
+  }
+
+  if (request.method === "POST" && !invoiceId) {
+    const input = await body(request);
+    try {
+      const { document, lineDocuments, vendor } = await buildInvoice(input);
+      const now = new Date();
+      const inserted = await invoices.insertOne({ ...document, ...auditCreateFields(actor, now) });
+      await lines.insertMany(lineDocuments.map((line) => ({ ...line, purchaseInvoiceId: String(inserted.insertedId), ...auditCreateFields(actor, now) })));
+      await database.collection("audit_logs").insertOne({ entityType: "purchase_invoice", entityId: String(inserted.insertedId), action: "created", actor, changes: document, createdAt: now });
+      return json(await detail(String(inserted.insertedId)), { status: 201 });
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Could not create purchase invoice.");
+    }
+  }
+
+  if (invoiceId && request.method === "PATCH") {
+    const input = await body(request);
+    const invoice = await invoices.findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
+    if (!invoice) return fail("Purchase invoice not found.", 404);
+    if (input.action !== "post") return fail("Unsupported purchase invoice action.");
+    if (invoice.status !== "draft") return fail("Only draft invoices can be posted.");
+    const invoiceLines = await lines.find({ purchaseInvoiceId: invoiceId }).toArray();
+    if (!invoiceLines.length) return fail("Add invoice lines before posting.");
+    const session = (await getClient()).startSession();
+    try {
+      await session.withTransaction(async () => {
+        for (const line of invoiceLines) {
+          const product = await database.collection("products").findOne({ id: String(line.productId) }, { session });
+          if (!product) throw new Error(`Product ${line.productId} no longer exists.`);
+          const quantity = Number(line.quantityPurchased ?? 0);
+          const variantId = String(line.variantId ?? "");
+          const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+          const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
+          if (productVariants.length && !variant) throw new Error(`Product color for ${line.itemName} no longer exists.`);
+          const stockBatch = {
+            productId: String(line.productId),
+            variantId: variantId || undefined,
+            vendorId: String(invoice.vendorId),
+            vendorProductCode: String(line.vendorProductCode ?? ""),
+            sourceType: "purchase",
+            sourcePurchaseInvoiceId: invoiceId,
+            sourcePurchaseInvoiceLineId: String(line._id),
+            sourceLabel: String(invoice.vendorInvoiceNumber),
+            quantityReceived: quantity,
+            quantityRemaining: quantity,
+            costPricePerUnit: Number(line.costPricePerUnit ?? 0),
+            receivedDate: invoice.receivedDate ?? invoice.invoiceDate,
+            status: "in_stock",
+            ...auditCreateFields(actor),
+          };
+          const batchResult = await database.collection("stock_batches").insertOne(stockBatch, { session });
+          if (variantId) {
+            const updated = await database.collection("products").updateOne(
+              { id: String(line.productId), variants: { $elemMatch: { id: variantId } } },
+              { $inc: { "variants.$.stock": quantity, stock: quantity }, $set: { updatedAt: new Date() } },
+              { session },
+            );
+            if (!updated.modifiedCount) throw new Error(`Could not update stock for ${line.itemName}.`);
+          } else {
+            const updated = await database.collection("products").updateOne(
+              { id: String(line.productId) },
+              { $inc: { stock: quantity }, $set: { updatedAt: new Date() } },
+              { session },
+            );
+            if (!updated.modifiedCount) throw new Error(`Could not update stock for ${line.itemName}.`);
+          }
+          await lines.updateOne({ _id: line._id }, { $set: { stockBatchId: String(batchResult.insertedId), updatedAt: new Date() } }, { session });
+        }
+        await invoices.updateOne(
+          { _id: new ObjectId(invoiceId), status: "draft" },
+          { $set: { status: "posted", postedAt: new Date(), postedBy: actor, ...auditUpdateFields(actor) } },
+          { session },
+        );
+        await database.collection("audit_logs").insertOne({ entityType: "purchase_invoice", entityId: invoiceId, action: "posted", actor, createdAt: new Date() }, { session });
+      });
+      return json(await detail(invoiceId));
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Could not post purchase invoice.");
+    } finally {
+      await session.endSession();
+    }
+  }
+
+  if (invoiceId && request.method === "PUT") {
+    const current = await invoices.findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
+    if (!current) return fail("Purchase invoice not found.", 404);
+    if (current.status !== "draft") return fail("Posted invoices are locked. Use a correction workflow instead.");
+    const input = await body(request);
+    try {
+      const { document } = await buildInvoice(input, current);
+      const now = new Date();
+      await invoices.updateOne({ _id: new ObjectId(invoiceId), status: "draft" }, { $set: { ...document, ...auditUpdateFields(actor, now) } });
+      await lines.deleteMany({ purchaseInvoiceId: invoiceId });
+      const { lineDocuments } = await buildInvoice(input, current);
+      await lines.insertMany(lineDocuments.map((line) => ({ ...line, purchaseInvoiceId: invoiceId, ...auditCreateFields(actor, now) })));
+      await database.collection("audit_logs").insertOne({ entityType: "purchase_invoice", entityId: invoiceId, action: "updated", actor, changes: document, createdAt: now });
+      return json(await detail(invoiceId));
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Could not update purchase invoice.");
+    }
+  }
+
+  if (invoiceId && request.method === "GET") {
+    const result = await detail(invoiceId);
+    return result ? json(result) : fail("Purchase invoice not found.", 404);
+  }
+
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  const url = new URL(request.url);
+  const status = url.searchParams.get("status")?.trim();
+  const payment = url.searchParams.get("payment")?.trim();
+  const search = url.searchParams.get("search")?.trim().toLocaleLowerCase() ?? "";
+  const query: JsonRecord = {
+    ...(status && status !== "all" ? { status } : {}),
+    ...(payment && payment !== "all" ? { paymentStatus: payment } : {}),
+  };
+  const rows = await invoices.find(query).sort({ invoiceDate: -1, createdAt: -1 }).limit(500).toArray();
+  const vendorIds = [...new Set(rows.map((row) => String(row.vendorId)))].filter(ObjectId.isValid);
+  const vendorRows = await database.collection("vendors").find({ _id: { $in: vendorIds.map((id) => new ObjectId(id)) } }).toArray();
+  const vendorMap = new Map(vendorRows.map((vendor) => [String(vendor._id), vendor]));
+  const lineCounts = await lines.aggregate([{ $match: { purchaseInvoiceId: { $in: rows.map((row) => String(row._id)) } } }, { $group: { _id: "$purchaseInvoiceId", count: { $sum: 1 } } }]).toArray();
+  const countMap = new Map(lineCounts.map((row) => [String(row._id), Number(row.count)]));
+  const result = rows.map((row) => serializeInvoice(row, vendorMap.get(String(row.vendorId)), []).withLineCount ?? null);
+  const filtered = rows.map((row) => {
+    const vendor = vendorMap.get(String(row.vendorId));
+    const searchable = [row.vendorInvoiceNumber, vendor?.businessName, vendor?.vendorCode].filter(Boolean).join(" ").toLocaleLowerCase();
+    return search && !searchable.includes(search) ? null : {
+      ...serializeInvoice(row, vendor),
+      lineCount: countMap.get(String(row._id)) ?? 0,
+    };
+  }).filter(Boolean);
+  return json(filtered);
+}
+
 async function ordersHistory(request: Request) {
   const url = new URL(request.url);
   const query: JsonRecord = {};
