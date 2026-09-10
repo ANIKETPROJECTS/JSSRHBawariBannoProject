@@ -20,3 +20,9 @@ Payment status and payment method may be updated on a posted purchase invoice wi
 **Why:** Vendor payment often happens after stock is received, so payment tracking must remain editable while procurement quantities and costs stay auditable.
 
 **How to apply:** Keep payment updates as a separate action; reserve full line, quantity, cost, and stock changes for the explicit correction workflow.
+
+Product stock details should show a human-readable activity timeline, including purchase-batch history when an older invoice predates inventory-movement logging.
+
+**Why:** The current stock number alone cannot prove how a color changed; operators need to reconcile a purchase quantity with the variant’s before/after stock.
+
+**How to apply:** Show actor, action, product or color, quantity, source invoice, date, and before/after stock when available; label batch-derived history when exact before/after values are not stored.

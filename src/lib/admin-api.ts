@@ -1198,8 +1198,8 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
             eventType: "purchase",
             reason: `Purchase invoice ${String(invoice.vendorInvoiceNumber)}`,
             sourcePurchaseInvoiceId: invoiceId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            sourcePurchaseInvoiceLineId: String(line._id),
+            ...auditCreateFields(actor),
           }, { session });
           await lines.updateOne({ _id: line._id }, { $set: { stockBatchId: String(batchResult.insertedId), updatedAt: new Date() } }, { session });
         }
