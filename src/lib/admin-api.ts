@@ -2242,11 +2242,15 @@ async function handleAdmin(request: Request, path: string) {
   }
   if (path === "/api/admin/analytics" && request.method === "GET") {
     const database = await db();
-    const [orders, products, customers, categories] = await Promise.all([
+    const [orders, products, customers, categories, purchaseInvoices, vendors, purchaseBatches, purchaseLines] = await Promise.all([
       database.collection("orders").find({}).sort({ createdAt: -1 }).limit(500).toArray(),
       database.collection("products").find({}).project({ id: 1, name: 1, stock: 1, reorderLevel: 1, variants: 1, category: 1 }).toArray(),
       database.collection("customers").countDocuments(),
       database.collection("categories").find({}).project({ slug: 1, label: 1, name: 1 }).toArray(),
+      database.collection("purchase_invoices").find({}).project({ vendorId: 1, totalPayable: 1, status: 1, paymentStatus: 1, invoiceDate: 1, correctionOfInvoiceId: 1 }).toArray(),
+      database.collection("vendors").find({}).project({ _id: 1, vendorCode: 1, businessName: 1 }).toArray(),
+      database.collection("stock_batches").find({ sourceType: "purchase", quantityRemaining: { $gt: 0 } }).project({ productId: 1, quantityRemaining: 1, costPricePerUnit: 1 }).toArray(),
+      database.collection("purchase_invoice_lines").find({}).project({ purchaseInvoiceId: 1, productId: 1, itemName: 1, quantityPurchased: 1, lineAmount: 1 }).toArray(),
     ]);
     const months = Array.from({ length: 6 }, (_, index) => {
       const date = new Date();
@@ -2266,6 +2270,57 @@ async function handleAdmin(request: Request, path: string) {
     for (const product of products) categoryMap.set(String(product.category ?? "other"), (categoryMap.get(String(product.category ?? "other")) ?? 0) + 1);
     const categoryLabels = new Map(categories.map((category) => [String(category.slug ?? category._id), String(category.label ?? category.name ?? category.slug)]));
     const categoryBreakdown = [...categoryMap.entries()].map(([key, count]) => ({ label: categoryLabels.get(key) ?? key, count })).sort((a, b) => b.count - a.count);
+    const postedInvoices = purchaseInvoices.filter((invoice) => invoice.status === "posted");
+    const correctedOriginalIds = new Set(postedInvoices.map((invoice) => String(invoice.correctionOfInvoiceId ?? "")).filter(Boolean));
+    const effectivePurchaseInvoices = postedInvoices.filter((invoice) => !correctedOriginalIds.has(String(invoice._id)));
+    const effectivePurchaseInvoiceIds = new Set(effectivePurchaseInvoices.map((invoice) => String(invoice._id)));
+    const vendorMap = new Map(vendors.map((vendor) => [String(vendor._id), vendor]));
+    const vendorSpend = new Map<string, { vendorCode: string; vendorName: string; invoiceCount: number; total: number }>();
+    const procurementMonths = Array.from({ length: 6 }, (_, index) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - (5 - index), 1);
+      return { key: `${date.getFullYear()}-${date.getMonth()}`, label: date.toLocaleDateString("en-IN", { month: "short" }), spend: 0, invoices: 0 };
+    });
+    const procurementMonthMap = new Map(procurementMonths.map((month) => [month.key, month]));
+    for (const invoice of effectivePurchaseInvoices) {
+      const vendor = vendorMap.get(String(invoice.vendorId));
+      const vendorKey = String(invoice.vendorId ?? "unknown");
+      const current = vendorSpend.get(vendorKey) ?? { vendorCode: String(vendor?.vendorCode ?? "—"), vendorName: String(vendor?.businessName ?? "Unknown vendor"), invoiceCount: 0, total: 0 };
+      current.invoiceCount += 1;
+      current.total += Number(invoice.totalPayable ?? 0);
+      vendorSpend.set(vendorKey, current);
+      const date = new Date(invoice.invoiceDate ?? Date.now());
+      const month = procurementMonthMap.get(`${date.getFullYear()}-${date.getMonth()}`);
+      if (month) { month.spend += Number(invoice.totalPayable ?? 0); month.invoices += 1; }
+    }
+    const productNameMap = new Map(products.map((product) => [String(product.id), String(product.name ?? product.id)]));
+    const purchaseProductMap = new Map<string, { productId: string; productName: string; quantity: number; spend: number }>();
+    for (const line of purchaseLines) {
+      if (!effectivePurchaseInvoiceIds.has(String(line.purchaseInvoiceId))) continue;
+      const productId = String(line.productId ?? "");
+      const current = purchaseProductMap.get(productId) ?? { productId, productName: productNameMap.get(productId) ?? String(line.itemName ?? productId), quantity: 0, spend: 0 };
+      current.quantity += Number(line.quantityPurchased ?? 0);
+      current.spend += Number(line.lineAmount ?? 0);
+      purchaseProductMap.set(productId, current);
+    }
+    const purchaseBackedUnits = purchaseBatches.reduce((sum, batch) => sum + Number(batch.quantityRemaining ?? 0), 0);
+    const purchaseBackedValue = purchaseBatches.reduce((sum, batch) => sum + Number(batch.quantityRemaining ?? 0) * Number(batch.costPricePerUnit ?? 0), 0);
+    const postedSpend = effectivePurchaseInvoices.reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0);
+    const unpaidInvoices = effectivePurchaseInvoices.filter((invoice) => invoice.paymentStatus !== "paid");
+    const reorderAlertCount = products.reduce((count, product) => count + reorderAlerts(product).length, 0);
+    const procurement = {
+      invoiceCount: effectivePurchaseInvoices.length,
+      draftCount: purchaseInvoices.filter((invoice) => invoice.status === "draft").length,
+      postedSpend,
+      unpaidAmount: unpaidInvoices.reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0),
+      unpaidInvoiceCount: unpaidInvoices.length,
+      purchaseBackedUnits,
+      purchaseBackedValue,
+      reorderAlertCount,
+      months: procurementMonths,
+      vendors: [...vendorSpend.values()].sort((a, b) => b.total - a.total).slice(0, 6),
+      products: [...purchaseProductMap.values()].sort((a, b) => b.spend - a.spend).slice(0, 6),
+    };
     return json({
       kpis: { revenue: orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0), orders: orders.length, customers, pending: status.pending },
       trend: months,
@@ -2273,6 +2328,7 @@ async function handleAdmin(request: Request, path: string) {
       recentOrders: orders.slice(0, 6),
        alerts: products.flatMap((product) => reorderAlerts(product)).sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0)).slice(0, 6),
       categoryBreakdown,
+      procurement,
     });
   }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
