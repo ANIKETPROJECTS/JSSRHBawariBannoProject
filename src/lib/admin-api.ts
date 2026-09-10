@@ -2478,7 +2478,7 @@ async function handleAdmin(request: Request, path: string) {
   }
   if (path === "/api/admin/analytics" && request.method === "GET") {
     const database = await db();
-    const [orders, products, customers, categories, purchaseInvoices, vendors, purchaseBatches, purchaseLines, costBatches] = await Promise.all([
+    const [orders, products, customers, categories, purchaseInvoices, vendors, purchaseBatches, purchaseLines, costBatches, expenses] = await Promise.all([
       database.collection("orders").find({}).sort({ createdAt: -1 }).limit(500).toArray(),
       database.collection("products").find({}).project({ id: 1, name: 1, stock: 1, reorderLevel: 1, variants: 1, category: 1 }).toArray(),
       database.collection("customers").countDocuments(),
@@ -2488,6 +2488,7 @@ async function handleAdmin(request: Request, path: string) {
       database.collection("stock_batches").find({ sourceType: "purchase", quantityRemaining: { $gt: 0 } }).project({ productId: 1, quantityRemaining: 1, costPricePerUnit: 1 }).toArray(),
       database.collection("purchase_invoice_lines").find({}).project({ purchaseInvoiceId: 1, productId: 1, itemName: 1, quantityPurchased: 1, lineAmount: 1 }).toArray(),
       database.collection("stock_batches").find({}).project({ productId: 1, variantId: 1, costPricePerUnit: 1 }).toArray(),
+      database.collection("expenses").find({}).project({ date: 1, category: 1, amount: 1 }).toArray(),
     ]);
     const months = Array.from({ length: 6 }, (_, index) => {
       const date = new Date();
@@ -2648,6 +2649,31 @@ async function handleAdmin(request: Request, path: string) {
       months: marginMonths,
       products: productMarginRows.slice(0, 8),
     };
+    const expenseMonths = months.map((month) => ({ key: month.key, label: month.label, total: 0 }));
+    const expenseMonthMap = new Map(expenseMonths.map((month) => [month.key, month]));
+    const expenseCategoryMap = new Map<string, number>();
+    let totalOperatingExpenses = 0;
+    let sixMonthOperatingExpenses = 0;
+    for (const expense of expenses) {
+      const amount = Math.max(0, Number(expense.amount ?? 0));
+      if (!amount) continue;
+      totalOperatingExpenses += amount;
+      const category = String(expense.category ?? "Other").trim() || "Other";
+      expenseCategoryMap.set(category, (expenseCategoryMap.get(category) ?? 0) + amount);
+      const date = new Date(expense.date ?? Date.now());
+      const month = expenseMonthMap.get(`${date.getFullYear()}-${date.getMonth()}`);
+      if (month) {
+        month.total += amount;
+        sixMonthOperatingExpenses += amount;
+      }
+    }
+    const operatingExpenses = {
+      total: totalOperatingExpenses,
+      sixMonthTotal: sixMonthOperatingExpenses,
+      expenseCount: expenses.length,
+      months: expenseMonths,
+      categories: [...expenseCategoryMap.entries()].map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total).slice(0, 8),
+    };
     return json({
       kpis: { revenue: orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0), orders: orders.length, customers, pending: status.pending },
       trend: months,
@@ -2657,6 +2683,7 @@ async function handleAdmin(request: Request, path: string) {
       categoryBreakdown,
       procurement,
       margin,
+      operatingExpenses,
     });
   }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());
