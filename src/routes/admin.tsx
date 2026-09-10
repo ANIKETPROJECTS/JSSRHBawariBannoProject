@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, Building2, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, FileText, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
+import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, Copy, CreditCard, Eye, FileText, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
@@ -73,25 +73,26 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
-      <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "pointer-events-none w-0 -translate-x-full px-0 opacity-0"}`}>
-        <div className="flex items-center justify-between"><Link to="/" className="font-display text-3xl text-primary">Bawari Banno</Link><button type="button" onClick={() => setSidebarOpen(false)} className="text-muted-foreground transition-colors hover:text-primary" aria-label="Close side panel" title="Close side panel"><X className="size-4" /></button></div>
+      <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "w-16 px-2"}`}>
+        <div className={`flex items-center ${sidebarOpen ? "justify-start" : "justify-center"}`}><Link to="/" className={`font-display text-primary ${sidebarOpen ? "text-3xl" : "text-lg"}`} aria-label="Bawari Banno">{sidebarOpen ? "Bawari Banno" : "BB"}</Link></div>
+        <button type="button" onClick={() => setSidebarOpen((current) => !current)} className="absolute right-0 top-1/2 z-30 flex size-7 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#ded5c9] bg-white text-muted-foreground shadow-sm transition-colors hover:bg-primary hover:text-white" aria-label={sidebarOpen ? "Minimize sidebar" : "Expand sidebar"} title={sidebarOpen ? "Minimize sidebar" : "Expand sidebar"}>{sidebarOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}</button>
         <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>
         <nav className="mt-12 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
           {tabs.map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" onClick={() => setTab(id)} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
-              <Icon className="size-4 shrink-0" /> {label}
+            <button key={id} type="button" onClick={() => setTab(id)} title={sidebarOpen ? undefined : label} aria-label={label} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${sidebarOpen ? "" : "justify-center"} ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
+              <Icon className="size-4 shrink-0" /> {sidebarOpen && label}
             </button>
           ))}
         </nav>
         <div className="mt-4 shrink-0 border-t border-[#ded5c9] pt-5">
-        <button type="button" onClick={() => void signOut()} className="flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary">
-          <LogOut className="size-4 shrink-0" /> Sign out
+        <button type="button" onClick={() => void signOut()} title={sidebarOpen ? undefined : "Sign out"} aria-label="Sign out" className={`flex items-center gap-3 px-3 text-sm text-muted-foreground hover:text-primary ${sidebarOpen ? "" : "justify-center"}`}>
+          <LogOut className="size-4 shrink-0" /> {sidebarOpen && "Sign out"}
         </button>
         </div>
       </aside>
-      <main className={`transition-all ${sidebarOpen ? "lg:ml-64" : "lg:ml-0"}`}>
+      <main className={`transition-all ${sidebarOpen ? "lg:ml-64" : "lg:ml-16"}`}>
         <header className="flex items-center justify-between gap-4 border-b border-[#ded5c9] bg-white px-4 py-4 sm:px-5 sm:py-5 md:px-10">
-          <div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setSidebarOpen((current) => !current)} className="shrink-0 text-muted-foreground hover:text-primary" aria-label={sidebarOpen ? "Close side panel" : "Open side panel"} title={sidebarOpen ? "Close side panel" : "Open side panel"}>{sidebarOpen ? <X className="size-5" /> : <Menu className="size-5" />}</button><div className="min-w-0"><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 truncate font-display text-2xl text-primary sm:text-3xl">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
+          <div className="flex min-w-0 items-center gap-3"><button type="button" onClick={() => setSidebarOpen(true)} className="shrink-0 text-muted-foreground hover:text-primary lg:hidden" aria-label="Open admin navigation" title="Open admin navigation"><Menu className="size-5" /></button><div className="min-w-0"><p className="text-[10px] uppercase tracking-[0.22em] text-gold">Bawari Banno</p><h1 className="mt-1 truncate font-display text-2xl text-primary sm:text-3xl">{tabs.find((item) => item.id === tab)?.label}</h1></div></div>
           <Link to="/" className="flex shrink-0 items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-primary sm:text-xs">View storefront <ChevronRight className="size-3" /></Link>
         </header>
         <div className="border-b border-[#ded5c9] bg-white px-5 py-3 lg:hidden">
