@@ -100,9 +100,6 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur-xl">
-       <div className="flex h-7 items-center justify-center bg-gold px-4 text-[0.57rem] font-medium uppercase tracking-[0.25em] text-ink">
-        Complimentary shipping across India · Private appointments available
-      </div>
       <div className="relative mx-auto flex h-[4.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-7 lg:px-10">
         <div className="relative flex min-w-0 items-center">
           <button
