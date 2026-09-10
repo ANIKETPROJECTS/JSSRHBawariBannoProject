@@ -498,7 +498,7 @@ function PurchaseInvoicesPage() {
       if (saved?._id && saved.status === "posted") await openInvoice(saved);
     }} /></div>;
   }
-  if (selected) return <PurchaseInvoiceDetail invoice={selected} onBack={() => setSelected(null)} onEdit={() => setEditing(selected)} />;
+  if (selected) return <PurchaseInvoiceDetail invoice={selected} onBack={() => setSelected(null)} onEdit={() => setEditing(selected)} onPaymentUpdated={(updated) => { setSelected(updated); setInvoices((current) => current.map((invoice) => invoice._id === updated._id ? { ...invoice, ...updated } : invoice)); }} />;
 
   const drafts = invoices.filter((invoice) => invoice.status === "draft").length;
   const postedValue = invoices.filter((invoice) => invoice.status === "posted").reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0);

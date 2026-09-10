@@ -14,3 +14,9 @@ Posted purchase receipts should also be represented in inventory history with th
 **Why:** Editing or deleting a purchase movement without correcting its source invoice would change product stock while leaving the purchase stock batch and financial record inconsistent.
 
 **How to apply:** Use the posted purchase invoice correction workflow for procurement corrections; use manual inventory movements only for independent adjustments.
+
+Payment status and payment method may be updated on a posted purchase invoice without unlocking its product lines or stock batches.
+
+**Why:** Vendor payment often happens after stock is received, so payment tracking must remain editable while procurement quantities and costs stay auditable.
+
+**How to apply:** Keep payment updates as a separate action; reserve full line, quantity, cost, and stock changes for the explicit correction workflow.

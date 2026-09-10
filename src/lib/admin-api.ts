@@ -679,17 +679,58 @@ async function inventoryHistory(request: Request) {
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
   const database = await db();
   const movements = await database.collection("inventory_movements").find(query).sort({ createdAt: -1 }).limit(500).toArray();
-  const orderIds = [...new Set(movements.map((movement) => movement.orderId).filter(Boolean))];
+  const purchaseBatches = eventType !== "manual"
+    ? await database.collection("stock_batches").find({
+      sourceType: "purchase",
+      ...(productId ? { productId } : {}),
+      ...(from || to ? { receivedDate: { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) } } : {}),
+    }).sort({ receivedDate: -1 }).limit(500).toArray()
+    : [];
+  const movementKeys = new Set(movements
+    .filter((movement) => movement.eventType === "purchase" && movement.sourcePurchaseInvoiceId)
+    .map((movement) => movement.sourcePurchaseInvoiceLineId
+      ? `${movement.sourcePurchaseInvoiceId}|${movement.sourcePurchaseInvoiceLineId}`
+      : `${movement.sourcePurchaseInvoiceId}|${movement.productId}|${movement.variantId ?? ""}|${movement.quantity}`));
+  const missingPurchaseBatches = purchaseBatches.filter((batch) => {
+    const exactKey = `${batch.sourcePurchaseInvoiceId}|${batch.sourcePurchaseInvoiceLineId}`;
+    const fallbackKey = `${batch.sourcePurchaseInvoiceId}|${batch.productId}|${batch.variantId ?? ""}|${batch.quantityReceived}`;
+    return !movementKeys.has(exactKey) && !movementKeys.has(fallbackKey);
+  });
+  const catalogIds = [...new Set([...movements, ...missingPurchaseBatches].map((item) => String(item.productId ?? "")).filter(Boolean))];
+  const catalogProducts = await database.collection("products").find({ id: { $in: catalogIds } }).project({ id: 1, name: 1, variants: 1 }).toArray();
+  const catalogById = new Map(catalogProducts.map((product) => [String(product.id), product]));
+  const batchEvents = missingPurchaseBatches.map((batch) => {
+    const product = catalogById.get(String(batch.productId));
+    const variant = Array.isArray(product?.variants) ? (product.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === String(batch.variantId ?? "")) : undefined;
+    return {
+      _id: `batch:${String(batch._id)}`,
+      productId: String(batch.productId),
+      variantId: batch.variantId,
+      variantColor: variant?.color,
+      productName: product?.name ?? batch.productId,
+      quantity: Number(batch.quantityReceived ?? 0),
+      eventType: "purchase",
+      reason: `Purchase invoice ${String(batch.sourceLabel ?? "recorded purchase")}`,
+      sourcePurchaseInvoiceId: batch.sourcePurchaseInvoiceId,
+      sourcePurchaseInvoiceLineId: batch.sourcePurchaseInvoiceLineId,
+      createdBy: batch.createdBy ?? "admin",
+      createdAt: batch.createdAt ?? batch.receivedDate,
+      legacyBatchLog: true,
+    };
+  });
+  const combinedMovements = [...movements, ...batchEvents].sort((a, b) => new Date(String(b.createdAt ?? 0)).getTime() - new Date(String(a.createdAt ?? 0)).getTime()).slice(0, 500);
+  const orderIds = [...new Set(combinedMovements.map((movement) => movement.orderId).filter(Boolean))];
   const orders = await database.collection("orders").find({ orderId: { $in: orderIds } }).toArray();
   const customerIds = orders.map((order) => order.customerId).filter(Boolean);
   const customers = await database.collection("customers").find({ _id: { $in: customerIds } }).toArray();
   const ordersById = new Map(orders.map((order) => [String(order.orderId), order]));
   const customersById = new Map(customers.map((customer) => [String(customer._id), customer]));
-  return json(movements.map((movement) => {
+  return json(combinedMovements.map((movement) => {
     const order = ordersById.get(String(movement.orderId));
     const customer = order?.customerId ? customersById.get(String(order.customerId)) : undefined;
     return {
       ...movement,
+      productName: movement.productName ?? catalogById.get(String(movement.productId))?.name,
       buyerName: order?.customerName || customer?.name || "",
       buyerPhone: order?.customerPhone || customer?.phone || "",
       buyerEmail: order?.customerEmail || customer?.email || "",
