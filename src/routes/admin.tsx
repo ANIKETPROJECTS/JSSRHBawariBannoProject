@@ -10,13 +10,14 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "inventory" | "vendors" | "purchase-invoices" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
+type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 type ProductVariantForm = { id?: string; color: string; stock: number | string; reorderLevel: number | string; image: string; extraImages: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
   { id: "products", label: "Products & stock", icon: Package },
+  { id: "purchase-suggestions", label: "Purchase suggestions", icon: Boxes },
   { id: "inventory", label: "Inventory history", icon: BarChart3 },
   { id: "vendors", label: "Vendors", icon: Building2 },
   { id: "purchase-invoices", label: "Purchase invoices", icon: FileText },
@@ -96,7 +97,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
-          {tab === "dashboard" ? <><ProcurementDashboard /><Dashboard /></> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <><ProcurementDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -566,6 +567,47 @@ function ProcurementDashboard() {
     </div>
     <section className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Buying history</p><h3 className="mt-1 font-display text-2xl text-primary">Top purchased products</h3></div><span className="text-xs text-muted-foreground">By posted invoice lines</span></div><div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{procurement.products.length === 0 ? <p className="text-sm text-muted-foreground">Posted invoice lines will appear here.</p> : procurement.products.map((product: any) => <div key={product.productId} className="border border-border bg-[#fbf9f6] p-4"><p className="truncate font-medium text-primary">{product.productName}</p><div className="mt-3 flex justify-between text-xs text-muted-foreground"><span>{product.quantity} units purchased</span><strong className="text-primary">₹{Number(product.spend ?? 0).toLocaleString("en-IN")}</strong></div></div>)}</div></section>
   </section>;
+}
+
+function PurchaseSuggestionsPage({ onOpenProducts, onOpenInvoices }: { onOpenProducts: () => void; onOpenInvoices: () => void }) {
+  const [products, setProducts] = useState<RecordItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  useEffect(() => {
+    api("/api/admin/products")
+      .then((result) => setProducts(Array.isArray(result) ? result : []))
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Could not load purchase suggestions."))
+      .finally(() => setLoading(false));
+  }, []);
+  const suggestions = useMemo(() => products.flatMap((product) => {
+    const variants = Array.isArray(product.variants) ? product.variants as RecordItem[] : [];
+    if (!variants.length) {
+      const stock = Number(product.stock ?? 0);
+      const reorderLevel = Number(product.reorderLevel ?? 3);
+      return stock <= reorderLevel ? [{ key: String(product._id), productId: String(product.id ?? product._id), productName: String(product.name ?? product.id), color: "", stock, reorderLevel, suggestedQuantity: Math.max(reorderLevel - stock, 1), image: String(product.image ?? ""), out: stock === 0 }] : [];
+    }
+    return variants.flatMap((variant) => {
+      const stock = Number(variant.stock ?? 0);
+      const reorderLevel = Number(variant.reorderLevel ?? 3);
+      if (stock > reorderLevel) return [];
+      return [{ key: `${String(product._id)}-${String(variant.id ?? variant.color)}`, productId: String(product.id ?? product._id), productName: String(product.name ?? product.id), color: String(variant.color ?? "Colour"), stock, reorderLevel, suggestedQuantity: Math.max(reorderLevel - stock, 1), image: String(variant.image ?? product.image ?? ""), out: stock === 0 }];
+    });
+  }), [products]);
+  const visible = suggestions.filter((item) => {
+    const searchMatch = `${item.productName} ${item.color} ${item.productId}`.toLowerCase().includes(search.toLowerCase());
+    const filterMatch = filter === "all" || (filter === "out" ? item.out : !item.out);
+    return searchMatch && filterMatch;
+  });
+  const unitsToBuy = suggestions.reduce((sum, item) => sum + item.suggestedQuantity, 0);
+  const outOfStock = suggestions.filter((item) => item.out).length;
+  return <div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Procurement planning</p><h2 className="mt-1 font-display text-3xl text-primary">Purchase suggestions</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Minimum top-up quantities generated from each product or colour variant’s reorder level. Vendor and cost are not guessed.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={onOpenProducts} className="border border-primary px-4 py-2.5 text-xs text-primary hover:bg-primary hover:text-white">Review stock</button><button type="button" onClick={onOpenInvoices} className="bg-primary px-4 py-2.5 text-xs text-white">Open purchase invoices</button></div></div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Suggested lines" value={suggestions.length} icon={Boxes} /><MetricCard label="Minimum units to buy" value={unitsToBuy} icon={Package} /><MetricCard label="Out of stock" value={outOfStock} icon={XCircle} /></div>
+    <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search product, colour, or product ID…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={filter} onChange={(event) => setFilter(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All suggestions</option><option value="out">Out of stock</option><option value="low">Below threshold</option></select><button type="button" onClick={() => { setSearch(""); setFilter("all"); }} className="border border-border px-4 py-2.5 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear</button></div></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-4 py-4">Product / colour</th><th className="px-4 py-4">On hand</th><th className="px-4 py-4">Reorder level</th><th className="px-4 py-4">Suggested top-up</th><th className="px-4 py-4">Sourcing</th><th className="px-4 py-4 text-right">Next step</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">Loading suggestions…</td></tr> : visible.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">{suggestions.length === 0 ? "All products are above their reorder levels." : "No suggestions match these filters."}</td></tr> : visible.map((item) => <tr key={item.key} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><div className="flex items-center gap-3"><div className="size-10 shrink-0 overflow-hidden bg-[#f0e9df]"><img src={item.image} alt="" className="h-full w-full object-cover" /></div><div><p className="font-medium text-primary">{item.productName}</p><p className="mt-1 text-xs text-muted-foreground">{item.color || "Product stock"} · {item.productId}</p></div></div></td><td className={`px-4 py-4 font-medium ${item.out ? "text-red-700" : "text-amber-700"}`}>{item.stock}{item.out ? " · Out of stock" : ""}</td><td className="px-4 py-4">{item.reorderLevel}</td><td className="px-4 py-4"><span className="border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">+{item.suggestedQuantity} units</span></td><td className="px-4 py-4 text-xs text-muted-foreground">Vendor not linked</td><td className="px-4 py-4 text-right"><button type="button" onClick={onOpenInvoices} className="text-xs text-primary underline underline-offset-2">Add to invoice</button></td></tr>)}</tbody></table></div>
+    <p className="mt-4 text-xs text-muted-foreground">Suggested top-up brings stock back to the configured reorder level at minimum. Confirm vendor, cost, and final quantity in the purchase invoice before posting.</p>
+  </div>;
 }
 
 function Dashboard() {
