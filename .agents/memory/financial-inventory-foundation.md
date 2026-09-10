@@ -21,6 +21,12 @@ Payment status and payment method may be updated on a posted purchase invoice wi
 
 **How to apply:** Keep payment updates as a separate action; reserve full line, quantity, cost, and stock changes for the explicit correction workflow.
 
+Sales must consume the oldest available stock batches first and persist those allocations on the order.
+
+**Why:** FIFO allocations are required for cost traceability and allow posted-invoice corrections to distinguish unconsumed stock from units already sold.
+
+**How to apply:** Consume variant-specific or product-level batches transactionally during successful payment; restore the same allocations on an explicit order deletion; bridge untracked legacy stock into an opening-balance batch before allowing a sale.
+
 Product stock details should show a human-readable activity timeline, including purchase-batch history when an older invoice predates inventory-movement logging.
 
 **Why:** The current stock number alone cannot prove how a color changed; operators need to reconcile a purchase quantity with the variant’s before/after stock.

@@ -1,5 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
+import { GridFSBucket, MongoClient, type ClientSession, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-assets";
@@ -58,6 +58,69 @@ async function db(): Promise<Db> {
     ensureBusinessIndexes(database),
   ]);
   return database;
+}
+
+type StockAllocation = { batchId: string; quantity: number; costPricePerUnit?: number };
+
+async function consumeStockBatches(database: Db, productId: string, variantId: string, quantity: number, session: ClientSession): Promise<StockAllocation[]> {
+  const batches = database.collection("stock_batches");
+  const variantFilter = variantId
+    ? { variantId }
+    : { $or: [{ variantId: { $exists: false } }, { variantId: "" }] };
+  let available = await batches.find({
+    productId,
+    ...variantFilter,
+    status: "in_stock",
+    quantityRemaining: { $gt: 0 },
+  }, { session }).sort({ receivedDate: 1, createdAt: 1, _id: 1 }).toArray();
+  const trackedQuantity = available.reduce((sum, batch) => sum + Number(batch.quantityRemaining ?? 0), 0);
+  const product = await database.collection("products").findOne({ id: productId }, { session });
+  const productVariant = variantId && Array.isArray(product?.variants)
+    ? (product.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === variantId)
+    : undefined;
+  const currentStock = Number(productVariant?.stock ?? product?.stock ?? 0);
+  if (trackedQuantity < quantity) {
+    const legacyGap = Math.max(0, currentStock - trackedQuantity);
+    if (legacyGap > 0) {
+      await batches.insertOne({
+        productId,
+        ...(variantId ? { variantId } : {}),
+        sourceType: "opening_balance",
+        sourceLabel: "Legacy stock carried into FIFO ledger",
+        quantityReceived: legacyGap,
+        quantityRemaining: legacyGap,
+        costPricePerUnit: 0,
+        receivedDate: new Date(),
+        status: "in_stock",
+        ...auditCreateFields("system"),
+      }, { session });
+      available = await batches.find({
+        productId,
+        ...variantFilter,
+        status: "in_stock",
+        quantityRemaining: { $gt: 0 },
+      }, { session }).sort({ receivedDate: 1, createdAt: 1, _id: 1 }).toArray();
+    }
+  }
+  const totalAvailable = available.reduce((sum, batch) => sum + Number(batch.quantityRemaining ?? 0), 0);
+  if (totalAvailable < quantity) throw new Error(`${String(product?.name ?? productId)}${productVariant ? ` in ${String(productVariant.color ?? "that color")}` : ""} has incomplete stock-batch history and cannot be sold safely.`);
+  let remaining = quantity;
+  const allocations: StockAllocation[] = [];
+  for (const batch of available) {
+    if (remaining <= 0) break;
+    const batchRemaining = Number(batch.quantityRemaining ?? 0);
+    const consumed = Math.min(remaining, batchRemaining);
+    const nextRemaining = batchRemaining - consumed;
+    const result = await batches.updateOne(
+      { _id: batch._id, status: "in_stock", quantityRemaining: batchRemaining },
+      { $set: { quantityRemaining: nextRemaining, status: nextRemaining > 0 ? "in_stock" : "sold_out", ...auditUpdateFields("checkout") } },
+      { session },
+    );
+    if (!result.modifiedCount) throw new Error("Stock changed while completing checkout. Please try again.");
+    allocations.push({ batchId: String(batch._id), quantity: consumed, ...(batch.costPricePerUnit !== undefined ? { costPricePerUnit: Number(batch.costPricePerUnit) } : {}) });
+    remaining -= consumed;
+  }
+  return allocations;
 }
 
 function secret(name: string) {
@@ -539,12 +602,14 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
       if (String(order.paymentStatus).toLowerCase() === "paid") return;
 
       const events: JsonRecord[] = [];
+      const updatedItems: JsonRecord[] = [];
       for (const item of Array.isArray(order.items) ? order.items as JsonRecord[] : []) {
         const productId = String(item.productId ?? "");
         const variantId = String(item.variantId ?? "");
         const quantity = Math.max(1, Math.trunc(Number(item.quantity) || 0));
         const before = await products.findOne({ id: productId }, { session });
         if (!before) throw new Error(`${String(item.name ?? productId)} is no longer available.`);
+        const allocations = await consumeStockBatches(database, productId, variantId, quantity, session);
         const result = await products.findOneAndUpdate(
           variantId
             ? { id: productId, variants: { $elemMatch: { id: variantId, stock: { $gte: quantity } } } }
@@ -558,15 +623,17 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
         const updatedVariant = variantId && Array.isArray(result.variants)
           ? (result.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === variantId)
           : undefined;
+        updatedItems.push({ ...item, stockAllocations: allocations });
         events.push({
           orderId,
-          eventType: "purchase",
+          eventType: "sale",
           productId,
           ...(variantId ? { variantId, variantColor: String(updatedVariant?.color ?? item.variantColor ?? "") } : {}),
           productName: item.name,
           quantity: -quantity,
           previousStock: Number(variantId ? (before.variants as JsonRecord[] | undefined)?.find((entry) => String(entry.id ?? "") === variantId)?.stock ?? 0 : before.stock ?? 0),
           nextStock: Number(updatedVariant?.stock ?? result.stock ?? 0),
+          stockAllocations: allocations,
           createdAt: new Date(),
         });
       }
@@ -580,6 +647,7 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
             transactionId: String(paymentResponse.transactionId ?? orderId),
             phonePeCode: String(paymentResponse.code ?? "PAYMENT_SUCCESS"),
             inventoryAdjusted: true,
+            items: updatedItems,
             updatedAt: new Date(),
           },
         },
@@ -1416,9 +1484,29 @@ async function adminOrders(request: Request, orderId?: string) {
         const productId = String(item?.productId ?? "");
         const quantity = Math.max(0, Math.trunc(Number(item?.quantity) || 0));
         if (!productId || !quantity) continue;
+        const variantId = String(item?.variantId ?? "");
+        const allocations = Array.isArray(item?.stockAllocations) ? item.stockAllocations as JsonRecord[] : [];
+        const restoredQuantity = allocations.reduce((sum, allocation) => sum + Math.max(0, Math.trunc(Number(allocation.quantity) || 0)), 0);
+        if (allocations.length && restoredQuantity !== quantity) return fail("This order has incomplete FIFO allocation data and cannot be deleted safely.", 409);
+        for (const allocation of allocations) {
+          const batchId = String(allocation.batchId ?? "");
+          if (!ObjectId.isValid(batchId)) return fail("This order references an invalid stock batch.", 409);
+          await database.collection("stock_batches").updateOne(
+            { _id: new ObjectId(batchId) },
+            { $inc: { quantityRemaining: Number(allocation.quantity) }, $set: { status: "in_stock", ...auditUpdateFields("admin") } },
+          );
+        }
+        const before = await database.collection("products").findOne({ id: productId });
+        if (!before) continue;
+        const beforeVariant = variantId && Array.isArray(before.variants) ? (before.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === variantId) : undefined;
+        const previousStock = Number(beforeVariant?.stock ?? before.stock ?? 0);
         const product = await database.collection("products").findOneAndUpdate(
-          { id: productId },
-          { $inc: { stock: quantity }, $set: { updatedAt: new Date() } },
+          variantId
+            ? { id: productId, variants: { $elemMatch: { id: variantId } } }
+            : { id: productId },
+          variantId
+            ? { $inc: { "variants.$.stock": quantity, stock: quantity }, $set: { updatedAt: new Date() } }
+            : { $inc: { stock: quantity }, $set: { updatedAt: new Date() } },
           { returnDocument: "after" },
         );
         if (product) {
@@ -1426,11 +1514,13 @@ async function adminOrders(request: Request, orderId?: string) {
             orderId: existingOrder.orderId,
             eventType: "order_deleted",
             productId,
+            ...(variantId ? { variantId, variantColor: String(beforeVariant?.color ?? item.variantColor ?? "") } : {}),
             productName: product.name,
             quantity,
-            previousStock: Number(product.stock ?? 0) - quantity,
-            nextStock: Number(product.stock ?? 0),
-            reason: "Order deleted; reserved stock restored",
+            previousStock,
+            nextStock: Number(variantId ? (product.variants as JsonRecord[] | undefined)?.find((entry) => String(entry.id ?? "") === variantId)?.stock ?? 0 : product.stock ?? 0),
+            stockAllocations: allocations,
+            reason: "Order deleted; FIFO stock restored",
             createdAt: new Date(),
           });
         }
@@ -1455,10 +1545,21 @@ async function adminOrders(request: Request, orderId?: string) {
       const row = item as JsonRecord;
       return {
         productId: String(row.productId ?? "").trim(),
+        ...(String(row.variantId ?? "").trim() ? { variantId: String(row.variantId).trim() } : {}),
+        ...(String(row.variantColor ?? "").trim() ? { variantColor: String(row.variantColor).trim() } : {}),
         name: String(row.name ?? "").trim(),
         image: String(row.image ?? "").trim(),
         quantity: Math.max(1, Math.trunc(Number(row.quantity) || 1)),
         price: Math.max(0, Number(row.price) || 0),
+        ...(Array.isArray(row.stockAllocations) ? {
+          stockAllocations: row.stockAllocations
+            .filter((allocation) => allocation && typeof allocation === "object")
+            .map((allocation) => ({
+              batchId: String((allocation as JsonRecord).batchId ?? ""),
+              quantity: Math.max(0, Math.trunc(Number((allocation as JsonRecord).quantity) || 0)),
+            }))
+            .filter((allocation) => allocation.batchId && allocation.quantity > 0),
+        } : {}),
       };
     }).filter((item) => item.productId) : [];
     const now = new Date();

@@ -1,0 +1,42 @@
+3.2 Purchase / Vendor Invoices (NEW)
+Purpose: Record every bill received from a vendor exactly as it exists on paper (like the Heer Fashion invoice sample), and store the original file for reference/audit. This is the single source of truth for cost prices.
+
+Key features
+
+Create a new purchase invoice under a selected vendor
+Upload the original invoice file (PDF/image) — stored and viewable anytime
+Add multiple line items per invoice (one row per saree/style purchased)
+Auto-calculate subtotal, tax, and payable amount from line items
+On save, each line item is pushed into Inventory (3.3) — either creating a new product or restocking an existing one
+Track payment status separately from delivery/stock status
+Data fields — Purchase Invoice (header)
+
+Field	Type	Notes
+Purchase Invoice ID	Auto ID	Internal primary key
+Vendor	FK → Vendor	Required
+Vendor's Invoice Number	Text	e.g. 426827 (as printed on their bill)
+Invoice Date	Date	As printed on their bill
+Place of Supply	Text	
+Payment Method	Enum: Prepaid / COD / Credit / Bank Transfer	
+Payment Status	Enum: Paid / Pending / Partially Paid	
+Subtotal (before tax)	Number	Auto-summed from line items
+Tax Type	Enum: IGST / CGST+SGST	Based on vendor state vs. business state
+Tax %	Number	e.g. 5%
+Tax Amount	Number	Auto-calculated
+Total Payable	Number	Subtotal + Tax
+Original Invoice File	File upload (PDF/image)	Stored for reference
+Received Date	Date	When goods physically arrived
+Notes	Text	Optional
+Created By	User	Which admin user entered it
+Created Date	Date/time	Auto
+Data fields — Purchase Invoice Line Item (one row per saree style)
+
+Field	Type	Notes
+Line Item ID	Auto ID	
+Purchase Invoice	FK → Purchase Invoice	
+Vendor Product Code	Text	Vendor's own code, e.g. 65749
+Item Name (as billed)	Text	e.g. "Red color soft muga cotton saree with pashmina..."
+Quantity Purchased	Number	
+Cost Price / Unit	Number	Price paid to vendor per piece
+Line Amount	Number	Qty × Cost Price (auto)
+Linked Product	FK → Inventory Product	Filled automatically once matched/created (see 3.3)
