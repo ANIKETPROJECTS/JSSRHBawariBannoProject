@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
@@ -361,7 +361,34 @@ async function reorder(resource: "heroes" | "categories", input: JsonRecord) {
   return collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
 }
 
-async function recordPurchase(request: Request) {
+function phonePeConfiguration() {
+  const environment = String(process.env.PHONEPE_ENV ?? "sandbox").toLowerCase();
+  const baseUrl = String(
+    process.env.PHONEPE_API_BASE_URL
+      ?? (environment === "production" ? "https://api.phonepe.com/apis/hermes" : "https://api-preprod.phonepe.com/apis/pg-sandbox"),
+  ).replace(/\/+$/, "");
+  return {
+    merchantId: secret("PHONEPE_MERCHANT_ID"),
+    saltKey: secret("PHONEPE_SALT_KEY"),
+    saltIndex: String(process.env.PHONEPE_SALT_INDEX ?? "1"),
+    baseUrl,
+  };
+}
+
+function phonePeChecksum(encodedPayload: string, path: string, saltKey: string, saltIndex: string) {
+  return `${createHash("sha256").update(`${encodedPayload}${path}${saltKey}`).digest("hex")}###${saltIndex}`;
+}
+
+function phonePeCallbackChecksum(encodedResponse: string, saltKey: string, saltIndex: string) {
+  return `${createHash("sha256").update(`${encodedResponse}${saltKey}`).digest("hex")}###${saltIndex}`;
+}
+
+function signaturesMatch(expected: string, received: string | null) {
+  if (!received || expected.length !== received.length) return false;
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(received));
+}
+
+async function createPhonePeCheckout(request: Request) {
   const input = await body(request);
   const items = Array.isArray(input.items) ? input.items : [];
   if (!items.length) return fail("Your cart is empty.");
@@ -412,36 +439,9 @@ async function recordPurchase(request: Request) {
   const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingCharge;
   const discount = couponResult.discount;
   const total = Math.max(0, subtotal + shipping - discount);
-  const events = [];
-  for (const { product, productId, variantId, quantity } of selectedProducts) {
-    const result = await database.collection("products").findOneAndUpdate(
-      variantId
-        ? { id: productId, variants: { $elemMatch: { id: variantId, stock: { $gte: quantity } } } }
-        : { id: productId, stock: { $gte: quantity } },
-      variantId
-        ? { $inc: { "variants.$.stock": -quantity, stock: -quantity }, $set: { updatedAt: new Date() } }
-        : { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
-      { returnDocument: "after" },
-    );
-    if (!result) return fail(`${String(product.name ?? productId)} sold out while checking out.`, 409);
-    const updatedVariant = variantId && Array.isArray(result.variants)
-      ? (result.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === variantId)
-      : undefined;
-    events.push({
-      orderId,
-      eventType: "purchase",
-      productId,
-      ...(variantId ? { variantId, variantColor: String(updatedVariant?.color ?? "") } : {}),
-      productName: product.name,
-      quantity: -quantity,
-      previousStock: Number(product.stock ?? 0),
-      nextStock: Number(updatedVariant?.stock ?? result.stock ?? 0),
-      createdAt: new Date(),
-    });
-  }
-  if (events.length) await database.collection("inventory_movements").insertMany(events);
+  if (total <= 0) return fail("PhonePe checkout requires a payable total above ₹0.");
   const createdAt = new Date();
-  await database.collection("orders").insertOne({
+  const order = {
     orderId,
     customerId: customer?._id,
     customerName: customer?.name || undefined,
@@ -449,8 +449,9 @@ async function recordPurchase(request: Request) {
     customerPhone: customer?.phone || undefined,
     status: "pending",
     statusHistory: [{ status: "pending", changedAt: createdAt }],
-    paymentStatus: "demo",
-    inventoryAdjusted: true,
+    paymentStatus: "pending",
+    paymentMethod: "PhonePe",
+    inventoryAdjusted: false,
     items: orderItems,
     subtotal,
     shipping,
@@ -459,8 +460,205 @@ async function recordPurchase(request: Request) {
     ...(couponCode ? { couponCode } : {}),
     createdAt,
     updatedAt: createdAt,
+  };
+  await database.collection("orders").insertOne(order);
+
+  try {
+    const phonePe = phonePeConfiguration();
+    const paymentPath = "/pg/v1/pay";
+    const redirectUrl = new URL(`/payment-return?transactionId=${encodeURIComponent(orderId)}`, request.url).toString();
+    const callbackUrl = new URL("/api/phonepe/callback", request.url).toString();
+    const paymentPayload = {
+      merchantId: phonePe.merchantId,
+      merchantTransactionId: orderId,
+      merchantUserId: String(customer?._id),
+      amount: Math.round(total * 100),
+      redirectUrl,
+      redirectMode: "REDIRECT",
+      callbackUrl,
+      mobileNumber: String(customer?.phone ?? ""),
+      paymentInstrument: { type: "PAY_PAGE" },
+    };
+    const encodedPayload = Buffer.from(JSON.stringify(paymentPayload)).toString("base64");
+    const response = await fetch(`${phonePe.baseUrl}${paymentPath}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-VERIFY": phonePeChecksum(encodedPayload, paymentPath, phonePe.saltKey, phonePe.saltIndex),
+      },
+      body: JSON.stringify({ request: encodedPayload }),
+    });
+    const result = await response.json().catch(() => ({})) as JsonRecord;
+    const redirectInfo = result.data && typeof result.data === "object" ? (result.data as JsonRecord).instrumentResponse : undefined;
+    const redirectInfoRecord = redirectInfo && typeof redirectInfo === "object" ? redirectInfo as JsonRecord : {};
+    const redirect = String(redirectInfoRecord.redirectInfo && typeof redirectInfoRecord.redirectInfo === "object"
+      ? (redirectInfoRecord.redirectInfo as JsonRecord).url ?? ""
+      : "");
+    if (!response.ok || result.success !== true || !redirect) {
+      await database.collection("orders").updateOne(
+        { orderId },
+        { $set: { paymentStatus: "failed", paymentDetails: JSON.stringify({ code: result.code, message: result.message }).slice(0, 200), updatedAt: new Date() } },
+      );
+      return fail("PhonePe could not start the payment. Please try again.", 502);
+    }
+    await database.collection("orders").updateOne(
+      { orderId },
+      { $set: { transactionId: orderId, phonePeMerchantTransactionId: orderId, updatedAt: new Date() } },
+    );
+    return json({ ok: true, orderId, redirectUrl: redirect });
+  } catch (error) {
+    await database.collection("orders").updateOne(
+      { orderId },
+      { $set: { paymentStatus: "failed", paymentDetails: error instanceof Error ? error.message.slice(0, 200) : "PhonePe configuration error", updatedAt: new Date() } },
+    );
+    if (error instanceof Error && /PHONEPE_(MERCHANT_ID|SALT_KEY)/.test(error.message)) {
+      return fail("PhonePe is not configured yet. Add the merchant credentials before accepting payments.", 503);
+    }
+    console.error("PhonePe checkout error:", error);
+    return fail("PhonePe could not start the payment. Please try again.", 502);
+  }
+}
+
+async function finalizePhonePePayment(orderId: string, paymentResponse: JsonRecord) {
+  const database = await db();
+  const client = await getClient();
+  const session = client.startSession();
+  let inventoryError = "";
+  try {
+    await session.withTransaction(async () => {
+      const orders = database.collection("orders");
+      const products = database.collection("products");
+      const order = await orders.findOne({ orderId }, { session });
+      if (!order) throw new Error("Order not found.");
+      if (String(order.paymentStatus).toLowerCase() === "paid") return;
+
+      const events: JsonRecord[] = [];
+      for (const item of Array.isArray(order.items) ? order.items as JsonRecord[] : []) {
+        const productId = String(item.productId ?? "");
+        const variantId = String(item.variantId ?? "");
+        const quantity = Math.max(1, Math.trunc(Number(item.quantity) || 0));
+        const before = await products.findOne({ id: productId }, { session });
+        if (!before) throw new Error(`${String(item.name ?? productId)} is no longer available.`);
+        const result = await products.findOneAndUpdate(
+          variantId
+            ? { id: productId, variants: { $elemMatch: { id: variantId, stock: { $gte: quantity } } } }
+            : { id: productId, stock: { $gte: quantity } },
+          variantId
+            ? { $inc: { "variants.$.stock": -quantity, stock: -quantity }, $set: { updatedAt: new Date() } }
+            : { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
+          { returnDocument: "after", session },
+        );
+        if (!result) throw new Error(`${String(item.name ?? productId)} sold out before payment confirmation.`);
+        const updatedVariant = variantId && Array.isArray(result.variants)
+          ? (result.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === variantId)
+          : undefined;
+        events.push({
+          orderId,
+          eventType: "purchase",
+          productId,
+          ...(variantId ? { variantId, variantColor: String(updatedVariant?.color ?? item.variantColor ?? "") } : {}),
+          productName: item.name,
+          quantity: -quantity,
+          previousStock: Number(variantId ? (before.variants as JsonRecord[] | undefined)?.find((entry) => String(entry.id ?? "") === variantId)?.stock ?? 0 : before.stock ?? 0),
+          nextStock: Number(updatedVariant?.stock ?? result.stock ?? 0),
+          createdAt: new Date(),
+        });
+      }
+      if (events.length) await database.collection("inventory_movements").insertMany(events, { session });
+      await orders.updateOne(
+        { _id: order._id, paymentStatus: { $ne: "paid" } },
+        {
+          $set: {
+            paymentStatus: "paid",
+            paymentMethod: "PhonePe",
+            transactionId: String(paymentResponse.transactionId ?? orderId),
+            phonePeCode: String(paymentResponse.code ?? "PAYMENT_SUCCESS"),
+            inventoryAdjusted: true,
+            updatedAt: new Date(),
+          },
+        },
+        { session },
+      );
+    });
+  } catch (error) {
+    inventoryError = error instanceof Error ? error.message : "Inventory could not be updated.";
+    console.error("PhonePe payment finalization error:", inventoryError);
+    await database.collection("orders").updateOne(
+      { orderId, paymentStatus: { $ne: "paid" } },
+      {
+        $set: {
+          paymentStatus: "paid",
+          paymentMethod: "PhonePe",
+          transactionId: String(paymentResponse.transactionId ?? orderId),
+          phonePeCode: String(paymentResponse.code ?? "PAYMENT_SUCCESS"),
+          inventoryAdjusted: false,
+          inventoryAdjustmentError: inventoryError.slice(0, 240),
+          updatedAt: new Date(),
+        },
+      },
+    );
+  } finally {
+    await session.endSession();
+  }
+  return { ok: true, inventoryAdjusted: !inventoryError, inventoryError };
+}
+
+async function handlePhonePeCallback(request: Request) {
+  const raw = await request.text();
+  const input = (() => {
+    try { return JSON.parse(raw) as JsonRecord; } catch { return {}; }
+  })();
+  const encodedResponse = String(input.response ?? "");
+  if (!encodedResponse) return fail("Invalid PhonePe callback.", 400);
+  const phonePe = phonePeConfiguration();
+  const expected = phonePeCallbackChecksum(encodedResponse, phonePe.saltKey, phonePe.saltIndex);
+  if (!signaturesMatch(expected, request.headers.get("X-VERIFY"))) return fail("Invalid PhonePe callback signature.", 401);
+  let response: JsonRecord;
+  try {
+    response = JSON.parse(Buffer.from(encodedResponse, "base64").toString("utf8")) as JsonRecord;
+  } catch {
+    return fail("Invalid PhonePe callback payload.", 400);
+  }
+  const data = response.data && typeof response.data === "object" ? response.data as JsonRecord : {};
+  const orderId = String(data.merchantTransactionId ?? data.transactionId ?? "");
+  if (!orderId) return fail("PhonePe callback is missing the transaction ID.", 400);
+  const success = response.success === true || String(response.code ?? "").toUpperCase() === "PAYMENT_SUCCESS";
+  const database = await db();
+  const order = await database.collection("orders").findOne({ orderId });
+  if (!order) return fail("Order not found.", 404);
+  if (success) {
+    await finalizePhonePePayment(orderId, {
+      transactionId: data.transactionId ?? orderId,
+      code: response.code ?? "PAYMENT_SUCCESS",
+    });
+  } else if (String(order.paymentStatus).toLowerCase() !== "paid") {
+    await database.collection("orders").updateOne(
+      { orderId, paymentStatus: { $ne: "paid" } },
+      { $set: { paymentStatus: "failed", paymentMethod: "PhonePe", transactionId: String(data.transactionId ?? orderId), phonePeCode: String(response.code ?? "PAYMENT_FAILED"), updatedAt: new Date() } },
+    );
+  }
+  return json({ ok: true });
+}
+
+async function phonePePaymentStatus(request: Request) {
+  const customer = await customerFromRequest(request);
+  if (!customer) return fail("Customer login required.", 401);
+  const transactionId = new URL(request.url).searchParams.get("transactionId")?.trim();
+  if (!transactionId) return fail("Transaction ID is required.");
+  const database = await db();
+  const order = await database.collection("orders").findOne({
+    orderId: transactionId,
+    $or: [{ customerId: customer._id }, { customerId: String(customer._id) }],
   });
-  return json({ ok: true, orderId });
+  if (!order) return fail("Order not found.", 404);
+  return json({
+    orderId: order.orderId,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    paymentMethod: order.paymentMethod,
+    total: order.total,
+    inventoryAdjusted: order.inventoryAdjusted === true,
+  });
 }
 
 async function inventoryHistory(request: Request) {
@@ -1353,9 +1551,11 @@ export async function handleAdminApi(request: Request) {
   const url = new URL(request.url);
   try {
     if (url.pathname.startsWith("/api/auth/")) return await handleAuth(request, url.pathname);
+    if (url.pathname === "/api/phonepe/callback" && request.method === "POST") return await handlePhonePeCallback(request);
+    if (url.pathname === "/api/phonepe/status" && request.method === "GET") return await phonePePaymentStatus(request);
     if (url.pathname.startsWith("/api/review-media/")) return await reviewMedia(request, url.pathname.split("/").pop() ?? "");
     if (url.pathname === "/api/reviews" || url.pathname === "/api/reviews/summaries") return await productReviews(request);
-    if (url.pathname === "/api/inventory/purchase" && request.method === "POST") return await recordPurchase(request);
+    if ((url.pathname === "/api/phonepe/checkout" || url.pathname === "/api/inventory/purchase") && request.method === "POST") return await createPhonePeCheckout(request);
     if (url.pathname.startsWith("/api/admin/")) return await handleAdmin(request, url.pathname);
     if (url.pathname === "/api/catalog" && request.method === "GET") {
       const database = await db();

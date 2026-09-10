@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BestsellerRouteImport } from './routes/bestseller'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as NewArrivalRouteImport } from './routes/new-arrival'
+import { Route as PaymentReturnRouteImport } from './routes/payment-return'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as TrendingRouteImport } from './routes/trending'
@@ -51,6 +52,11 @@ const ContactRoute = ContactRouteImport.update({
 const NewArrivalRoute = NewArrivalRouteImport.update({
   id: '/new-arrival',
   path: '/new-arrival',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentReturnRoute = PaymentReturnRouteImport.update({
+  id: '/payment-return',
+  path: '/payment-return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/bestseller': typeof BestsellerRoute
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
+  '/payment-return': typeof PaymentReturnRoute
   '/profile': typeof ProfileRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/bestseller': typeof BestsellerRoute
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
+  '/payment-return': typeof PaymentReturnRoute
   '/profile': typeof ProfileRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/bestseller': typeof BestsellerRoute
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
+  '/payment-return': typeof PaymentReturnRoute
   '/profile': typeof ProfileRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/bestseller'
     | '/contact'
     | '/new-arrival'
+    | '/payment-return'
     | '/profile'
     | '/terms-and-conditions'
     | '/trending'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/bestseller'
     | '/contact'
     | '/new-arrival'
+    | '/payment-return'
     | '/profile'
     | '/terms-and-conditions'
     | '/trending'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/bestseller'
     | '/contact'
     | '/new-arrival'
+    | '/payment-return'
     | '/profile'
     | '/terms-and-conditions'
     | '/trending'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   BestsellerRoute: typeof BestsellerRoute
   ContactRoute: typeof ContactRoute
   NewArrivalRoute: typeof NewArrivalRoute
+  PaymentReturnRoute: typeof PaymentReturnRoute
   ProfileRoute: typeof ProfileRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TrendingRoute: typeof TrendingRoute
@@ -241,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/new-arrival'
       fullPath: '/new-arrival'
       preLoaderRoute: typeof NewArrivalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payment-return': {
+      id: '/payment-return'
+      path: '/payment-return'
+      fullPath: '/payment-return'
+      preLoaderRoute: typeof PaymentReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   BestsellerRoute: BestsellerRoute,
   ContactRoute: ContactRoute,
   NewArrivalRoute: NewArrivalRoute,
+  PaymentReturnRoute: PaymentReturnRoute,
   ProfileRoute: ProfileRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   TrendingRoute: TrendingRoute,

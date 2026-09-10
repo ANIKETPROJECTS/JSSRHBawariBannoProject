@@ -123,35 +123,33 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-       <section className="section-frame section-frame--zari mx-0 w-full p-0 sm:mx-3 sm:w-auto sm:p-3">
-         <div className="grid min-h-[calc(100vh-150px)] overflow-hidden bg-espresso lg:grid-cols-[45%_55%]">
-           <div className="order-2 flex items-center border-t border-gold/70 bg-espresso px-6 py-12 text-primary-foreground sm:px-10 sm:py-16 lg:order-1 lg:border-r lg:border-t-0 lg:px-12 lg:py-20 xl:px-16">
-             <div className="max-w-[31rem]">
-               <p className="text-eyebrow text-gold-soft">{heroDetails[0].eyebrow}</p>
-               <h1 className="mt-5 max-w-[14ch] font-display text-[2.15rem] font-medium leading-[0.96] tracking-[-0.035em] min-[420px]:text-[2.5rem] sm:text-5xl lg:text-[clamp(3.4rem,5.2vw,5.6rem)]">
-                 {heroDetails[0].title}
-               </h1>
-               <p className="mt-6 max-w-[30rem] text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
-                 {heroDetails[0].description}
-               </p>
-               <Link
-                 to="/products"
-                 className="mt-9 inline-flex w-full items-center justify-center gap-3 border border-gold bg-gold px-6 py-4 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-espresso sm:w-auto sm:px-8"
-               >
-                 Explore the edit <ArrowRight className="size-3.5" strokeWidth={1.7} />
-               </Link>
-             </div>
-           </div>
-           <div className="order-1 min-h-[60vh] lg:order-2 lg:min-h-0">
-             <img
-               src={hero.image}
-               alt={hero.alt}
-               width={1920}
-               height={1088}
-               className="hero-media h-full min-h-[60vh] w-full object-cover lg:min-h-0"
-             />
-           </div>
-         </div>
+      <section className="relative isolate min-h-[31rem] w-full overflow-hidden bg-espresso sm:min-h-[36rem] lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)]">
+        <img
+          src={hero.image}
+          alt={hero.alt}
+          width={1920}
+          height={1088}
+          className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(22,10,6,0.82)_0%,rgba(43,23,16,0.56)_34%,rgba(74,40,24,0.18)_62%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(22,10,6,0.38)_0%,transparent_28%)]" />
+        <div className="relative flex min-h-[31rem] items-center px-5 py-16 sm:min-h-[36rem] sm:px-10 sm:py-20 lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)] lg:px-[7vw]">
+          <div className="max-w-[34rem] text-primary-foreground">
+            <p className="text-eyebrow text-peachy">{heroDetails[0].eyebrow}</p>
+            <h1 className="mt-5 max-w-[12ch] font-display text-[2.65rem] font-medium leading-[0.98] tracking-[-0.035em] min-[420px]:text-5xl sm:text-6xl lg:text-[clamp(4rem,6.2vw,6.7rem)]">
+              {heroDetails[0].title}
+            </h1>
+            <p className="mt-6 max-w-[28rem] text-sm leading-relaxed text-primary-foreground/82 sm:text-base">
+              {heroDetails[0].description}
+            </p>
+            <Link
+              to="/products"
+              className="mt-9 inline-flex w-full items-center justify-center gap-3 border border-peachy bg-peachy px-6 py-4 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-peachy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-peachy focus-visible:ring-offset-2 focus-visible:ring-offset-espresso sm:w-auto sm:px-8"
+            >
+              Explore the edit <ArrowRight className="size-3.5" strokeWidth={1.7} />
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Categories — compact editorial grid */}
