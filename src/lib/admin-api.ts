@@ -816,6 +816,141 @@ async function inventoryCrud(request: Request, movementId?: string) {
   return inventoryHistory(request);
 }
 
+function vendorDocument(input: JsonRecord, current?: JsonRecord) {
+  const businessName = String(input.businessName ?? current?.businessName ?? "").trim().slice(0, 160);
+  const legalName = String(input.legalName ?? current?.legalName ?? "").trim().slice(0, 160);
+  const gstin = String(input.gstin ?? current?.gstin ?? "").trim().toUpperCase().slice(0, 30);
+  const state = String(input.state ?? current?.state ?? "").trim().slice(0, 80);
+  const stateCode = String(input.stateCode ?? current?.stateCode ?? "").trim().toUpperCase().slice(0, 10);
+  const address = String(input.address ?? current?.address ?? "").trim().slice(0, 1000);
+  const contactPerson = String(input.contactPerson ?? current?.contactPerson ?? "").trim().slice(0, 120);
+  const phone = String(input.phone ?? current?.phone ?? "").replace(/[^\d+,\-\s]/g, "").trim().slice(0, 40);
+  const email = String(input.email ?? current?.email ?? "").trim().slice(0, 160);
+  const bankDetails = String(input.bankDetails ?? current?.bankDetails ?? "").trim().slice(0, 500);
+  const notes = String(input.notes ?? current?.notes ?? "").trim().slice(0, 2000);
+  const status = String(input.status ?? current?.status ?? "active") === "inactive" ? "inactive" : "active";
+  if (!businessName) throw new Error("Business name is required.");
+  if (email && !email.includes("@")) throw new Error("Enter a valid vendor email.");
+  if (gstin && !/^[A-Z0-9]{8,30}$/.test(gstin)) throw new Error("Enter a valid GSTIN or leave it blank.");
+  return { businessName, legalName, gstin, state, stateCode, address, contactPerson, phone, email, bankDetails, notes, status };
+}
+
+function serializeVendor(vendor: JsonRecord, summary: JsonRecord = {}) {
+  return { ...vendor, ...summary, _id: vendor._id ? String(vendor._id) : undefined };
+}
+
+async function nextVendorCode(database: Db) {
+  const counter = await database.collection("counters").findOneAndUpdate(
+    { _id: "vendors" },
+    { $inc: { value: 1 } },
+    { upsert: true, returnDocument: "after" },
+  );
+  return `VEN-${String(Number(counter?.value ?? 1)).padStart(3, "0")}`;
+}
+
+async function vendorSummaries(database: Db, vendors: JsonRecord[]) {
+  const vendorIds = vendors.map((vendor) => String(vendor._id));
+  if (!vendorIds.length) return new Map<string, JsonRecord>();
+  const [invoiceRows, productRows] = await Promise.all([
+    database.collection("purchase_invoices").aggregate([
+      { $match: { vendorId: { $in: vendorIds } } },
+      { $group: { _id: "$vendorId", invoiceCount: { $sum: 1 }, lifetimeSpend: { $sum: { $ifNull: ["$totalPayable", 0] } } } },
+    ]).toArray(),
+    database.collection("products").aggregate([
+      { $match: { primaryVendorId: { $in: vendorIds } } },
+      { $group: { _id: "$primaryVendorId", productCount: { $sum: 1 } } },
+    ]).toArray(),
+  ]);
+  const summaries = new Map<string, JsonRecord>();
+  for (const row of invoiceRows) summaries.set(String(row._id), { invoiceCount: Number(row.invoiceCount ?? 0), lifetimeSpend: Number(row.lifetimeSpend ?? 0) });
+  for (const row of productRows) summaries.set(String(row._id), { ...(summaries.get(String(row._id)) ?? {}), productCount: Number(row.productCount ?? 0) });
+  return summaries;
+}
+
+async function adminVendors(request: Request, vendorId?: string) {
+  const database = await db();
+  const collection = database.collection("vendors");
+  if (vendorId && !ObjectId.isValid(vendorId)) return fail("Vendor not found.", 404);
+  const actor = adminIdentity(request) ?? "admin";
+
+  if (request.method === "POST" || (vendorId && (request.method === "PUT" || request.method === "PATCH"))) {
+    const input = await body(request);
+    const current = vendorId ? await collection.findOne({ _id: new ObjectId(vendorId) }) as JsonRecord | null : null;
+    if (vendorId && !current) return fail("Vendor not found.", 404);
+    const now = new Date();
+    let document: JsonRecord;
+    try {
+      document = vendorDocument(input, current ?? undefined);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Vendor details are invalid.");
+    }
+    if (vendorId) {
+      const updated = await collection.findOneAndUpdate(
+        { _id: new ObjectId(vendorId) },
+        { $set: { ...document, ...auditUpdateFields(actor, now) } },
+        { returnDocument: "after" },
+      );
+      if (!updated) return fail("Vendor not found.", 404);
+      await database.collection("audit_logs").insertOne({
+        entityType: "vendor",
+        entityId: vendorId,
+        action: "updated",
+        actor,
+        changes: document,
+        createdAt: now,
+      });
+      return json(serializeVendor(updated));
+    }
+    const vendorCode = await nextVendorCode(database);
+    const created = { ...document, vendorCode, ...auditCreateFields(actor, now) };
+    const result = await collection.insertOne(created);
+    await database.collection("audit_logs").insertOne({
+      entityType: "vendor",
+      entityId: String(result.insertedId),
+      action: "created",
+      actor,
+      changes: created,
+      createdAt: now,
+    });
+    return json(serializeVendor({ ...created, _id: result.insertedId }), { status: 201 });
+  }
+
+  if (vendorId && request.method === "GET") {
+    const vendor = await collection.findOne({ _id: new ObjectId(vendorId) }) as JsonRecord | null;
+    if (!vendor) return fail("Vendor not found.", 404);
+    const [summaryMap, invoices, products] = await Promise.all([
+      vendorSummaries(database, [vendor]),
+      database.collection("purchase_invoices").find({ vendorId }).sort({ invoiceDate: -1 }).limit(100).toArray(),
+      database.collection("products").find({ primaryVendorId: vendorId }).project({ id: 1, name: 1, price: 1, stock: 1 }).sort({ createdAt: -1 }).limit(200).toArray(),
+    ]);
+    return json(serializeVendor(vendor, {
+      ...(summaryMap.get(vendorId) ?? { invoiceCount: 0, productCount: 0, lifetimeSpend: 0 }),
+      invoices: invoices.map((invoice) => ({ ...invoice, _id: String(invoice._id) })),
+      products,
+    }));
+  }
+
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  const url = new URL(request.url);
+  const search = url.searchParams.get("search")?.trim();
+  const status = url.searchParams.get("status")?.trim();
+  const query: JsonRecord = {
+    ...(status && status !== "all" ? { status } : {}),
+    ...(search ? {
+      $or: [
+        { vendorCode: { $regex: search, $options: "i" } },
+        { businessName: { $regex: search, $options: "i" } },
+        { legalName: { $regex: search, $options: "i" } },
+        { gstin: { $regex: search, $options: "i" } },
+        { contactPerson: { $regex: search, $options: "i" } },
+      ],
+    } : {}),
+  };
+  const vendors = await collection.find(query).sort({ status: 1, businessName: 1 }).limit(500).toArray();
+  const summaries = await vendorSummaries(database, vendors);
+  return json(vendors.map((vendor) => serializeVendor(vendor, summaries.get(String(vendor._id)) ?? { invoiceCount: 0, productCount: 0, lifetimeSpend: 0 })));
+}
+
 async function ordersHistory(request: Request) {
   const url = new URL(request.url);
   const query: JsonRecord = {};
