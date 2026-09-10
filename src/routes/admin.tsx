@@ -431,16 +431,19 @@ function PurchaseInvoicesPage() {
   const [status, setStatus] = useState("all");
   const [payment, setPayment] = useState("all");
   const [loading, setLoading] = useState(true);
+  const loadVersion = useRef(0);
 
   async function load() {
+    const version = ++loadVersion.current;
     setLoading(true);
     try {
       const params = new URLSearchParams({ search, status, payment });
-      setInvoices(await api(`/api/admin/purchase-invoices?${params}`));
+      const result = await api(`/api/admin/purchase-invoices?${params}`);
+      if (version === loadVersion.current) setInvoices(result);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load purchase invoices.");
     } finally {
-      setLoading(false);
+      if (version === loadVersion.current) setLoading(false);
     }
   }
 
@@ -452,7 +455,20 @@ function PurchaseInvoicesPage() {
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not load invoice details."); }
   }
 
-  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button><PurchaseInvoiceEditor initial={editing} onDone={async (saved) => { setEditing(null); await load(); if (saved?._id && saved.status === "posted") await openInvoice(saved); }} /></div>;
+  if (editing) {
+    const returnToDetail = Boolean(selected?._id && selected._id === editing._id);
+    return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button><PurchaseInvoiceEditor initial={editing} onDone={async (saved) => {
+      setEditing(null);
+      if (saved?._id) {
+        setInvoices((current) => current.some((invoice) => invoice._id === saved._id)
+          ? current.map((invoice) => invoice._id === saved._id ? { ...invoice, ...saved, lineCount: saved.lines?.length ?? invoice.lineCount } : invoice)
+          : [saved, ...current]);
+        if (returnToDetail) setSelected(saved);
+      }
+      await load();
+      if (saved?._id && saved.status === "posted") await openInvoice(saved);
+    }} /></div>;
+  }
   if (selected) return <PurchaseInvoiceDetail invoice={selected} onBack={() => setSelected(null)} onEdit={() => setEditing(selected)} />;
 
   const drafts = invoices.filter((invoice) => invoice.status === "draft").length;
