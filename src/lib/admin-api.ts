@@ -2470,6 +2470,64 @@ async function seedCatalog() {
   return { heroes: 3, categories: categoryDocuments.length, products: sarees.length };
 }
 
+async function adminPurchaseSuggestions(request: Request) {
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  const database = await db();
+  const [products, postedInvoices] = await Promise.all([
+    database.collection("products").find({}).toArray(),
+    database.collection("purchase_invoices").find({ status: "posted" }).sort({ invoiceDate: -1, createdAt: -1 }).limit(500).toArray(),
+  ]);
+  const invoiceIds = postedInvoices.map((invoice) => String(invoice._id));
+  const invoiceById = new Map(postedInvoices.map((invoice) => [String(invoice._id), invoice]));
+  const lines = invoiceIds.length
+    ? await database.collection("purchase_invoice_lines").find({ purchaseInvoiceId: { $in: invoiceIds } }).sort({ createdAt: -1 }).toArray()
+    : [];
+  const latestLines = new Map<string, Record<string, unknown>>();
+  for (const line of lines) {
+    const key = `${String(line.productId ?? "")}::${String(line.variantId ?? "")}`;
+    if (!latestLines.has(key)) latestLines.set(key, line as Record<string, unknown>);
+  }
+  const vendorIds = [...new Set([
+    ...postedInvoices.map((invoice) => String(invoice.vendorId ?? "")),
+    ...products.map((product) => String(product.primaryVendorId ?? "")),
+  ].filter((id) => ObjectId.isValid(id)))];
+  const vendors = vendorIds.length ? await database.collection("vendors").find({ _id: { $in: vendorIds.map((id) => new ObjectId(id)) } }).toArray() : [];
+  const vendorsById = new Map(vendors.map((vendor) => [String(vendor._id), vendor]));
+  const suggestionFor = (product: Record<string, unknown>, variant?: Record<string, unknown>) => {
+    const productId = String(product.id ?? product._id);
+    const variantId = String(variant?.id ?? "");
+    const stock = Number(variant?.stock ?? product.stock ?? 0);
+    const reorderLevel = Number(variant?.reorderLevel ?? product.reorderLevel ?? 3);
+    if (stock > reorderLevel) return null;
+    const line = latestLines.get(`${productId}::${variantId}`);
+    const invoice = line ? invoiceById.get(String(line.purchaseInvoiceId ?? "")) : undefined;
+    const vendorId = String(invoice?.vendorId ?? product.primaryVendorId ?? "");
+    const vendor = vendorsById.get(vendorId);
+    return {
+      key: `${String(product._id)}-${variantId || "product"}`,
+      productId,
+      productName: String(product.name ?? productId),
+      color: String(variant?.color ?? ""),
+      variantId,
+      stock,
+      reorderLevel,
+      suggestedQuantity: Math.max(reorderLevel - stock, 1),
+      image: String(variant?.image ?? product.image ?? ""),
+      out: stock === 0,
+      vendorId: vendorId || undefined,
+      vendorCode: vendor?.vendorCode ?? undefined,
+      vendorName: vendor?.businessName ?? undefined,
+      vendorProductCode: String(line?.vendorProductCode ?? product.primaryVendorProductCode ?? ""),
+      itemName: String(line?.itemName ?? variant?.color ?? product.name ?? productId),
+      lastCostPrice: line?.costPricePerUnit === undefined ? undefined : Number(line.costPricePerUnit),
+    };
+  };
+  return products.flatMap((product) => {
+    const variants = Array.isArray(product.variants) ? product.variants as Record<string, unknown>[] : [];
+    return variants.length ? variants.map((variant) => suggestionFor(product as Record<string, unknown>, variant)).filter(Boolean) : [suggestionFor(product as Record<string, unknown>)];
+  }).filter(Boolean);
+}
+
 async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/login" && request.method === "POST") {
     const input = await body(request);
@@ -2481,6 +2539,7 @@ async function handleAdmin(request: Request, path: string) {
   }
   if (!isAdmin(request)) return fail("Admin authentication required.", 401);
   if (path === "/api/admin/me") return json({ ok: true });
+  if (path === "/api/admin/purchase-suggestions") return json(await adminPurchaseSuggestions(request));
   if (path === "/api/admin/audit-logs") {
     if (request.method !== "GET") return fail("Method not allowed.", 405);
     const url = new URL(request.url);
