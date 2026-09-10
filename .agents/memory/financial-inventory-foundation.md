@@ -74,3 +74,9 @@ Business trips group operating expenses without becoming inventory or purchase r
 **Why:** Travel and sourcing costs need trip-level review, but they should not alter stock, FIFO allocations, or purchase-backed inventory value.
 
 **How to apply:** Allow expenses to reference a trip; deleting a trip must preserve the expenses and safely remove only their trip association.
+
+Business trip reporting separates `Total Expense` from purchase-invoice spend and combines both only for the full trip-cost view.
+
+**Why:** The requested trip field is specifically the sum of linked operating expenses; purchase invoices are a separate optional FK list that expands the sourcing picture without changing that expense value.
+
+**How to apply:** Keep `Total Expense (auto)` derived only from linked expenses, show linked purchase invoices and their total separately, and calculate full trip cost as both totals combined.
