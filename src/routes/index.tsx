@@ -65,14 +65,11 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const [activeHero, setActiveHero] = useState(0);
-  const [transitioningFrom, setTransitioningFrom] = useState<number | null>(null);
-  const activeHeroRef = useRef(0);
   const [liveHeroSlides, setLiveHeroSlides] = useState<typeof heroSlides | null>(null);
   const [liveProducts, setLiveProducts] = useState<typeof sarees | null>(null);
   const [liveCategoryEdits, setLiveCategoryEdits] = useState<typeof categoryEdits | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
-  const slides = liveHeroSlides ?? heroSlides;
+  const hero = (liveHeroSlides ?? heroSlides)[0] ?? heroSlides[0];
   const homepageProducts = liveProducts ?? sarees;
   const homepageCategoryEdits = liveCategoryEdits ?? categoryEdits;
   const curatedBestsellers = homepageProducts.filter((saree) => saree.featured || saree.bestseller);
@@ -81,9 +78,6 @@ function Home() {
     ...curatedBestsellers,
     ...homepageProducts.filter((saree) => !curatedBestsellerIds.has(saree.id)),
   ].slice(0, 5);
-  const currentHero = activeHero % slides.length;
-  const previousHero = transitioningFrom === null ? currentHero : transitioningFrom % slides.length;
-
   useEffect(() => {
     fetch("/api/catalog")
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
@@ -126,96 +120,38 @@ function Home() {
       .catch(() => setCatalogState("fallback"));
   }, []);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      const nextHero = (activeHeroRef.current + 1) % slides.length;
-      setTransitioningFrom(activeHeroRef.current);
-      activeHeroRef.current = nextHero;
-      setActiveHero(nextHero);
-      window.setTimeout(() => setTransitioningFrom(null), 750);
-    }, 5500);
-
-    return () => window.clearInterval(timer);
-  }, [slides.length]);
-
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="section-frame section-frame--zari mx-2 w-auto p-2 sm:mx-3 sm:p-3">
-        <div className="relative min-h-[520px] overflow-hidden bg-ink sm:min-h-[680px] lg:min-h-[min(78vh,760px)]">
-          <img
-            src={slides[previousHero].image}
-            alt={slides[previousHero].alt}
-            width={1920}
-            height={1088}
-             className="hero-media absolute inset-0 h-full w-full object-cover"
-          />
-          {transitioningFrom !== null && (
-            <img
-              key={currentHero}
-              src={slides[currentHero].image}
-              alt={slides[currentHero].alt}
-              width={1920}
-              height={1088}
-               className="hero-media relative h-[520px] min-h-[420px] w-full object-cover hero-fade-in sm:h-[680px] lg:h-[min(78vh,760px)]"
-            />
-          )}
-          {transitioningFrom === null && (
-            <img
-              src={slides[currentHero].image}
-              alt={slides[currentHero].alt}
-              width={1920}
-              height={1088}
-             className="hero-media relative h-[520px] min-h-[420px] w-full object-cover sm:h-[680px] lg:h-[min(78vh,760px)]"
-            />
-          )}
-           <div className="hero-text-gradient absolute inset-0" />
-          <div className="pointer-events-none absolute inset-4 border border-primary-foreground/15 sm:inset-7" />
-          <div className="pointer-events-none absolute right-6 top-7 hidden text-right text-primary-foreground sm:block lg:right-10 lg:top-10">
-            <span className="font-display text-7xl leading-none text-primary-foreground/20 lg:text-8xl">
-              {String(currentHero + 1).padStart(2, "0")}
-            </span>
-            <span className="ml-2 text-eyebrow text-primary-foreground/60">/ 03</span>
-          </div>
-          <div className="absolute inset-0 flex items-end pb-14 sm:items-center sm:pb-0">
-            <div className="site-container">
-              <div className="max-w-[34rem] text-primary-foreground">
-                <p className="text-eyebrow text-gold-soft">{heroDetails[currentHero % heroDetails.length].eyebrow}</p>
-                <h1 className="mt-4 max-w-[19rem] break-words font-display text-[2rem] font-medium leading-[0.9] tracking-[-0.035em] min-[420px]:text-[2.35rem] sm:max-w-xl sm:text-5xl md:text-[4.75rem]">
-                  {heroDetails[currentHero % heroDetails.length].title}
-                </h1>
-                <p className="mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
-                  {heroDetails[currentHero % heroDetails.length].description}
-                </p>
-                <Link
-                  to="/products"
-                  className="mt-8 inline-flex items-center gap-3 border border-gold bg-gold px-6 py-3.5 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-ink sm:px-8"
-                >
-                  Explore the edit <ArrowRight className="size-3.5" strokeWidth={1.7} />
-                </Link>
-              </div>
-            </div>
-          </div>
-           <div className="absolute inset-x-0 bottom-6 sm:bottom-8" aria-label="Hero slides">
-             <div className="site-container flex justify-end gap-2">
-               {slides.map((slide, index) => (
-                 <button
-                   key={`${slide.image}-${index}`}
-                   type="button"
-                   aria-label={`Show slide ${index + 1}`}
-                   aria-current={index === currentHero}
-                   onClick={() => {
-                     setTransitioningFrom(currentHero);
-                     activeHeroRef.current = index;
-                     setActiveHero(index);
-                     window.setTimeout(() => setTransitioningFrom(null), 750);
-                   }}
-                   className={`h-px transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-4 focus-visible:ring-offset-ink ${index === currentHero ? "w-10 bg-gold" : "w-5 bg-primary-foreground/60 hover:bg-primary-foreground"}`}
-                 />
-               ))}
+       <section className="section-frame section-frame--zari mx-0 w-full p-0 sm:mx-3 sm:w-auto sm:p-3">
+         <div className="grid min-h-[calc(100vh-150px)] overflow-hidden bg-primary lg:grid-cols-[45%_55%]">
+           <div className="order-2 flex items-center border-t border-gold/70 bg-primary px-6 py-12 text-primary-foreground sm:px-10 sm:py-16 lg:order-1 lg:border-r lg:border-t-0 lg:px-12 lg:py-20 xl:px-16">
+             <div className="max-w-[31rem]">
+               <p className="text-eyebrow text-gold-soft">{heroDetails[0].eyebrow}</p>
+               <h1 className="mt-5 max-w-[14ch] font-display text-[2.15rem] font-medium leading-[0.96] tracking-[-0.035em] min-[420px]:text-[2.5rem] sm:text-5xl lg:text-[clamp(3.4rem,5.2vw,5.6rem)]">
+                 {heroDetails[0].title}
+               </h1>
+               <p className="mt-6 max-w-[30rem] text-sm leading-relaxed text-primary-foreground/80 sm:text-base">
+                 {heroDetails[0].description}
+               </p>
+               <Link
+                 to="/products"
+                 className="mt-9 inline-flex w-full items-center justify-center gap-3 border border-gold bg-gold px-6 py-4 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-primary sm:w-auto sm:px-8"
+               >
+                 Explore the edit <ArrowRight className="size-3.5" strokeWidth={1.7} />
+               </Link>
              </div>
-          </div>
-        </div>
+           </div>
+           <div className="order-1 min-h-[60vh] lg:order-2 lg:min-h-0">
+             <img
+               src={hero.image}
+               alt={hero.alt}
+               width={1920}
+               height={1088}
+               className="hero-media h-full min-h-[60vh] w-full object-cover lg:min-h-0"
+             />
+           </div>
+         </div>
       </section>
 
       {/* Categories — compact editorial grid */}
