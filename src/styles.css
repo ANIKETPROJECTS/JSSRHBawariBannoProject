@@ -50,7 +50,7 @@
   --card-foreground: #422414;
   --popover: #fffaf5;
   --popover-foreground: #422414;
-  --primary: #893a00;
+  --primary: #b93a00;
   --primary-foreground: #fff8f0;
   --secondary: #f8e5d5;
   --secondary-foreground: #6b2e0c;
@@ -66,12 +66,12 @@
   --gold: #e69f6b;
   --gold-soft: #e6bf97;
   --ink: #3d1c08;
-  --emerald-deep: #893a00;
+  --emerald-deep: #b93a00;
   --sidebar: #fbecdc;
   --sidebar-foreground: #422414;
   --sidebar-border: #e6bf97;
-  --gradient-royal: linear-gradient(135deg, #893a00, #e36a14);
-  --shadow-luxe: 0 20px 45px -28px rgb(137 58 0 / 0.3);
+  --gradient-royal: linear-gradient(135deg, #b93a00 0%, #b93a00 58%, #e69f6b 100%);
+  --shadow-luxe: 0 20px 45px -28px rgb(185 58 0 / 0.28);
 }
 
 .dark {
