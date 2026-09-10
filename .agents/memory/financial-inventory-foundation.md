@@ -38,3 +38,9 @@ Posted purchase invoices require replacement corrections rather than in-place ed
 **Why:** Changing a posted invoice directly would destroy the original financial record and can double-count or silently remove stock.
 
 **How to apply:** Keep the original invoice immutable; create a linked correction, reverse only unconsumed original batches, reject corrections after those units are consumed, and record both reversal and replacement movements.
+
+Reorder alerts are threshold-driven: products and colour variants can each define their own reorder level, with legacy records defaulting to three units until configured.
+
+**Why:** A fixed global low-stock number is not useful for a catalogue where fast-moving colours and one-off sarees have different replenishment needs.
+
+**How to apply:** Evaluate variant thresholds independently, include out-of-stock variants in alerts, and keep the default only as a migration-safe fallback.

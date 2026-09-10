@@ -62,6 +62,19 @@ async function db(): Promise<Db> {
 
 type StockAllocation = { batchId: string; quantity: number; costPricePerUnit?: number };
 
+function reorderAlerts(product: JsonRecord) {
+  const variants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+  if (variants.length) {
+    return variants
+      .filter((variant) => Number(variant.stock ?? 0) <= Number(variant.reorderLevel ?? 3))
+      .map((variant) => ({ ...product, stock: Number(variant.stock ?? 0), alertLabel: String(variant.color ?? "Colour"), reorderLevel: Number(variant.reorderLevel ?? 3) }));
+  }
+  const stock = Number(product.stock ?? 0);
+  return stock <= Number(product.reorderLevel ?? 3)
+    ? [{ ...product, stock, reorderLevel: Number(product.reorderLevel ?? 3) }]
+    : [];
+}
+
 async function consumeStockBatches(database: Db, productId: string, variantId: string, quantity: number, session: ClientSession): Promise<StockAllocation[]> {
   const batches = database.collection("stock_batches");
   const variantFilter = variantId
@@ -224,19 +237,21 @@ function normalizeProductVariants(value: unknown, productId: string) {
     const image = String(row.image ?? rawImages[0] ?? "").trim();
     const images = [image, ...rawImages.filter((item) => item !== image)].filter(Boolean).slice(0, 5);
     const stock = Number(row.stock ?? 0);
+    const reorderLevel = Number(row.reorderLevel ?? 3);
     if (!color || rawColor === otherColorKey) throw new Error(`Color variant ${index + 1} needs a color name.`);
     if (colors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
     if (!productColors.some((option) => option.key === color)) throw new Error(`Choose a color from the approved color palette for variant ${index + 1}.`);
     if (!image) throw new Error(`Color variant "${color}" needs a cover image.`);
     if (rawImages.filter((item) => item !== image).length > 4) throw new Error(`Color variant "${color}" can have no more than four extra images.`);
     if (!Number.isInteger(stock) || stock < 0) throw new Error(`Color variant "${color}" needs a valid stock quantity.`);
+    if (!Number.isInteger(reorderLevel) || reorderLevel < 0) throw new Error(`Color variant "${color}" needs a valid reorder level.`);
     colors.add(color.toLowerCase());
     const baseId = productSlug(row.id || color) || `${productId}-variant-${index + 1}`;
     let id = baseId;
     let suffix = 2;
     while (ids.has(id)) id = `${baseId}-${suffix++}`;
     ids.add(id);
-    return { id, color, stock, image, images };
+    return { id, color, stock, reorderLevel, image, images };
   });
 }
 
@@ -287,6 +302,9 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     if (!coverImage && !variants.length) throw new Error("A cover image is required when the product has no color variants.");
     if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
     document.variants = variants;
+    const reorderLevel = Number(document.reorderLevel ?? 3);
+    if (!Number.isInteger(reorderLevel) || reorderLevel < 0) throw new Error("Enter a valid product reorder level.");
+    document.reorderLevel = reorderLevel;
     document.colors = variants.length ? [...new Set(variants.map((variant) => variant.color))] : colors;
     delete document.color;
     document.image = coverImage || variants[0]?.image || "";
@@ -2136,8 +2154,8 @@ async function handleAdmin(request: Request, path: string) {
       database.collection("products").countDocuments(),
       database.collection("categories").countDocuments(),
       database.collection("heroes").countDocuments(),
-      database.collection("products").countDocuments({ stock: { $gt: 0, $lte: 5 } }),
-      database.collection("products").countDocuments({ stock: { $lte: 0 } }),
+       database.collection("products").countDocuments({ $or: [{ stock: { $lte: 3 } }, { "variants.stock": { $lte: 3 } }] }),
+       database.collection("products").countDocuments({ $or: [{ stock: { $lte: 0 } }, { "variants.stock": { $lte: 0 } }] }),
     ]);
     return json({ products, categories, heroes, lowStock, outOfStock });
   }
@@ -2145,7 +2163,7 @@ async function handleAdmin(request: Request, path: string) {
     const database = await db();
     const [orders, products, customers, categories] = await Promise.all([
       database.collection("orders").find({}).sort({ createdAt: -1 }).limit(500).toArray(),
-      database.collection("products").find({}).project({ id: 1, name: 1, stock: 1, category: 1 }).toArray(),
+      database.collection("products").find({}).project({ id: 1, name: 1, stock: 1, reorderLevel: 1, variants: 1, category: 1 }).toArray(),
       database.collection("customers").countDocuments(),
       database.collection("categories").find({}).project({ slug: 1, label: 1, name: 1 }).toArray(),
     ]);
@@ -2172,7 +2190,7 @@ async function handleAdmin(request: Request, path: string) {
       trend: months,
       status,
       recentOrders: orders.slice(0, 6),
-      alerts: products.filter((product) => Number(product.stock ?? 0) <= 5).sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0)).slice(0, 6),
+       alerts: products.flatMap((product) => reorderAlerts(product)).sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0)).slice(0, 6),
       categoryBreakdown,
     });
   }

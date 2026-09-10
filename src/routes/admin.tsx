@@ -12,7 +12,7 @@ export const Route = createFileRoute("/admin")({
 
 type Tab = "dashboard" | "products" | "inventory" | "vendors" | "purchase-invoices" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
-type ProductVariantForm = { id?: string; color: string; stock: number | string; image: string; extraImages: string };
+type ProductVariantForm = { id?: string; color: string; stock: number | string; reorderLevel: number | string; image: string; extraImages: string };
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -1120,6 +1120,15 @@ function ProductManager() {
   async function load() { try { const [productItems, categoryItems] = await Promise.all([api("/api/admin/products"), api("/api/admin/categories")]); setProducts(productItems); setCategories(categoryItems.filter((item: RecordItem) => !item.parentSlug)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load products."); } }
   useEffect(() => { void load(); }, []);
   const categoryName = (slug: unknown) => String(categories.find((category) => String(category.slug) === String(slug))?.label ?? slug ?? "Unassigned");
+  const reorderState = (product: RecordItem) => {
+    const variants = Array.isArray(product.variants) ? product.variants as RecordItem[] : [];
+    if (variants.length) {
+      const lowVariant = variants.find((variant) => Number(variant.stock ?? 0) > 0 && Number(variant.stock ?? 0) <= Number(variant.reorderLevel ?? 3));
+      return { low: Boolean(lowVariant), out: variants.every((variant) => Number(variant.stock ?? 0) <= 0), label: lowVariant ? `${String(lowVariant.color ?? "Colour")} needs reorder` : "" };
+    }
+    const stock = Number(product.stock ?? 0);
+    return { low: stock > 0 && stock <= Number(product.reorderLevel ?? 3), out: stock <= 0, label: stock > 0 && stock <= Number(product.reorderLevel ?? 3) ? "Product needs reorder" : "" };
+  };
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
     const matches = products.filter((product) => {
@@ -1127,10 +1136,11 @@ function ProductManager() {
       const searchable = [product.name, product.id, product.fabric, product.category, categoryName(product.category)].map((value) => String(value ?? "").toLowerCase()).join(" ");
       const matchesSearch = !query || searchable.includes(query);
       const matchesCategory = categoryFilter === "all" || String(product.category ?? "") === categoryFilter;
+      const stockState = reorderState(product);
       const matchesStock = stockFilter === "all"
-        || (stockFilter === "in-stock" && productStock > 0)
-        || (stockFilter === "low-stock" && productStock > 0 && productStock <= 3)
-        || (stockFilter === "out-of-stock" && productStock === 0);
+        || (stockFilter === "in-stock" && !stockState.out)
+        || (stockFilter === "low-stock" && stockState.low)
+        || (stockFilter === "out-of-stock" && stockState.out);
       return matchesSearch && matchesCategory && matchesStock;
     });
     return matches.sort((a, b) => {
@@ -1211,6 +1221,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         id: String(row.id ?? `${String(initial.id ?? "variant")}-${index + 1}`),
         color: String(row.color ?? ""),
         stock: Math.max(0, Math.trunc(Number(row.stock ?? 0))),
+        reorderLevel: Math.max(0, Math.trunc(Number(row.reorderLevel ?? 3))),
         image: String(row.image ?? images[0] ?? ""),
         extraImages: images.slice(1).join("\n"),
       };
@@ -1251,7 +1262,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
   }));
   const addVariant = () => setForm((current) => ({
     ...current,
-    variants: [...(Array.isArray(current.variants) ? current.variants as ProductVariantForm[] : []), { color: "", stock: 0, image: "", extraImages: "" }],
+    variants: [...(Array.isArray(current.variants) ? current.variants as ProductVariantForm[] : []), { color: "", stock: 0, reorderLevel: 3, image: "", extraImages: "" }],
   }));
   const removeVariant = (index: number) => setForm((current) => ({
     ...current,
@@ -1279,8 +1290,10 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         if (!image) throw new Error(`Add a cover image for the ${normalizedColor} variant.`);
         if (variantImages.length > 5) throw new Error(`The ${normalizedColor} variant can have no more than four extra images.`);
         const stock = Number(variant.stock);
+        const reorderLevel = Number(variant.reorderLevel ?? 3);
         if (!Number.isInteger(stock) || stock < 0) throw new Error(`Enter a valid stock quantity for the ${normalizedColor} variant.`);
-        return { id: String(variant.id ?? "").trim() || undefined, color: normalizedColor, stock, image, images: variantImages };
+        if (!Number.isInteger(reorderLevel) || reorderLevel < 0) throw new Error(`Enter a valid reorder level for the ${normalizedColor} variant.`);
+        return { id: String(variant.id ?? "").trim() || undefined, color: normalizedColor, stock, reorderLevel, image, images: variantImages };
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Enter valid color variant details.");
@@ -1333,9 +1346,9 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
       <div className="mt-6 space-y-6">
         <section className="grid gap-4 sm:grid-cols-2">
           <label className="text-xs text-muted-foreground sm:col-span-2">Product name<input required value={String(form.name ?? "")} onChange={(event) => set("name", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
-          <label className="text-xs text-muted-foreground">Price (₹)<input required type="number" min="0" step="1" value={Number(form.price ?? 0)} onChange={(event) => set("price", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+           <label className="text-xs text-muted-foreground">Price (₹)<input required type="number" min="0" step="1" value={Number(form.price ?? 0)} onChange={(event) => set("price", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
           <div className="text-xs text-muted-foreground"><span>Discount (optional)</span><div className="mt-1 flex"><input type="number" min="0" step="1" value={form.discountValue === "" ? "" : Number(form.discountValue ?? 0)} onChange={(event) => set("discountValue", event.target.value === "" ? "" : Number(event.target.value))} placeholder="0" className="min-w-0 flex-1 border border-border px-3 py-2.5 text-sm" /><select value={String(form.discountType ?? "percentage")} onChange={(event) => set("discountType", event.target.value)} className="w-32 border-y border-r border-border bg-white px-2 py-2.5 text-sm"><option value="percentage">% off</option><option value="fixed">₹ off</option></select></div></div>
-          {variants.length === 0 && <label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" step="1" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>}
+           {variants.length === 0 && <><label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" step="1" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Reorder level<input required type="number" min="0" step="1" value={Number(form.reorderLevel ?? 3)} onChange={(event) => set("reorderLevel", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /><span className="text-[11px] text-muted-foreground">Flag this product when stock reaches this quantity.</span></label></>}
         </section>
         {variants.length === 0 && <section className="border-t border-border pt-5">
           <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required when no color variants are added. Add up to four extra images, one URL per line.</p>
@@ -1432,7 +1445,8 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
                           </>
                         )}
                     </div>
-                    <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                     <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
+                     <label className="text-xs text-muted-foreground">Reorder level<input required type="number" min="0" step="1" value={variant.reorderLevel === "" ? "" : Number(variant.reorderLevel ?? 3)} onChange={(event) => setVariant(index, "reorderLevel", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant cover image URL<input required value={variant.image} onChange={(event) => setVariant(index, "image", event.target.value)} placeholder="https://…/yellow-cover.jpg" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant extra image URLs <span>(optional, maximum 4)</span><textarea value={variant.extraImages} onChange={(event) => setVariant(index, "extraImages", event.target.value)} rows={3} placeholder={"https://…/yellow-detail-1.jpg\nhttps://…/yellow-detail-2.jpg"} className="mt-1 w-full resize-y border border-border bg-white px-3 py-2.5 text-sm" /></label>
                   </div>
