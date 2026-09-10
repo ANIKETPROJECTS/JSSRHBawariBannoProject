@@ -751,6 +751,7 @@ async function inventoryCrud(request: Request, movementId?: string) {
   if (movementId && (request.method === "PUT" || request.method === "PATCH")) {
     const current = await collection.findOne({ _id: new ObjectId(movementId) });
     if (!current) return fail("Inventory record not found.", 404);
+    if (current.sourcePurchaseInvoiceId) return fail("Purchase inventory movements are locked. Correct the posted purchase invoice instead.");
     const input = await body(request);
     const quantity = Math.trunc(Number(input.quantity ?? current.quantity));
     const reason = String(input.reason ?? current.reason ?? "Admin inventory adjustment").trim().slice(0, 240);
@@ -790,6 +791,7 @@ async function inventoryCrud(request: Request, movementId?: string) {
   if (movementId && request.method === "DELETE") {
     const current = await collection.findOne({ _id: new ObjectId(movementId) });
     if (!current) return fail("Inventory record not found.", 404);
+    if (current.sourcePurchaseInvoiceId) return fail("Purchase inventory movements are locked. Correct the posted purchase invoice instead.");
     const productId = String(current.productId ?? "").trim();
     const variantId = String(current.variantId ?? "").trim();
     const quantity = Number(current.quantity ?? 0);
@@ -1047,7 +1049,15 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
       database.collection("vendors").findOne({ _id: new ObjectId(String(invoice.vendorId)) }),
       lines.find({ purchaseInvoiceId: id }).sort({ _id: 1 }).toArray(),
     ]);
-    return serializeInvoice(invoice, vendor ?? undefined, invoiceLines);
+    const productIds = [...new Set(invoiceLines.map((line) => String(line.productId ?? "")).filter(Boolean))];
+    const products = await database.collection("products").find({ id: { $in: productIds } }).project({ id: 1, name: 1, variants: 1 }).toArray();
+    const productMap = new Map(products.map((product) => [String(product.id), product]));
+    const enrichedLines = invoiceLines.map((line) => {
+      const product = productMap.get(String(line.productId ?? ""));
+      const variant = Array.isArray(product?.variants) ? (product.variants as JsonRecord[]).find((entry) => String(entry.id ?? "") === String(line.variantId ?? "")) : undefined;
+      return { ...line, productName: product?.name, variantColor: variant?.color };
+    });
+    return serializeInvoice(invoice, vendor ?? undefined, enrichedLines);
   }
 
   if (request.method === "POST" && !invoiceId) {
@@ -1068,6 +1078,26 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     const input = await body(request);
     const invoice = await invoices.findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
     if (!invoice) return fail("Purchase invoice not found.", 404);
+    if (input.action === "update_payment") {
+      const paymentStatus = ["paid", "pending", "partially_paid"].includes(String(input.paymentStatus ?? invoice.paymentStatus))
+        ? String(input.paymentStatus ?? invoice.paymentStatus) : "pending";
+      const paymentMethod = ["prepaid", "cod", "credit", "bank_transfer"].includes(String(input.paymentMethod ?? invoice.paymentMethod))
+        ? String(input.paymentMethod ?? invoice.paymentMethod) : "credit";
+      const now = new Date();
+      await invoices.updateOne(
+        { _id: new ObjectId(invoiceId) },
+        { $set: { paymentStatus, paymentMethod, ...auditUpdateFields(actor, now) } },
+      );
+      await database.collection("audit_logs").insertOne({
+        entityType: "purchase_invoice",
+        entityId: invoiceId,
+        action: "payment_updated",
+        actor,
+        changes: { paymentStatus, paymentMethod },
+        createdAt: now,
+      });
+      return json(await detail(invoiceId));
+    }
     if (input.action !== "post") return fail("Unsupported purchase invoice action.");
     if (invoice.status !== "draft") return fail("Only draft invoices can be posted.");
     const invoiceLines = await lines.find({ purchaseInvoiceId: invoiceId }).toArray();
@@ -1083,6 +1113,8 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
           const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
           const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
           if (productVariants.length && !variant) throw new Error(`Product color for ${line.itemName} no longer exists.`);
+          const previousStock = Number(variant?.stock ?? product.stock ?? 0);
+          const nextStock = previousStock + quantity;
           const stockBatch = {
             productId: String(line.productId),
             variantId: variantId || undefined,
@@ -1115,6 +1147,19 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
             );
             if (!updated.modifiedCount) throw new Error(`Could not update stock for ${line.itemName}.`);
           }
+          await database.collection("inventory_movements").insertOne({
+            productId: String(line.productId),
+            ...(variantId ? { variantId, variantColor: String(variant?.color ?? "") } : {}),
+            productName: String(product.name ?? line.itemName),
+            quantity,
+            previousStock,
+            nextStock,
+            eventType: "purchase",
+            reason: `Purchase invoice ${String(invoice.vendorInvoiceNumber)}`,
+            sourcePurchaseInvoiceId: invoiceId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }, { session });
           await lines.updateOne({ _id: line._id }, { $set: { stockBatchId: String(batchResult.insertedId), updatedAt: new Date() } }, { session });
         }
         await invoices.updateOne(
