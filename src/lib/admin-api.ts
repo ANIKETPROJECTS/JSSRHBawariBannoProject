@@ -1083,6 +1083,106 @@ async function adminVendors(request: Request, vendorId?: string) {
   return json(vendors.map((vendor) => serializeVendor(vendor, summaries.get(String(vendor._id)) ?? { invoiceCount: 0, productCount: 0, lifetimeSpend: 0 })));
 }
 
+function expenseDocument(input: JsonRecord, current?: JsonRecord) {
+  const rawDate = input.date ?? current?.date;
+  const date = new Date(String(rawDate ?? ""));
+  if (Number.isNaN(date.getTime())) throw new Error("Enter a valid expense date.");
+  const category = String(input.category ?? current?.category ?? "").trim().slice(0, 80);
+  const description = String(input.description ?? current?.description ?? "").trim().slice(0, 240);
+  const amount = Number(input.amount ?? current?.amount ?? 0);
+  const paymentMode = String(input.paymentMode ?? current?.paymentMode ?? "upi");
+  if (!category) throw new Error("Enter an expense category.");
+  if (!description) throw new Error("Enter an expense description.");
+  if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter an expense amount greater than zero.");
+  if (!["cash", "upi", "card", "bank_transfer"].includes(paymentMode)) throw new Error("Choose a valid expense payment mode.");
+  return {
+    date,
+    category,
+    description,
+    amount: Math.round(amount * 100) / 100,
+    paymentMode,
+    ...(String(input.vendorId ?? current?.vendorId ?? "").trim() ? { vendorId: String(input.vendorId ?? current?.vendorId).trim() } : {}),
+  };
+}
+
+function serializeExpense(expense: JsonRecord, vendor?: JsonRecord) {
+  return {
+    ...expense,
+    _id: String(expense._id),
+    date: expense.date instanceof Date ? expense.date.toISOString() : expense.date,
+    ...(vendor ? { vendor: { _id: String(vendor._id), vendorCode: vendor.vendorCode, businessName: vendor.businessName } } : {}),
+  };
+}
+
+async function adminExpenses(request: Request, expenseId?: string) {
+  const database = await db();
+  const collection = database.collection("expenses");
+  if (expenseId && !ObjectId.isValid(expenseId)) return fail("Expense not found.", 404);
+  const actor = adminIdentity(request) ?? "admin";
+
+  if (request.method === "GET") {
+    if (expenseId) {
+      const expense = await collection.findOne({ _id: new ObjectId(expenseId) }) as JsonRecord | null;
+      if (!expense) return fail("Expense not found.", 404);
+      const vendor = expense.vendorId && ObjectId.isValid(String(expense.vendorId))
+        ? await database.collection("vendors").findOne({ _id: new ObjectId(String(expense.vendorId)) })
+        : null;
+      return json(serializeExpense(expense, vendor ?? undefined));
+    }
+    const url = new URL(request.url);
+    const category = url.searchParams.get("category")?.trim();
+    const query = category && category !== "all" ? { category } : {};
+    const expenses = await collection.find(query).sort({ date: -1, createdAt: -1 }).limit(500).toArray();
+    const vendorIds = [...new Set(expenses.map((expense) => String(expense.vendorId ?? "")).filter((id) => ObjectId.isValid(id)))];
+    const vendors = vendorIds.length
+      ? await database.collection("vendors").find({ _id: { $in: vendorIds.map((id) => new ObjectId(id)) } }).project({ vendorCode: 1, businessName: 1 }).toArray()
+      : [];
+    const vendorMap = new Map(vendors.map((vendor) => [String(vendor._id), vendor]));
+    return json(expenses.map((expense) => serializeExpense(expense, vendorMap.get(String(expense.vendorId ?? "")))));
+  }
+
+  if (request.method === "POST" || (expenseId && (request.method === "PUT" || request.method === "PATCH"))) {
+    const input = await body(request);
+    const current = expenseId ? await collection.findOne({ _id: new ObjectId(expenseId) }) as JsonRecord | null : null;
+    if (expenseId && !current) return fail("Expense not found.", 404);
+    let document: JsonRecord;
+    try {
+      document = expenseDocument(input, current ?? undefined);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Expense details are invalid.");
+    }
+    if (document.vendorId) {
+      if (!ObjectId.isValid(String(document.vendorId))) return fail("Selected vendor is invalid.");
+      const vendor = await database.collection("vendors").findOne({ _id: new ObjectId(String(document.vendorId)) });
+      if (!vendor) return fail("Selected vendor was not found.");
+    }
+    const now = new Date();
+    if (expenseId) {
+      const updated = await collection.findOneAndUpdate(
+        { _id: new ObjectId(expenseId) },
+        { $set: { ...document, ...auditUpdateFields(actor, now) } },
+        { returnDocument: "after" },
+      );
+      if (!updated) return fail("Expense not found.", 404);
+      await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "updated", actor, changes: document, createdAt: now });
+      return json(serializeExpense(updated));
+    }
+    const created = { ...document, ...auditCreateFields(actor, now) };
+    const result = await collection.insertOne(created);
+    await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: String(result.insertedId), action: "created", actor, changes: document, createdAt: now });
+    return json(serializeExpense({ ...created, _id: result.insertedId }), { status: 201 });
+  }
+
+  if (expenseId && request.method === "DELETE") {
+    const deleted = await collection.findOneAndDelete({ _id: new ObjectId(expenseId) });
+    if (!deleted) return fail("Expense not found.", 404);
+    await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "deleted", actor, changes: { amount: deleted.amount, category: deleted.category }, createdAt: new Date() });
+    return json({ ok: true });
+  }
+
+  return fail("Method not allowed.", 405);
+}
+
 function invoiceDate(value: unknown, fallback = new Date()) {
   const parsed = value ? new Date(String(value)) : fallback;
   return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -2338,6 +2438,9 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/orders") return await adminOrders(request);
   const orderMatch = path.match(/^\/api\/admin\/orders\/([^/]+)$/);
   if (orderMatch) return await adminOrders(request, orderMatch[1]);
+  if (path === "/api/admin/expenses") return await adminExpenses(request);
+  const expenseMatch = path.match(/^\/api\/admin\/expenses\/([^/]+)$/);
+  if (expenseMatch) return await adminExpenses(request, expenseMatch[1]);
   if (path === "/api/admin/vendors") return await adminVendors(request);
   const vendorMatch = path.match(/^\/api\/admin\/vendors\/([^/]+)$/);
   if (vendorMatch) return await adminVendors(request, vendorMatch[1]);

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
+type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "expenses" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 type ProductVariantForm = { id?: string; color: string; stock: number | string; reorderLevel: number | string; image: string; extraImages: string };
 
@@ -21,6 +21,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "inventory", label: "Inventory history", icon: BarChart3 },
   { id: "vendors", label: "Vendors", icon: Building2 },
   { id: "purchase-invoices", label: "Purchase invoices", icon: FileText },
+  { id: "expenses", label: "Expenses", icon: CreditCard },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "customers", label: "Customers", icon: Users },
   { id: "reviews", label: "Reviews", icon: Star },
@@ -97,7 +98,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
-          {tab === "dashboard" ? <><ProcurementDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <><ProcurementDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage /> : tab === "expenses" ? <ExpensesPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -108,6 +109,101 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false);
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); try { await api("/api/admin/login", { method: "POST", body: JSON.stringify({ email, password }) }); onSuccess(); } catch (error) { toast.error(error instanceof Error ? error.message : "Login failed."); } finally { setBusy(false); } }
   return <div className="flex min-h-screen items-center justify-center bg-[#f7f4ef] p-5"><form onSubmit={submit} className="w-full max-w-md border border-[#ded5c9] bg-white p-8 shadow-sm"><Link to="/" className="font-display text-3xl text-primary">Bawari Banno</Link><p className="mt-2 text-sm text-muted-foreground">Sign in to manage your store.</p><label className="mt-8 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Admin email<input required autoComplete="username" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="mt-5 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Password<input required autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><button disabled={busy} className="mt-7 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.18em] text-white disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button></form></div>;
+}
+
+type ExpenseRecord = RecordItem & {
+  date?: string;
+  category?: string;
+  description?: string;
+  amount?: number;
+  paymentMode?: string;
+  vendorId?: string;
+  vendor?: { businessName?: string; vendorCode?: string };
+};
+
+type ExpenseForm = {
+  _id?: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number | string;
+  paymentMode: string;
+  vendorId: string;
+};
+
+const emptyExpense: ExpenseForm = {
+  date: new Date().toISOString().slice(0, 10),
+  category: "",
+  description: "",
+  amount: "",
+  paymentMode: "upi",
+  vendorId: "",
+};
+
+function ExpensesPage() {
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [vendors, setVendors] = useState<VendorRecord[]>([]);
+  const [editing, setEditing] = useState<ExpenseForm | null>(null);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [expenseRows, vendorRows] = await Promise.all([api("/api/admin/expenses"), api("/api/admin/vendors?status=active")]);
+      setExpenses(Array.isArray(expenseRows) ? expenseRows : []);
+      setVendors(Array.isArray(vendorRows) ? vendorRows : []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load expenses.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editing) return;
+    setBusy(true);
+    try {
+      const payload = { ...editing, amount: Number(editing.amount), vendorId: editing.vendorId || undefined };
+      await api(editing._id ? `/api/admin/expenses/${editing._id}` : "/api/admin/expenses", { method: editing._id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      toast.success(editing._id ? "Expense updated." : "Expense recorded.");
+      setEditing(null);
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save expense.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(expense: ExpenseRecord) {
+    if (!expense._id || !window.confirm("Delete this expense record?")) return;
+    try {
+      await api(`/api/admin/expenses/${expense._id}`, { method: "DELETE" });
+      toast.success("Expense deleted.");
+      await load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete expense.");
+    }
+  }
+
+  const categories = [...new Set(expenses.map((expense) => String(expense.category ?? "")).filter(Boolean))].sort();
+  const visible = expenses.filter((expense) => {
+    const vendorText = `${expense.vendor?.businessName ?? ""} ${expense.vendor?.vendorCode ?? ""}`;
+    const matchesSearch = `${expense.description ?? ""} ${expense.category ?? ""} ${vendorText}`.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch && (category === "all" || expense.category === category);
+  });
+  const total = expenses.reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthTotal = expenses.filter((expense) => String(expense.date ?? "").slice(0, 7) === currentMonth).reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+
+  if (editing) return <div className="max-w-3xl"><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to expenses</button><form onSubmit={save} className="border border-[#ded5c9] bg-white p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Operating costs</p><h2 className="mt-1 font-display text-3xl text-primary">{editing._id ? "Edit expense" : "Record expense"}</h2><p className="mt-2 text-sm text-muted-foreground">Keep operating expenses separate from inventory purchase invoices.</p><div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground">Date<input required type="date" value={editing.date} onChange={(event) => setEditing({ ...editing, date: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Category<input required list="expense-categories" value={editing.category} onChange={(event) => setEditing({ ...editing, category: event.target.value })} placeholder="Travel, packaging, marketing…" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /><datalist id="expense-categories"><option value="Travel" /><option value="Packaging" /><option value="Shipping" /><option value="Marketing" /><option value="Utilities" /><option value="Rent" /><option value="Software" /><option value="Other" /></datalist></label><label className="text-xs text-muted-foreground">Amount (₹)<input required min="0.01" step="0.01" type="number" value={editing.amount} onChange={(event) => setEditing({ ...editing, amount: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Payment mode<select value={editing.paymentMode} onChange={(event) => setEditing({ ...editing, paymentMode: event.target.value })} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option></select></label><label className="text-xs text-muted-foreground sm:col-span-2">Vendor (optional)<select value={editing.vendorId} onChange={(event) => setEditing({ ...editing, vendorId: event.target.value })} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">No vendor linked</option>{vendors.map((vendor) => <option key={vendor._id} value={vendor._id}>{vendor.businessName} · {vendor.vendorCode}</option>)}</select></label><label className="text-xs text-muted-foreground sm:col-span-2">Description<textarea required maxLength={240} rows={4} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} placeholder="What was this expense for?" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label></div><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : editing._id ? "Update expense" : "Record expense"}</button></form></div>;
+
+  return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Finance ledger</p><h2 className="mt-1 font-display text-3xl text-primary">Expenses</h2><p className="mt-2 text-sm text-muted-foreground">Track operating costs separately from vendor inventory purchases.</p></div><button type="button" onClick={() => setEditing({ ...emptyExpense, date: new Date().toISOString().slice(0, 10) })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Record expense</button></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Recorded expenses" value={expenses.length} icon={CreditCard} /><MetricCard label="All-time operating cost" value={`₹${total.toLocaleString("en-IN")}`} icon={BarChart3} /><MetricCard label="This month" value={`₹${monthTotal.toLocaleString("en-IN")}`} icon={FileText} /></div><div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 md:grid-cols-[1fr_200px]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search description, category, or vendor…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={category} onChange={(event) => setCategory(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All categories</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select></div></div><div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-4 py-4">Date</th><th className="px-4 py-4">Expense</th><th className="px-4 py-4">Category</th><th className="px-4 py-4">Vendor</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4">Amount</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Loading expenses…</td></tr> : visible.length === 0 ? <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No expenses recorded yet.</td></tr> : visible.map((expense) => <tr key={expense._id} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground">{String(expense.date ?? "").slice(0, 10)}</td><td className="max-w-72 px-4 py-4 font-medium text-primary">{expense.description}</td><td className="px-4 py-4">{expense.category}</td><td className="px-4 py-4 text-xs text-muted-foreground">{expense.vendor?.businessName ?? "—"}</td><td className="px-4 py-4 text-xs capitalize">{String(expense.paymentMode ?? "").replace("_", " ")}</td><td className="px-4 py-4 font-medium">₹{Number(expense.amount ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4 text-right"><button type="button" onClick={() => setEditing({ _id: expense._id, date: String(expense.date ?? "").slice(0, 10), category: String(expense.category ?? ""), description: String(expense.description ?? ""), amount: Number(expense.amount ?? 0), paymentMode: String(expense.paymentMode ?? "upi"), vendorId: String(expense.vendorId ?? "") })} className="mr-3 text-xs text-primary hover:underline">Edit</button><button type="button" onClick={() => void remove(expense)} className="text-xs text-red-700 hover:underline">Delete</button></td></tr>)}</tbody></table></div></div>;
 }
 
 type VendorRecord = RecordItem & {
@@ -1003,7 +1099,7 @@ function SettingsPage() {
   </form>;
 }
 
-const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons">, Record<string, unknown>> = {
+const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons" | "purchase-suggestions" | "vendors" | "purchase-invoices" | "expenses">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
   products: { id: "", name: "", fabric: "", colors: [], price: 0, category: "silk", subcategory: "", image: "", images: [], variants: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false, newArrival: false, trending: false, bestseller: false },

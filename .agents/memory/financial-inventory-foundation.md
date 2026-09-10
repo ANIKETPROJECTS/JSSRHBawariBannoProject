@@ -62,3 +62,9 @@ Purchase suggestions should calculate a minimum top-up to the configured reorder
 **Why:** Reorder thresholds are the only verified replenishment signal until vendor lead times, target stock, and purchasing history are configured.
 
 **How to apply:** Show the suggested quantity as an actionable planning hint, then require the Admin to confirm vendor, cost, and final quantity in a purchase invoice before posting.
+
+Operating expenses should remain separate from inventory purchase invoices, even when they reference the same vendor.
+
+**Why:** Inventory invoices affect stock batches and FIFO cost, while operating costs affect cash and margin reporting without creating sellable stock.
+
+**How to apply:** Record expenses in their own ledger with category, date, payment mode, optional vendor, and description; do not create inventory movements from expense records.
