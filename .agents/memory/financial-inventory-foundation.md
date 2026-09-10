@@ -68,3 +68,9 @@ Operating expenses should remain separate from inventory purchase invoices, even
 **Why:** Inventory invoices affect stock batches and FIFO cost, while operating costs affect cash and margin reporting without creating sellable stock.
 
 **How to apply:** Record expenses in their own ledger with category, date, payment mode, optional vendor, and description; do not create inventory movements from expense records.
+
+Business trips group operating expenses without becoming inventory or purchase records.
+
+**Why:** Travel and sourcing costs need trip-level review, but they should not alter stock, FIFO allocations, or purchase-backed inventory value.
+
+**How to apply:** Allow expenses to reference a trip; deleting a trip must preserve the expenses and safely remove only their trip association.

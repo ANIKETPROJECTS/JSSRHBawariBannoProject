@@ -1102,6 +1102,7 @@ function expenseDocument(input: JsonRecord, current?: JsonRecord) {
     amount: Math.round(amount * 100) / 100,
     paymentMode,
     ...(String(input.vendorId ?? current?.vendorId ?? "").trim() ? { vendorId: String(input.vendorId ?? current?.vendorId).trim() } : {}),
+    ...(String(input.tripId ?? current?.tripId ?? "").trim() ? { tripId: String(input.tripId ?? current?.tripId).trim() } : {}),
   };
 }
 
@@ -1134,11 +1135,19 @@ async function adminExpenses(request: Request, expenseId?: string) {
     const query = category && category !== "all" ? { category } : {};
     const expenses = await collection.find(query).sort({ date: -1, createdAt: -1 }).limit(500).toArray();
     const vendorIds = [...new Set(expenses.map((expense) => String(expense.vendorId ?? "")).filter((id) => ObjectId.isValid(id)))];
+    const tripIds = [...new Set(expenses.map((expense) => String(expense.tripId ?? "")).filter((id) => ObjectId.isValid(id)))];
     const vendors = vendorIds.length
       ? await database.collection("vendors").find({ _id: { $in: vendorIds.map((id) => new ObjectId(id)) } }).project({ vendorCode: 1, businessName: 1 }).toArray()
       : [];
+    const trips = tripIds.length
+      ? await database.collection("business_trips").find({ _id: { $in: tripIds.map((id) => new ObjectId(id)) } }).project({ tripName: 1, location: 1 }).toArray()
+      : [];
     const vendorMap = new Map(vendors.map((vendor) => [String(vendor._id), vendor]));
-    return json(expenses.map((expense) => serializeExpense(expense, vendorMap.get(String(expense.vendorId ?? "")))));
+    const tripMap = new Map(trips.map((trip) => [String(trip._id), trip]));
+    return json(expenses.map((expense) => {
+      const trip = tripMap.get(String(expense.tripId ?? ""));
+      return { ...serializeExpense(expense, vendorMap.get(String(expense.vendorId ?? ""))), trip: trip ? { _id: String(trip._id), tripName: trip.tripName, location: trip.location } : undefined };
+    }));
   }
 
   if (request.method === "POST" || (expenseId && (request.method === "PUT" || request.method === "PATCH"))) {
@@ -1155,6 +1164,11 @@ async function adminExpenses(request: Request, expenseId?: string) {
       if (!ObjectId.isValid(String(document.vendorId))) return fail("Selected vendor is invalid.");
       const vendor = await database.collection("vendors").findOne({ _id: new ObjectId(String(document.vendorId)) });
       if (!vendor) return fail("Selected vendor was not found.");
+    }
+    if (document.tripId) {
+      if (!ObjectId.isValid(String(document.tripId))) return fail("Selected trip is invalid.");
+      const trip = await database.collection("business_trips").findOne({ _id: new ObjectId(String(document.tripId)) });
+      if (!trip) return fail("Selected trip was not found.");
     }
     const now = new Date();
     if (expenseId) {
@@ -1177,6 +1191,83 @@ async function adminExpenses(request: Request, expenseId?: string) {
     const deleted = await collection.findOneAndDelete({ _id: new ObjectId(expenseId) });
     if (!deleted) return fail("Expense not found.", 404);
     await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "deleted", actor, changes: { amount: deleted.amount, category: deleted.category }, createdAt: new Date() });
+    return json({ ok: true });
+  }
+
+  return fail("Method not allowed.", 405);
+}
+
+function tripDocument(input: JsonRecord, current?: JsonRecord) {
+  const tripName = String(input.tripName ?? current?.tripName ?? "").trim().slice(0, 120);
+  const purpose = String(input.purpose ?? current?.purpose ?? "").trim().slice(0, 240);
+  const location = String(input.location ?? current?.location ?? "").trim().slice(0, 160);
+  const startDate = new Date(String(input.startDate ?? current?.startDate ?? ""));
+  const endDateValue = String(input.endDate ?? current?.endDate ?? "").trim();
+  const endDate = endDateValue ? new Date(endDateValue) : undefined;
+  if (!tripName) throw new Error("Enter a trip name.");
+  if (Number.isNaN(startDate.getTime())) throw new Error("Enter a valid trip start date.");
+  if (endDate && Number.isNaN(endDate.getTime())) throw new Error("Enter a valid trip end date.");
+  if (endDate && endDate < startDate) throw new Error("Trip end date cannot be before the start date.");
+  return { tripName, purpose, location, startDate, ...(endDate ? { endDate } : {}), notes: String(input.notes ?? current?.notes ?? "").trim().slice(0, 500) };
+}
+
+function serializeTrip(trip: JsonRecord, summary: JsonRecord = {}) {
+  return {
+    ...trip,
+    _id: String(trip._id),
+    startDate: trip.startDate instanceof Date ? trip.startDate.toISOString() : trip.startDate,
+    endDate: trip.endDate instanceof Date ? trip.endDate.toISOString() : trip.endDate,
+    ...summary,
+  };
+}
+
+async function adminBusinessTrips(request: Request, tripId?: string) {
+  const database = await db();
+  const collection = database.collection("business_trips");
+  if (tripId && !ObjectId.isValid(tripId)) return fail("Business trip not found.", 404);
+  const actor = adminIdentity(request) ?? "admin";
+
+  if (request.method === "GET") {
+    if (tripId) {
+      const trip = await collection.findOne({ _id: new ObjectId(tripId) }) as JsonRecord | null;
+      if (!trip) return fail("Business trip not found.", 404);
+      const expenses = await database.collection("expenses").find({ tripId }).sort({ date: -1 }).toArray();
+      return json(serializeTrip(trip, { expenses: expenses.map((expense) => serializeExpense(expense)), expenseCount: expenses.length, expenseTotal: expenses.reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0) }));
+    }
+    const trips = await collection.find({}).sort({ startDate: -1, createdAt: -1 }).limit(300).toArray();
+    const summaries = await database.collection("expenses").aggregate([{ $match: { tripId: { $exists: true, $ne: "" } } }, { $group: { _id: "$tripId", expenseCount: { $sum: 1 }, expenseTotal: { $sum: { $ifNull: ["$amount", 0] } } } }]).toArray();
+    const summaryMap = new Map(summaries.map((summary) => [String(summary._id), summary]));
+    return json(trips.map((trip) => serializeTrip(trip, summaryMap.get(String(trip._id)) ?? { expenseCount: 0, expenseTotal: 0 })));
+  }
+
+  if (request.method === "POST" || (tripId && (request.method === "PUT" || request.method === "PATCH"))) {
+    const input = await body(request);
+    const current = tripId ? await collection.findOne({ _id: new ObjectId(tripId) }) as JsonRecord | null : null;
+    if (tripId && !current) return fail("Business trip not found.", 404);
+    let document: JsonRecord;
+    try {
+      document = tripDocument(input, current ?? undefined);
+    } catch (error) {
+      return fail(error instanceof Error ? error.message : "Business trip details are invalid.");
+    }
+    const now = new Date();
+    if (tripId) {
+      const updated = await collection.findOneAndUpdate({ _id: new ObjectId(tripId) }, { $set: { ...document, ...auditUpdateFields(actor, now) } }, { returnDocument: "after" });
+      if (!updated) return fail("Business trip not found.", 404);
+      await database.collection("audit_logs").insertOne({ entityType: "business_trip", entityId: tripId, action: "updated", actor, changes: document, createdAt: now });
+      return json(serializeTrip(updated));
+    }
+    const created = { ...document, ...auditCreateFields(actor, now) };
+    const result = await collection.insertOne(created);
+    await database.collection("audit_logs").insertOne({ entityType: "business_trip", entityId: String(result.insertedId), action: "created", actor, changes: document, createdAt: now });
+    return json(serializeTrip({ ...created, _id: result.insertedId }), { status: 201 });
+  }
+
+  if (tripId && request.method === "DELETE") {
+    const deleted = await collection.findOneAndDelete({ _id: new ObjectId(tripId) });
+    if (!deleted) return fail("Business trip not found.", 404);
+    await database.collection("expenses").updateMany({ tripId }, { $unset: { tripId: "" }, $set: { updatedAt: new Date(), updatedBy: actor } });
+    await database.collection("audit_logs").insertOne({ entityType: "business_trip", entityId: tripId, action: "deleted", actor, changes: { tripName: deleted.tripName }, createdAt: new Date() });
     return json({ ok: true });
   }
 
@@ -2441,6 +2532,9 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/expenses") return await adminExpenses(request);
   const expenseMatch = path.match(/^\/api\/admin\/expenses\/([^/]+)$/);
   if (expenseMatch) return await adminExpenses(request, expenseMatch[1]);
+  if (path === "/api/admin/business-trips") return await adminBusinessTrips(request);
+  const businessTripMatch = path.match(/^\/api\/admin\/business-trips\/([^/]+)$/);
+  if (businessTripMatch) return await adminBusinessTrips(request, businessTripMatch[1]);
   if (path === "/api/admin/vendors") return await adminVendors(request);
   const vendorMatch = path.match(/^\/api\/admin\/vendors\/([^/]+)$/);
   if (vendorMatch) return await adminVendors(request, vendorMatch[1]);
