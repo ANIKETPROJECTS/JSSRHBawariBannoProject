@@ -128,7 +128,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
             <button type="button" onClick={closeAuth} className="absolute right-4 top-4 z-10 flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-primary" aria-label="Close sign in">
               <X className="size-4" />
             </button>
-            <div className="flex min-h-[250px] flex-col justify-between bg-[#fbf0f5] p-7 md:min-h-[520px] md:p-10">
+            <div className="flex min-h-[250px] flex-col justify-between bg-secondary p-7 md:min-h-[520px] md:p-10">
               <div>
                 <p className="font-display text-3xl tracking-tight text-primary">Bawari Banno</p>
                 <div className="mt-8 flex size-24 items-center justify-center border border-gold/40 bg-white/80 font-display text-4xl text-gold md:size-32 md:text-5xl">BB</div>

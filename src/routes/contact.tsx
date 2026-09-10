@@ -161,8 +161,8 @@ function Contact() {
           </ul>
 
           <div className="mt-12 overflow-hidden border border-border bg-white">
-            <div className="relative h-52 overflow-hidden bg-[#f1eee7]" aria-label="Dummy Google Maps preview">
-              <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(32deg,transparent_47%,#d3cec2_48%,#d3cec2_50%,transparent_51%),linear-gradient(118deg,transparent_47%,#d3cec2_48%,#d3cec2_50%,transparent_51%),linear-gradient(90deg,transparent_49%,#ddd8cd_50%,transparent_51%),linear-gradient(0deg,transparent_49%,#ddd8cd_50%,transparent_51%)] [background-size:150px_120px,180px_150px,95px_95px,120px_120px]" />
+            <div className="relative h-52 overflow-hidden bg-secondary" aria-label="Dummy Google Maps preview">
+              <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(32deg,transparent_47%,#e6bf97_48%,#e6bf97_50%,transparent_51%),linear-gradient(118deg,transparent_47%,#e6bf97_48%,#e6bf97_50%,transparent_51%),linear-gradient(90deg,transparent_49%,#f0cfad_50%,transparent_51%),linear-gradient(0deg,transparent_49%,#f0cfad_50%,transparent_51%)] [background-size:150px_120px,180px_150px,95px_95px,120px_120px]" />
               <div className="absolute left-[52%] top-[43%] flex size-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-xl text-white shadow-lg">
                 •
               </div>

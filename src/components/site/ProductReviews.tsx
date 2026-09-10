@@ -162,7 +162,7 @@ export function ProductReviews({ productId }: { productId: string }) {
             return (
               <div key={value} className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="w-10 shrink-0">{value} star</span>
-                <div className="h-2 flex-1 bg-[#eee8df]"><div className="h-full bg-gold transition-all" style={{ width }} /></div>
+                <div className="h-2 flex-1 bg-secondary"><div className="h-full bg-gold transition-all" style={{ width }} /></div>
                 <span className="w-5 text-right">{count}</span>
               </div>
             );
@@ -171,7 +171,7 @@ export function ProductReviews({ productId }: { productId: string }) {
       </div>
 
       {showForm && (
-        <form onSubmit={submitReview} className="mt-6 border border-gold/50 bg-[#fbf8f3] p-6 md:p-8">
+        <form onSubmit={submitReview} className="mt-6 border border-gold/50 bg-card p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-eyebrow text-gold">Share your experience</p>
