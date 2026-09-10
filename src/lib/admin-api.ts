@@ -934,19 +934,19 @@ async function adminVendors(request: Request, vendorId?: string) {
   const url = new URL(request.url);
   const search = url.searchParams.get("search")?.trim();
   const status = url.searchParams.get("status")?.trim();
-  const query: JsonRecord = {
-    ...(status && status !== "all" ? { status } : {}),
-    ...(search ? {
-      $or: [
-        { vendorCode: { $regex: search, $options: "i" } },
-        { businessName: { $regex: search, $options: "i" } },
-        { legalName: { $regex: search, $options: "i" } },
-        { gstin: { $regex: search, $options: "i" } },
-        { contactPerson: { $regex: search, $options: "i" } },
-      ],
-    } : {}),
-  };
-  const vendors = await collection.find(query).sort({ status: 1, businessName: 1 }).limit(500).toArray();
+  const query: JsonRecord = status && status !== "all" ? { status } : {};
+  const candidates = await collection.find(query).sort({ status: 1, businessName: 1 }).limit(500).toArray();
+  const searchValue = search?.toLocaleLowerCase() ?? "";
+  const compactSearch = searchValue.replace(/[\s-]/g, "");
+  const vendors = searchValue
+    ? candidates.filter((vendor) => {
+      const values = [vendor.vendorCode, vendor.businessName, vendor.legalName, vendor.gstin, vendor.contactPerson]
+        .filter(Boolean)
+        .map((value) => String(value).toLocaleLowerCase());
+      return values.some((value) => value.includes(searchValue))
+        || (compactSearch && values.some((value) => value.replace(/[\s-]/g, "").includes(compactSearch)));
+    })
+    : candidates;
   const summaries = await vendorSummaries(database, vendors);
   return json(vendors.map((vendor) => serializeVendor(vendor, summaries.get(String(vendor._id)) ?? { invoiceCount: 0, productCount: 0, lifetimeSpend: 0 })));
 }

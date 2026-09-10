@@ -144,7 +144,7 @@ const emptyVendor: VendorRecord = {
   notes: "",
 };
 
-function VendorEditor({ initial, onDone }: { initial: VendorRecord; onDone: () => void }) {
+function VendorEditor({ initial, onDone }: { initial: VendorRecord; onDone: (saved?: VendorRecord) => void | Promise<void> }) {
   const [form, setForm] = useState<VendorRecord>({ ...emptyVendor, ...initial });
   const [busy, setBusy] = useState(false);
   const set = (key: keyof VendorRecord, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
@@ -154,9 +154,9 @@ function VendorEditor({ initial, onDone }: { initial: VendorRecord; onDone: () =
     setBusy(true);
     try {
       const { _id, createdAt, updatedAt, invoiceCount, productCount, lifetimeSpend, invoices, products, ...payload } = form;
-      await api(`/api/admin/vendors${_id ? `/${_id}` : ""}`, { method: _id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      const saved = await api(`/api/admin/vendors${_id ? `/${_id}` : ""}`, { method: _id ? "PUT" : "POST", body: JSON.stringify(payload) });
       toast.success(_id ? "Vendor updated." : "Vendor added.");
-      onDone();
+      await onDone(saved);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save vendor.");
     } finally {
@@ -227,7 +227,10 @@ function VendorsPage() {
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not change vendor status."); }
   }
 
-  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to vendors</button><VendorEditor initial={editing} onDone={() => { setEditing(null); void load(); }} /></div>;
+  if (editing) {
+    const returnToDetail = Boolean(selected?._id && selected._id === editing._id);
+    return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to vendors</button><VendorEditor initial={editing} onDone={async (saved) => { if (returnToDetail && saved && editing._id) await openVendor({ _id: editing._id }); await load(); setEditing(null); }} /></div>;
+  }
 
   if (selected) {
     const invoices = selected.invoices ?? [];
