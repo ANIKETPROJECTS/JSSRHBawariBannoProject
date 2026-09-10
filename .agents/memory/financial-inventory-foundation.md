@@ -56,3 +56,9 @@ Procurement dashboard totals should exclude posted original invoices that have a
 **Why:** Corrections preserve the audit trail but replace the financial amount used for current spend, vendor concentration, and cash-exposure reporting.
 
 **How to apply:** Treat the correction invoice as the effective record for aggregate reporting while retaining both documents and audit events for review.
+
+Purchase suggestions should calculate a minimum top-up to the configured reorder level and must not invent a vendor, unit cost, or target stock quantity.
+
+**Why:** Reorder thresholds are the only verified replenishment signal until vendor lead times, target stock, and purchasing history are configured.
+
+**How to apply:** Show the suggested quantity as an actionable planning hint, then require the Admin to confirm vendor, cost, and final quantity in a purchase invoice before posting.
