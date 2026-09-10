@@ -1212,9 +1212,11 @@ function tripDocument(input: JsonRecord, current?: JsonRecord) {
 }
 
 function serializeTrip(trip: JsonRecord, summary: JsonRecord = {}) {
+  const tripId = String(trip._id);
   return {
     ...trip,
-    _id: String(trip._id),
+    _id: tripId,
+    tripId: `TRIP-${tripId.slice(-8).toUpperCase()}`,
     startDate: trip.startDate instanceof Date ? trip.startDate.toISOString() : trip.startDate,
     endDate: trip.endDate instanceof Date ? trip.endDate.toISOString() : trip.endDate,
     ...summary,
@@ -1231,13 +1233,35 @@ async function adminBusinessTrips(request: Request, tripId?: string) {
     if (tripId) {
       const trip = await collection.findOne({ _id: new ObjectId(tripId) }) as JsonRecord | null;
       if (!trip) return fail("Business trip not found.", 404);
-      const expenses = await database.collection("expenses").find({ tripId }).sort({ date: -1 }).toArray();
-      return json(serializeTrip(trip, { expenses: expenses.map((expense) => serializeExpense(expense)), expenseCount: expenses.length, expenseTotal: expenses.reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0) }));
+      const [expenses, purchaseInvoices] = await Promise.all([
+        database.collection("expenses").find({ tripId }).sort({ date: -1 }).toArray(),
+        database.collection("purchase_invoices").find({ tripId }).sort({ invoiceDate: -1 }).toArray(),
+      ]);
+      const totalExpense = expenses.reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+      const purchaseInvoiceTotal = purchaseInvoices.reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0);
+      return json(serializeTrip(trip, {
+        expenses: expenses.map((expense) => serializeExpense(expense)),
+        expenseCount: expenses.length,
+        totalExpense,
+        expenseTotal: totalExpense,
+        purchaseInvoices: purchaseInvoices.map((invoice) => ({ _id: String(invoice._id), vendorInvoiceNumber: invoice.vendorInvoiceNumber, invoiceDate: invoice.invoiceDate instanceof Date ? invoice.invoiceDate.toISOString() : invoice.invoiceDate, totalPayable: invoice.totalPayable, status: invoice.status })),
+        purchaseInvoiceCount: purchaseInvoices.length,
+        purchaseInvoiceTotal,
+        totalTripCost: totalExpense + purchaseInvoiceTotal,
+      }));
     }
     const trips = await collection.find({}).sort({ startDate: -1, createdAt: -1 }).limit(300).toArray();
-    const summaries = await database.collection("expenses").aggregate([{ $match: { tripId: { $exists: true, $ne: "" } } }, { $group: { _id: "$tripId", expenseCount: { $sum: 1 }, expenseTotal: { $sum: { $ifNull: ["$amount", 0] } } } }]).toArray();
-    const summaryMap = new Map(summaries.map((summary) => [String(summary._id), summary]));
-    return json(trips.map((trip) => serializeTrip(trip, summaryMap.get(String(trip._id)) ?? { expenseCount: 0, expenseTotal: 0 })));
+    const [expenseSummaries, invoiceSummaries] = await Promise.all([
+      database.collection("expenses").aggregate([{ $match: { tripId: { $exists: true, $ne: "" } } }, { $group: { _id: "$tripId", expenseCount: { $sum: 1 }, totalExpense: { $sum: { $ifNull: ["$amount", 0] } } } }]).toArray(),
+      database.collection("purchase_invoices").aggregate([{ $match: { tripId: { $exists: true, $ne: "" } } }, { $group: { _id: "$tripId", purchaseInvoiceCount: { $sum: 1 }, purchaseInvoiceTotal: { $sum: { $ifNull: ["$totalPayable", 0] } } } }]).toArray(),
+    ]);
+    const expenseMap = new Map(expenseSummaries.map((summary) => [String(summary._id), summary]));
+    const invoiceMap = new Map(invoiceSummaries.map((summary) => [String(summary._id), summary]));
+    return json(trips.map((trip) => {
+      const expenses = expenseMap.get(String(trip._id)) ?? { expenseCount: 0, totalExpense: 0 };
+      const invoices = invoiceMap.get(String(trip._id)) ?? { purchaseInvoiceCount: 0, purchaseInvoiceTotal: 0 };
+      return serializeTrip(trip, { ...expenses, ...invoices, expenseTotal: expenses.totalExpense, totalTripCost: Number(expenses.totalExpense ?? 0) + Number(invoices.purchaseInvoiceTotal ?? 0) });
+    }));
   }
 
   if (request.method === "POST" || (tripId && (request.method === "PUT" || request.method === "PATCH"))) {
@@ -1311,6 +1335,12 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
       if (!originalCorrectionInvoice || originalCorrectionInvoice.status !== "posted") throw new Error("A correction must reference an existing posted invoice.");
       if (!correctionReason) throw new Error("Add a reason for correcting the posted invoice.");
     }
+    const tripId = String(input.tripId ?? current?.tripId ?? "").trim();
+    if (tripId) {
+      if (!ObjectId.isValid(tripId)) throw new Error("The business trip reference is invalid.");
+      const trip = await database.collection("business_trips").findOne({ _id: new ObjectId(tripId) });
+      if (!trip) throw new Error("Choose an existing business trip.");
+    }
     const parsedInvoiceDate = invoiceDate(input.invoiceDate ?? current?.invoiceDate);
     if (!parsedInvoiceDate) throw new Error("Enter a valid invoice date.");
     const paymentMethod = ["prepaid", "cod", "credit", "bank_transfer"].includes(String(input.paymentMethod ?? current?.paymentMethod))
@@ -1364,7 +1394,7 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
         taxAmount,
         totalPayable: Math.round((subtotal + taxAmount) * 100) / 100,
         receivedDate: invoiceDate(input.receivedDate ?? current?.receivedDate, parsedInvoiceDate) ?? parsedInvoiceDate,
-        tripId: String(input.tripId ?? current?.tripId ?? "").trim() || undefined,
+        tripId: tripId || undefined,
         notes: String(input.notes ?? current?.notes ?? "").trim().slice(0, 2000),
         documentFile: current?.documentFile ?? originalCorrectionInvoice?.documentFile,
         correctionOfInvoiceId: correctionOfInvoiceId || undefined,
