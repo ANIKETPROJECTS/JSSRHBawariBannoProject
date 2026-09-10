@@ -679,7 +679,7 @@ async function inventoryHistory(request: Request) {
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
   const database = await db();
   const movements = await database.collection("inventory_movements").find(query).sort({ createdAt: -1 }).limit(500).toArray();
-  const purchaseBatches = eventType !== "manual"
+  const purchaseBatches = (!eventType || eventType === "all" || eventType === "purchase")
     ? await database.collection("stock_batches").find({
       sourceType: "purchase",
       ...(productId ? { productId } : {}),
@@ -1022,6 +1022,14 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     if (!vendor) throw new Error("Choose an existing vendor.");
     const vendorInvoiceNumber = String(input.vendorInvoiceNumber ?? current?.vendorInvoiceNumber ?? "").trim().slice(0, 80);
     if (!vendorInvoiceNumber) throw new Error("Vendor invoice number is required.");
+    const correctionOfInvoiceId = String(input.correctionOfInvoiceId ?? current?.correctionOfInvoiceId ?? "").trim();
+    const correctionReason = String(input.correctionReason ?? current?.correctionReason ?? "").trim().slice(0, 500);
+    if (correctionOfInvoiceId) {
+      if (!ObjectId.isValid(correctionOfInvoiceId)) throw new Error("The original invoice reference is invalid.");
+      const original = await invoices.findOne({ _id: new ObjectId(correctionOfInvoiceId) });
+      if (!original || original.status !== "posted") throw new Error("A correction must reference an existing posted invoice.");
+      if (!correctionReason) throw new Error("Add a reason for correcting the posted invoice.");
+    }
     const parsedInvoiceDate = invoiceDate(input.invoiceDate ?? current?.invoiceDate);
     if (!parsedInvoiceDate) throw new Error("Enter a valid invoice date.");
     const paymentMethod = ["prepaid", "cod", "credit", "bank_transfer"].includes(String(input.paymentMethod ?? current?.paymentMethod))
@@ -1077,6 +1085,8 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
         receivedDate: invoiceDate(input.receivedDate ?? current?.receivedDate, parsedInvoiceDate) ?? parsedInvoiceDate,
         tripId: String(input.tripId ?? current?.tripId ?? "").trim() || undefined,
         notes: String(input.notes ?? current?.notes ?? "").trim().slice(0, 2000),
+        correctionOfInvoiceId: correctionOfInvoiceId || undefined,
+        correctionReason: correctionReason || undefined,
       },
       lineDocuments,
       vendor,
@@ -1143,9 +1153,66 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     if (invoice.status !== "draft") return fail("Only draft invoices can be posted.");
     const invoiceLines = await lines.find({ purchaseInvoiceId: invoiceId }).toArray();
     if (!invoiceLines.length) return fail("Add invoice lines before posting.");
+    const correctionOfInvoiceId = String(invoice.correctionOfInvoiceId ?? "");
+    let originalCorrectionInvoice: JsonRecord | null = null;
+    let originalCorrectionLines: JsonRecord[] = [];
+    if (correctionOfInvoiceId) {
+      originalCorrectionInvoice = await invoices.findOne({ _id: new ObjectId(correctionOfInvoiceId) }) as JsonRecord | null;
+      if (!originalCorrectionInvoice || originalCorrectionInvoice.status !== "posted") return fail("The original invoice for this correction is not posted.", 409);
+      const existingCorrection = await invoices.findOne({ correctionOfInvoiceId, status: "posted", _id: { $ne: new ObjectId(invoiceId) } });
+      if (existingCorrection) return fail("This posted invoice already has a completed correction.", 409);
+      originalCorrectionLines = await lines.find({ purchaseInvoiceId: correctionOfInvoiceId }).toArray();
+      if (!originalCorrectionLines.length) return fail("The original invoice has no lines to reverse.", 409);
+    }
     const session = (await getClient()).startSession();
     try {
       await session.withTransaction(async () => {
+        if (correctionOfInvoiceId && originalCorrectionInvoice) {
+          for (const originalLine of originalCorrectionLines) {
+            const originalQuantity = Number(originalLine.quantityPurchased ?? 0);
+            const originalVariantId = String(originalLine.variantId ?? "");
+            const originalBatchId = String(originalLine.stockBatchId ?? "");
+            if (!originalBatchId || !ObjectId.isValid(originalBatchId)) throw new Error(`Original line ${originalLine.itemName} has no reversible stock batch.`);
+            const originalBatch = await database.collection("stock_batches").findOne({ _id: new ObjectId(originalBatchId) }, { session });
+            if (!originalBatch) throw new Error(`Stock batch for ${originalLine.itemName} could not be found.`);
+            if (Number(originalBatch.quantityRemaining ?? 0) < originalQuantity) throw new Error(`Cannot correct ${originalLine.itemName} because some of its stock has already been sold or consumed.`);
+            const originalProduct = await database.collection("products").findOne({ id: String(originalLine.productId) }, { session });
+            if (!originalProduct) throw new Error(`Product ${originalLine.productId} no longer exists.`);
+            const originalVariants = Array.isArray(originalProduct.variants) ? originalProduct.variants as JsonRecord[] : [];
+            const originalVariant = originalVariantId ? originalVariants.find((entry) => String(entry.id ?? "") === originalVariantId) : undefined;
+            const previousStock = Number(originalVariant?.stock ?? originalProduct.stock ?? 0);
+            const nextStock = previousStock - originalQuantity;
+            if (nextStock < 0) throw new Error(`Cannot reverse ${originalLine.itemName} because current stock is lower than the original quantity.`);
+            const reverseResult = await database.collection("products").updateOne(
+              originalVariantId
+                ? { id: String(originalLine.productId), variants: { $elemMatch: { id: originalVariantId, stock: previousStock } } }
+                : { id: String(originalLine.productId), stock: previousStock },
+              originalVariantId
+                ? { $inc: { "variants.$.stock": -originalQuantity, stock: -originalQuantity }, $set: { updatedAt: new Date() } }
+                : { $set: { stock: nextStock, updatedAt: new Date() } },
+              { session },
+            );
+            if (!reverseResult.modifiedCount) throw new Error(`Could not reverse stock for ${originalLine.itemName}.`);
+            await database.collection("stock_batches").updateOne(
+              { _id: new ObjectId(originalBatchId) },
+              { $set: { quantityRemaining: 0, status: "void", sourceCorrectionInvoiceId: invoiceId, ...auditUpdateFields(actor) } },
+              { session },
+            );
+            await database.collection("inventory_movements").insertOne({
+              productId: String(originalLine.productId),
+              ...(originalVariantId ? { variantId: originalVariantId, variantColor: String(originalVariant?.color ?? "") } : {}),
+              productName: String(originalProduct.name ?? originalLine.itemName),
+              quantity: -originalQuantity,
+              previousStock,
+              nextStock,
+              eventType: "purchase_correction",
+              reason: `Reversed by correction ${String(invoice.vendorInvoiceNumber)}`,
+              sourcePurchaseInvoiceId: correctionOfInvoiceId,
+              sourceCorrectionInvoiceId: invoiceId,
+              ...auditCreateFields(actor),
+            }, { session });
+          }
+        }
         for (const line of invoiceLines) {
           const product = await database.collection("products").findOne({ id: String(line.productId) }, { session });
           if (!product) throw new Error(`Product ${line.productId} no longer exists.`);
@@ -1163,6 +1230,7 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
             vendorProductCode: String(line.vendorProductCode ?? ""),
             sourceType: "purchase",
             sourcePurchaseInvoiceId: invoiceId,
+            ...(correctionOfInvoiceId ? { sourceCorrectionInvoiceId: invoiceId } : {}),
             sourcePurchaseInvoiceLineId: String(line._id),
             sourceLabel: String(invoice.vendorInvoiceNumber),
             quantityReceived: quantity,
@@ -1208,6 +1276,16 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
           { $set: { status: "posted", postedAt: new Date(), postedBy: actor, ...auditUpdateFields(actor) } },
           { session },
         );
+        if (correctionOfInvoiceId) {
+          await database.collection("audit_logs").insertOne({
+            entityType: "purchase_invoice",
+            entityId: correctionOfInvoiceId,
+            action: "corrected",
+            actor,
+            changes: { correctionInvoiceId: invoiceId, correctionReason: invoice.correctionReason },
+            createdAt: new Date(),
+          }, { session });
+        }
         await database.collection("audit_logs").insertOne({ entityType: "purchase_invoice", entityId: invoiceId, action: "posted", actor, createdAt: new Date() }, { session });
       });
       return json(await detail(invoiceId));

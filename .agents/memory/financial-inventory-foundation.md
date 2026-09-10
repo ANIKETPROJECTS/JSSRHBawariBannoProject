@@ -26,3 +26,9 @@ Product stock details should show a human-readable activity timeline, including 
 **Why:** The current stock number alone cannot prove how a color changed; operators need to reconcile a purchase quantity with the variant’s before/after stock.
 
 **How to apply:** Show actor, action, product or color, quantity, source invoice, date, and before/after stock when available; label batch-derived history when exact before/after values are not stored.
+
+Posted purchase invoices require replacement corrections rather than in-place edits.
+
+**Why:** Changing a posted invoice directly would destroy the original financial record and can double-count or silently remove stock.
+
+**How to apply:** Keep the original invoice immutable; create a linked correction, reverse only unconsumed original batches, reject corrections after those units are consumed, and record both reversal and replacement movements.

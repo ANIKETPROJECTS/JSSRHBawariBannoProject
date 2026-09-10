@@ -256,6 +256,7 @@ function VendorsPage() {
 
 type PurchaseInvoiceLineForm = {
   _id?: string;
+  stockBatchId?: string;
   productId: string;
   variantId: string;
   productName?: string;
@@ -285,6 +286,8 @@ type PurchaseInvoiceRecord = RecordItem & {
   vendor?: { _id?: string; vendorCode?: string; businessName?: string };
   lines?: PurchaseInvoiceLineForm[];
   postedAt?: string;
+  correctionOfInvoiceId?: string;
+  correctionReason?: string;
 };
 
 const emptyInvoice: PurchaseInvoiceRecord = {
@@ -353,6 +356,8 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
         taxType: form.taxType || undefined,
         taxRate: Number(form.taxRate ?? 0),
         notes: form.notes,
+        correctionOfInvoiceId: form.correctionOfInvoiceId,
+        correctionReason: form.correctionReason,
         lines: lines.map(({ _id, ...line }) => line),
       };
       const saved = await api(`/api/admin/purchase-invoices${form._id ? `/${form._id}` : ""}`, { method: form._id ? "PUT" : "POST", body: JSON.stringify(payload) });
@@ -372,11 +377,11 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
   }
 
   return <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="max-w-6xl border border-[#ded5c9] bg-white p-6">
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Procurement</p><h2 className="mt-1 font-display text-3xl text-primary">{form._id ? "Purchase invoice" : "New purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">{form._id ? `${form.status === "posted" ? "Posted and locked" : "Draft"} invoice` : "Save as a draft, then post when the stock has been checked."}</p></div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+       <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Procurement</p><h2 className="mt-1 font-display text-3xl text-primary">{form.correctionOfInvoiceId ? "Correction invoice" : form._id ? "Purchase invoice" : "New purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">{form.correctionOfInvoiceId ? "Prepare a replacement for a posted invoice." : form._id ? `${form.status === "posted" ? "Posted and locked" : "Draft"} invoice` : "Save as a draft, then post when the stock has been checked."}</p></div>
       <button type="button" onClick={() => void onDone()} className="text-xs text-muted-foreground hover:text-primary">Cancel</button>
     </div>
-    <fieldset disabled={locked || busy} className="mt-7">
+     <fieldset disabled={locked || busy} className="mt-7">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-xs text-muted-foreground lg:col-span-2">Vendor<select required value={form.vendorId ?? ""} onChange={(event) => set("vendorId", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">Choose vendor</option>{vendors.map((vendor) => <option key={vendor._id} value={vendor._id}>{vendor.vendorCode} · {vendor.businessName}</option>)}</select></label>
         <label className="text-xs text-muted-foreground">Vendor invoice number<input required maxLength={80} value={form.vendorInvoiceNumber ?? ""} onChange={(event) => set("vendorInvoiceNumber", event.target.value)} placeholder="INV-2026-001" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
@@ -388,6 +393,7 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
         <label className="text-xs text-muted-foreground">Tax rate (%)<input type="number" min="0" max="100" step="0.01" value={Number(form.taxRate ?? 0)} onChange={(event) => set("taxRate", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
         <label className="text-xs text-muted-foreground">Place of supply<input maxLength={80} value={form.placeOfSupply ?? ""} onChange={(event) => set("placeOfSupply", event.target.value)} placeholder="Gujarat" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
       </div>
+       {form.correctionOfInvoiceId && <div className="mt-6 border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-medium">Correction of posted invoice</p><p className="mt-1">The original invoice remains unchanged. Posting this correction reverses its unconsumed stock and applies these corrected lines.</p><label className="mt-3 block text-xs text-amber-900">Correction reason<textarea required rows={2} maxLength={500} value={form.correctionReason ?? ""} onChange={(event) => set("correctionReason", event.target.value)} className="mt-1 w-full border border-amber-200 bg-white px-3 py-2.5 text-sm" placeholder="Explain the quantity, colour, or cost correction" /></label></div>}
       <div className="mt-8 overflow-x-auto border border-border">
         <div className="min-w-[920px]">
           <div className="grid grid-cols-[1.6fr_1fr_1.1fr_0.8fr_1fr_36px] gap-3 border-b border-border bg-[#fbf9f6] px-3 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><span>Product</span><span>Colour</span><span>Vendor code</span><span>Qty</span><span>Cost / unit</span><span /></div>
@@ -411,7 +417,7 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
         <div className="border border-border bg-[#fbf9f6] p-4 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><strong>₹{subtotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong></div><div className="mt-3 flex justify-between"><span className="text-muted-foreground">Tax ({taxRate || 0}%)</span><strong>₹{taxAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong></div><div className="mt-4 flex justify-between border-t border-border pt-4 text-base"><span className="font-medium text-primary">Total payable</span><strong className="text-primary">₹{total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong></div></div>
       </div>
     </fieldset>
-    {!locked && <div className="mt-7 flex flex-wrap gap-3"><button disabled={busy} type="submit" className="inline-flex items-center gap-2 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" />{busy ? "Saving…" : "Save draft"}</button><button disabled={busy} type="button" onClick={() => void submit(true)} className="border border-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-primary disabled:opacity-50">Save & post</button></div>}
+     {!locked && <div className="mt-7 flex flex-wrap gap-3"><button disabled={busy} type="submit" className="inline-flex items-center gap-2 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" />{busy ? "Saving…" : form.correctionOfInvoiceId ? "Save correction draft" : "Save draft"}</button><button disabled={busy} type="button" onClick={() => void submit(true)} className="border border-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-primary disabled:opacity-50">{form.correctionOfInvoiceId ? "Save & post correction" : "Save & post"}</button></div>}
     {locked && <div className="mt-7 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">This invoice is posted and locked. Its purchase stock batch has been created and future corrections must use an explicit correction flow.</div>}
   </form>;
 }
@@ -443,10 +449,10 @@ function PostedPaymentEditor({ invoice, onUpdated }: { invoice: PurchaseInvoiceR
   return <section className="mt-6 border border-[#ded5c9] bg-white p-6"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Payment tracking</p><h3 className="mt-1 font-display text-2xl text-primary">Update payment</h3><p className="mt-2 text-sm text-muted-foreground">Payment can change after posting; stock and invoice lines remain locked.</p></div><span className="border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-amber-800">{titleCase(invoice.paymentStatus)}</span></div><div className="mt-5 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"><label className="text-xs text-muted-foreground">Payment status<select value={paymentStatus} onChange={(event) => setPaymentStatus(event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="pending">Pending</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option></select></label><label className="text-xs text-muted-foreground">Payment method<select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="credit">Credit</option><option value="prepaid">Prepaid</option><option value="bank_transfer">Bank transfer</option><option value="cod">COD</option></select></label><button type="button" disabled={busy || (paymentStatus === invoice.paymentStatus && paymentMethod === invoice.paymentMethod)} onClick={() => void save()} className="bg-primary px-4 py-2.5 text-xs uppercase tracking-[0.12em] text-white disabled:opacity-40">{busy ? "Saving…" : "Save payment"}</button></div></section>;
 }
 
-function PurchaseInvoiceDetail({ invoice, onBack, onEdit, onPaymentUpdated }: { invoice: PurchaseInvoiceRecord; onBack: () => void; onEdit: () => void; onPaymentUpdated: (invoice: PurchaseInvoiceRecord) => void }) {
+function PurchaseInvoiceDetail({ invoice, onBack, onEdit, onPaymentUpdated, onCorrect }: { invoice: PurchaseInvoiceRecord; onBack: () => void; onEdit: () => void; onPaymentUpdated: (invoice: PurchaseInvoiceRecord) => void; onCorrect: () => void }) {
   return <div>
     <button type="button" onClick={onBack} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button>
-    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">{invoice.vendor?.vendorCode} · {invoice.vendorInvoiceNumber}</p><h2 className="mt-1 font-display text-3xl text-primary">{invoice.vendor?.businessName ?? "Purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">Invoice date {String(invoice.invoiceDate ?? "").slice(0, 10)} · {invoice.lines?.length ?? 0} line items</p></div><div className="flex items-center gap-3"><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] ${invoiceStatusStyle(invoice.status)}`}>{invoice.status}</span>{invoice.status === "draft" && <button type="button" onClick={onEdit} className="border border-primary px-4 py-2.5 text-xs text-primary">Edit draft</button>}</div></div>
+     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">{invoice.vendor?.vendorCode} · {invoice.vendorInvoiceNumber}</p><h2 className="mt-1 font-display text-3xl text-primary">{invoice.vendor?.businessName ?? "Purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">Invoice date {String(invoice.invoiceDate ?? "").slice(0, 10)} · {invoice.lines?.length ?? 0} line items</p>{invoice.correctionOfInvoiceId && <p className="mt-2 text-xs text-amber-800">Correction of invoice {invoice.correctionOfInvoiceId}</p>}</div><div className="flex flex-wrap items-center gap-3"><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] ${invoiceStatusStyle(invoice.status)}`}>{invoice.status}</span>{invoice.status === "posted" && !invoice.correctionOfInvoiceId && <button type="button" onClick={onCorrect} className="border border-primary px-4 py-2.5 text-xs text-primary">Create correction</button>}{invoice.status === "draft" && <button type="button" onClick={onEdit} className="border border-primary px-4 py-2.5 text-xs text-primary">Edit draft</button>}</div></div>
      <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Subtotal" value={`₹${Number(invoice.subtotal ?? 0).toLocaleString("en-IN")}`} icon={FileText} /><MetricCard label="Tax" value={`₹${Number(invoice.taxAmount ?? 0).toLocaleString("en-IN")}`} icon={BarChart3} /><MetricCard label="Total payable" value={`₹${Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}`} icon={CreditCard} /></div>{invoice.status === "posted" && <PostedPaymentEditor invoice={invoice} onUpdated={onPaymentUpdated} />}
     <section className="mt-6 border border-[#ded5c9] bg-white p-6"><div className="grid gap-4 text-sm sm:grid-cols-4"><p><span className="block text-xs text-muted-foreground">Payment</span>{titleCase(invoice.paymentStatus)} · {titleCase(invoice.paymentMethod)}</p><p><span className="block text-xs text-muted-foreground">Tax</span>{invoice.taxType ? `${invoice.taxType} · ${invoice.taxRate}%` : "No tax"}</p><p><span className="block text-xs text-muted-foreground">Place of supply</span>{invoice.placeOfSupply || "Not added"}</p><p><span className="block text-xs text-muted-foreground">Received</span>{String(invoice.receivedDate ?? "").slice(0, 10) || "—"}</p></div><div className="mt-6 overflow-x-auto border border-border"><table className="w-full min-w-[680px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-3 py-3">Catalog product / colour</th><th className="px-3 py-3">Vendor code</th><th className="px-3 py-3">Qty</th><th className="px-3 py-3">Cost / unit</th><th className="px-3 py-3 text-right">Line total</th></tr></thead><tbody>{(invoice.lines ?? []).map((line) => <tr key={line._id} className="border-b border-border last:border-0"><td className="px-3 py-3"><p className="font-medium text-primary">{line.productName ?? line.itemName}</p>{line.variantColor && <p className="mt-1 text-xs text-muted-foreground">Colour: {line.variantColor}</p>}</td><td className="px-3 py-3 text-muted-foreground">{line.vendorProductCode || "—"}</td><td className="px-3 py-3">{line.quantityPurchased}</td><td className="px-3 py-3">₹{Number(line.costPricePerUnit ?? 0).toLocaleString("en-IN")}</td><td className="px-3 py-3 text-right">₹{(Number(line.quantityPurchased ?? 0) * Number(line.costPricePerUnit ?? 0)).toLocaleString("en-IN")}</td></tr>)}</tbody></table></div>{invoice.notes && <p className="mt-5 whitespace-pre-line text-sm text-muted-foreground">{invoice.notes}</p>}</section>
   </div>;
@@ -484,6 +490,27 @@ function PurchaseInvoicesPage() {
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not load invoice details."); }
   }
 
+  function startCorrection(invoice: PurchaseInvoiceRecord) {
+    if (!invoice._id) return;
+    setSelected(null);
+    setEditing({
+      ...emptyInvoice,
+      vendorId: invoice.vendorId,
+      vendorInvoiceNumber: `${invoice.vendorInvoiceNumber ?? "invoice"}-CORRECTION`,
+      invoiceDate: new Date().toISOString().slice(0, 10),
+      receivedDate: new Date().toISOString().slice(0, 10),
+      placeOfSupply: invoice.placeOfSupply,
+      paymentMethod: invoice.paymentMethod,
+      paymentStatus: invoice.paymentStatus,
+      taxType: invoice.taxType,
+      taxRate: invoice.taxRate,
+      notes: invoice.notes,
+      correctionOfInvoiceId: invoice._id,
+      correctionReason: "",
+      lines: (invoice.lines ?? []).map(({ _id, stockBatchId, productName, variantColor, ...line }) => ({ ...line })),
+    });
+  }
+
   if (editing) {
     const returnToDetail = Boolean(selected?._id && selected._id === editing._id);
     return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button><PurchaseInvoiceEditor initial={editing} onDone={async (saved) => {
@@ -498,7 +525,7 @@ function PurchaseInvoicesPage() {
       if (saved?._id && saved.status === "posted") await openInvoice(saved);
     }} /></div>;
   }
-  if (selected) return <PurchaseInvoiceDetail invoice={selected} onBack={() => setSelected(null)} onEdit={() => setEditing(selected)} onPaymentUpdated={(updated) => { setSelected(updated); setInvoices((current) => current.map((invoice) => invoice._id === updated._id ? { ...invoice, ...updated } : invoice)); }} />;
+  if (selected) return <PurchaseInvoiceDetail invoice={selected} onBack={() => setSelected(null)} onEdit={() => setEditing(selected)} onPaymentUpdated={(updated) => { setSelected(updated); setInvoices((current) => current.map((invoice) => invoice._id === updated._id ? { ...invoice, ...updated } : invoice)); }} onCorrect={() => startCorrection(selected)} />;
 
   const drafts = invoices.filter((invoice) => invoice.status === "draft").length;
   const postedValue = invoices.filter((invoice) => invoice.status === "posted").reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0);

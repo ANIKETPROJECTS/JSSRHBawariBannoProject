@@ -51,6 +51,8 @@ export type PurchaseInvoiceDocument = AuditFields & {
   notes?: string;
   postedAt?: Date;
   postedBy?: string;
+  correctionOfInvoiceId?: string;
+  correctionReason?: string;
 };
 
 export type PurchaseInvoiceLineDocument = AuditFields & {
@@ -73,6 +75,7 @@ export type StockBatchDocument = AuditFields & {
   sourceType: StockBatchSourceType;
   sourcePurchaseInvoiceId?: string;
   sourcePurchaseInvoiceLineId?: string;
+  sourceCorrectionInvoiceId?: string;
   sourceLabel?: string;
   quantityReceived: number;
   quantityRemaining: number;
