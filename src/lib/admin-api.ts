@@ -36,6 +36,9 @@ const reviewMediaTypes = new Map<string, "image" | "video">([
   ["video/webm", "video"],
   ["video/quicktime", "video"],
 ]);
+const purchaseInvoiceDocumentBucketName = "purchase_invoice_documents";
+const purchaseInvoiceDocumentLimit = 15 * 1024 * 1024;
+const purchaseInvoiceDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 let clientPromise: Promise<MongoClient> | undefined;
 
@@ -1110,10 +1113,11 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     if (!vendorInvoiceNumber) throw new Error("Vendor invoice number is required.");
     const correctionOfInvoiceId = String(input.correctionOfInvoiceId ?? current?.correctionOfInvoiceId ?? "").trim();
     const correctionReason = String(input.correctionReason ?? current?.correctionReason ?? "").trim().slice(0, 500);
+    let originalCorrectionInvoice: JsonRecord | null = null;
     if (correctionOfInvoiceId) {
       if (!ObjectId.isValid(correctionOfInvoiceId)) throw new Error("The original invoice reference is invalid.");
-      const original = await invoices.findOne({ _id: new ObjectId(correctionOfInvoiceId) });
-      if (!original || original.status !== "posted") throw new Error("A correction must reference an existing posted invoice.");
+      originalCorrectionInvoice = await invoices.findOne({ _id: new ObjectId(correctionOfInvoiceId) }) as JsonRecord | null;
+      if (!originalCorrectionInvoice || originalCorrectionInvoice.status !== "posted") throw new Error("A correction must reference an existing posted invoice.");
       if (!correctionReason) throw new Error("Add a reason for correcting the posted invoice.");
     }
     const parsedInvoiceDate = invoiceDate(input.invoiceDate ?? current?.invoiceDate);
@@ -1171,6 +1175,7 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
         receivedDate: invoiceDate(input.receivedDate ?? current?.receivedDate, parsedInvoiceDate) ?? parsedInvoiceDate,
         tripId: String(input.tripId ?? current?.tripId ?? "").trim() || undefined,
         notes: String(input.notes ?? current?.notes ?? "").trim().slice(0, 2000),
+        documentFile: current?.documentFile ?? originalCorrectionInvoice?.documentFile,
         correctionOfInvoiceId: correctionOfInvoiceId || undefined,
         correctionReason: correctionReason || undefined,
       },
@@ -1430,6 +1435,82 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     };
   }).filter(Boolean);
   return json(filtered);
+}
+
+async function purchaseInvoiceDocument(request: Request, invoiceId: string) {
+  if (!ObjectId.isValid(invoiceId)) return fail("Purchase invoice not found.", 404);
+  const database = await db();
+  const invoice = await database.collection("purchase_invoices").findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
+  if (!invoice) return fail("Purchase invoice not found.", 404);
+  const documentFile = invoice.documentFile as JsonRecord | undefined;
+  const fileId = String(documentFile?.id ?? "");
+  if (!ObjectId.isValid(fileId)) return fail("This purchase invoice has no original document.", 404);
+  const bucket = new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName });
+
+  if (request.method === "GET") {
+    const file = await bucket.find({ _id: new ObjectId(fileId) }).next();
+    if (!file) return fail("Purchase invoice document not found.", 404);
+    const chunks: Buffer[] = [];
+    const stream = bucket.openDownloadStream(new ObjectId(fileId));
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    const filename = String(documentFile?.filename ?? file.filename ?? "purchase-invoice-document").replace(/["\r\n]/g, "_");
+    const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
+    return new Response(Buffer.concat(chunks), {
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": String(documentFile?.contentType ?? file.metadata?.contentType ?? file.contentType ?? "application/octet-stream"),
+        "content-disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      },
+    });
+  }
+
+  if (request.method !== "POST") return fail("Method not allowed.", 405);
+  if (invoice.status !== "draft") return fail("Posted invoices are locked. Upload a document on a correction draft instead.");
+  const form = await request.formData();
+  const upload = form.get("document");
+  if (!isUpload(upload) || upload.size === 0) return fail("Choose a PDF or image invoice document.");
+  if (upload.size > purchaseInvoiceDocumentLimit) return fail("Invoice documents must be smaller than 15 MB.");
+  if (!purchaseInvoiceDocumentTypes.has(upload.type)) return fail("Only PDF, JPG, PNG, WEBP, and GIF invoice documents are supported.");
+
+  try {
+    const bucket = new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName });
+    const fileId = await new Promise<ObjectId>((resolve, reject) => {
+      const stream = bucket.openUploadStream(upload.name.slice(0, 180) || "purchase-invoice-document", {
+        metadata: { contentType: upload.type, invoiceId },
+      });
+      stream.once("finish", () => resolve(stream.id as ObjectId));
+      stream.once("error", reject);
+      upload.arrayBuffer().then((buffer) => stream.end(Buffer.from(buffer))).catch(reject);
+    });
+    const documentFile = {
+      id: String(fileId),
+      filename: upload.name.slice(0, 180) || "purchase-invoice-document",
+      contentType: upload.type,
+      size: upload.size,
+      uploadedAt: new Date(),
+    };
+    await database.collection("purchase_invoices").updateOne(
+      { _id: new ObjectId(invoiceId), status: "draft" },
+      { $set: { documentFile, updatedAt: new Date() } },
+    );
+    await database.collection("audit_logs").insertOne({
+      entityType: "purchase_invoice",
+      entityId: invoiceId,
+      action: "document_uploaded",
+      actor: adminIdentity(request) ?? "admin",
+      changes: documentFile,
+      createdAt: new Date(),
+    });
+    return json(await (async () => {
+      const refreshed = await database.collection("purchase_invoices").findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
+      if (!refreshed) return {};
+      const vendor = await database.collection("vendors").findOne({ _id: new ObjectId(String(refreshed.vendorId)) });
+      const invoiceLines = await database.collection("purchase_invoice_lines").find({ purchaseInvoiceId: invoiceId }).sort({ _id: 1 }).toArray();
+      return serializeInvoice(refreshed, vendor ?? undefined, invoiceLines);
+    })());
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Could not upload the invoice document.");
+  }
 }
 
 async function ordersHistory(request: Request) {
@@ -2205,6 +2286,8 @@ async function handleAdmin(request: Request, path: string) {
   const vendorMatch = path.match(/^\/api\/admin\/vendors\/([^/]+)$/);
   if (vendorMatch) return await adminVendors(request, vendorMatch[1]);
   if (path === "/api/admin/purchase-invoices") return await adminPurchaseInvoices(request);
+  const purchaseInvoiceDocumentMatch = path.match(/^\/api\/admin\/purchase-invoices\/([^/]+)\/document$/);
+  if (purchaseInvoiceDocumentMatch) return await purchaseInvoiceDocument(request, purchaseInvoiceDocumentMatch[1]);
   const purchaseInvoiceMatch = path.match(/^\/api\/admin\/purchase-invoices\/([^/]+)$/);
   if (purchaseInvoiceMatch) return await adminPurchaseInvoices(request, purchaseInvoiceMatch[1]);
   const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);

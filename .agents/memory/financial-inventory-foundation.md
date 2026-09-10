@@ -44,3 +44,9 @@ Reorder alerts are threshold-driven: products and colour variants can each defin
 **Why:** A fixed global low-stock number is not useful for a catalogue where fast-moving colours and one-off sarees have different replenishment needs.
 
 **How to apply:** Evaluate variant thresholds independently, include out-of-stock variants in alerts, and keep the default only as a migration-safe fallback.
+
+Original purchase invoice files should be stored as private document records separate from review media, with corrections inheriting the original file unless a replacement is explicitly uploaded.
+
+**Why:** Procurement documents are audit evidence and must remain viewable after posting without exposing them publicly or breaking the original/correction chain.
+
+**How to apply:** Keep invoice document routes Admin-authenticated, preserve the original invoice's file reference during correction creation, and allow a correction draft to upload a replacement file before posting.
