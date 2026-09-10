@@ -2478,7 +2478,7 @@ async function handleAdmin(request: Request, path: string) {
   }
   if (path === "/api/admin/analytics" && request.method === "GET") {
     const database = await db();
-    const [orders, products, customers, categories, purchaseInvoices, vendors, purchaseBatches, purchaseLines] = await Promise.all([
+    const [orders, products, customers, categories, purchaseInvoices, vendors, purchaseBatches, purchaseLines, costBatches] = await Promise.all([
       database.collection("orders").find({}).sort({ createdAt: -1 }).limit(500).toArray(),
       database.collection("products").find({}).project({ id: 1, name: 1, stock: 1, reorderLevel: 1, variants: 1, category: 1 }).toArray(),
       database.collection("customers").countDocuments(),
@@ -2487,6 +2487,7 @@ async function handleAdmin(request: Request, path: string) {
       database.collection("vendors").find({}).project({ _id: 1, vendorCode: 1, businessName: 1 }).toArray(),
       database.collection("stock_batches").find({ sourceType: "purchase", quantityRemaining: { $gt: 0 } }).project({ productId: 1, quantityRemaining: 1, costPricePerUnit: 1 }).toArray(),
       database.collection("purchase_invoice_lines").find({}).project({ purchaseInvoiceId: 1, productId: 1, itemName: 1, quantityPurchased: 1, lineAmount: 1 }).toArray(),
+      database.collection("stock_batches").find({}).project({ productId: 1, variantId: 1, costPricePerUnit: 1 }).toArray(),
     ]);
     const months = Array.from({ length: 6 }, (_, index) => {
       const date = new Date();
@@ -2557,6 +2558,96 @@ async function handleAdmin(request: Request, path: string) {
       vendors: [...vendorSpend.values()].sort((a, b) => b.total - a.total).slice(0, 6),
       products: [...purchaseProductMap.values()].sort((a, b) => b.spend - a.spend).slice(0, 6),
     };
+    const costBatchMap = new Map(costBatches.map((batch) => [String(batch._id), batch.costPricePerUnit]));
+    const marginMonths = months.map((month) => ({ key: month.key, label: month.label, recognizedSales: 0, costedSales: 0, cogs: 0, grossProfit: 0, grossMarginPercent: 0 }));
+    const marginMonthMap = new Map(marginMonths.map((month) => [month.key, month]));
+    const productMargins = new Map<string, { productId: string; productName: string; units: number; costedUnits: number; recognizedSales: number; costedSales: number; cogs: number; grossProfit: number; grossMarginPercent: number }>();
+    let recognizedSales = 0;
+    let costedSales = 0;
+    let cogs = 0;
+    let soldUnits = 0;
+    let costedUnits = 0;
+    for (const order of orders) {
+      if (["cancelled", "rejected"].includes(String(order.status ?? ""))) continue;
+      const items = Array.isArray(order.items) ? order.items as JsonRecord[] : [];
+      if (!items.length) continue;
+      const itemSubtotal = items.reduce((sum, item) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0);
+      const subtotal = Number(order.subtotal ?? 0) || itemSubtotal;
+      const discount = Math.min(subtotal, Math.max(0, Number(order.discount ?? 0)));
+      const revenueFactor = subtotal > 0 ? Math.max(0, subtotal - discount) / subtotal : 0;
+      const orderDate = new Date(order.createdAt ?? Date.now());
+      const month = marginMonthMap.get(`${orderDate.getFullYear()}-${orderDate.getMonth()}`);
+      for (const item of items) {
+        const quantity = Math.max(0, Math.trunc(Number(item.quantity ?? 0)));
+        if (!quantity) continue;
+        const itemRevenue = Number(item.price ?? 0) * quantity * revenueFactor;
+        const allocations = Array.isArray(item.stockAllocations) ? item.stockAllocations as JsonRecord[] : [];
+        let itemCost = 0;
+        let itemCostedUnits = 0;
+        for (const allocation of allocations) {
+          const allocatedQuantity = Math.max(0, Math.trunc(Number(allocation.quantity ?? 0)));
+          const allocationCost = allocation.costPricePerUnit !== undefined
+            ? Number(allocation.costPricePerUnit)
+            : costBatchMap.get(String(allocation.batchId ?? ""));
+          if (!allocatedQuantity || allocationCost === undefined || !Number.isFinite(Number(allocationCost))) continue;
+          itemCost += allocatedQuantity * Number(allocationCost);
+          itemCostedUnits += allocatedQuantity;
+        }
+        itemCostedUnits = Math.min(quantity, itemCostedUnits);
+        const itemCostedSales = quantity > 0 ? itemRevenue * itemCostedUnits / quantity : 0;
+        const productId = String(item.productId ?? "unknown");
+        const current = productMargins.get(productId) ?? {
+          productId,
+          productName: String(item.name ?? productNameMap.get(productId) ?? productId),
+          units: 0,
+          costedUnits: 0,
+          recognizedSales: 0,
+          costedSales: 0,
+          cogs: 0,
+          grossProfit: 0,
+          grossMarginPercent: 0,
+        };
+        current.units += quantity;
+        current.costedUnits += itemCostedUnits;
+        current.recognizedSales += itemRevenue;
+        current.costedSales += itemCostedSales;
+        current.cogs += itemCost;
+        productMargins.set(productId, current);
+        recognizedSales += itemRevenue;
+        costedSales += itemCostedSales;
+        cogs += itemCost;
+        soldUnits += quantity;
+        costedUnits += itemCostedUnits;
+        if (month) {
+          month.recognizedSales += itemRevenue;
+          month.costedSales += itemCostedSales;
+          month.cogs += itemCost;
+        }
+      }
+    }
+    for (const month of marginMonths) {
+      month.grossProfit = month.costedSales - month.cogs;
+      month.grossMarginPercent = month.costedSales > 0 ? month.grossProfit / month.costedSales * 100 : 0;
+    }
+    const productMarginRows = [...productMargins.values()].map((product) => {
+      product.grossProfit = product.costedSales - product.cogs;
+      product.grossMarginPercent = product.costedSales > 0 ? product.grossProfit / product.costedSales * 100 : 0;
+      return product;
+    }).sort((a, b) => b.grossProfit - a.grossProfit);
+    const grossProfit = costedSales - cogs;
+    const margin = {
+      recognizedSales,
+      costedSales,
+      cogs,
+      grossProfit,
+      grossMarginPercent: costedSales > 0 ? grossProfit / costedSales * 100 : 0,
+      soldUnits,
+      costedUnits,
+      uncostedUnits: Math.max(0, soldUnits - costedUnits),
+      uncostedSales: Math.max(0, recognizedSales - costedSales),
+      months: marginMonths,
+      products: productMarginRows.slice(0, 8),
+    };
     return json({
       kpis: { revenue: orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0), orders: orders.length, customers, pending: status.pending },
       trend: months,
@@ -2565,6 +2656,7 @@ async function handleAdmin(request: Request, path: string) {
        alerts: products.flatMap((product) => reorderAlerts(product)).sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0)).slice(0, 6),
       categoryBreakdown,
       procurement,
+      margin,
     });
   }
   if (path === "/api/admin/seed" && request.method === "POST") return json(await seedCatalog());

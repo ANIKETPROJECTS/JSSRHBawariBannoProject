@@ -80,3 +80,9 @@ Business trip reporting separates `Total Expense` from purchase-invoice spend an
 **Why:** The requested trip field is specifically the sum of linked operating expenses; purchase invoices are a separate optional FK list that expands the sourcing picture without changing that expense value.
 
 **How to apply:** Keep `Total Expense (auto)` derived only from linked expenses, show linked purchase invoices and their total separately, and calculate full trip cost as both totals combined.
+
+Gross-margin reporting must use only sales with recorded FIFO costs; unknown opening-balance costs remain explicitly uncosted.
+
+**Why:** Treating missing legacy costs as zero would overstate gross profit and create false margin percentages.
+
+**How to apply:** Calculate COGS from persisted stock allocations or their batches, prorate discounts across item revenue, exclude uncosted sales from margin percentages, and report uncosted units separately.
