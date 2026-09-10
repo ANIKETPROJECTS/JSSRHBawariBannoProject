@@ -50,3 +50,9 @@ Original purchase invoice files should be stored as private document records sep
 **Why:** Procurement documents are audit evidence and must remain viewable after posting without exposing them publicly or breaking the original/correction chain.
 
 **How to apply:** Keep invoice document routes Admin-authenticated, preserve the original invoice's file reference during correction creation, and allow a correction draft to upload a replacement file before posting.
+
+Procurement dashboard totals should exclude posted original invoices that have a posted correction replacement, so corrected bills are not counted twice.
+
+**Why:** Corrections preserve the audit trail but replace the financial amount used for current spend, vendor concentration, and cash-exposure reporting.
+
+**How to apply:** Treat the correction invoice as the effective record for aggregate reporting while retaining both documents and audit events for review.
