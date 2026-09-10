@@ -3,6 +3,7 @@ import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-assets";
+import { auditCreateFields, auditUpdateFields, businessSettingsDefaults, ensureBusinessIndexes } from "@/lib/business-types";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -54,6 +55,7 @@ async function db(): Promise<Db> {
     database.collection("products").createIndex({ published: 1, category: 1, createdAt: -1 }),
     database.collection("reviews").createIndex({ productId: 1, status: 1, createdAt: -1 }),
     database.collection("reviews").createIndex({ customerId: 1, createdAt: -1 }),
+    ensureBusinessIndexes(database),
   ]);
   return database;
 }
@@ -70,19 +72,23 @@ function sessionToken(email: string) {
   return `${payload}.${signature}`;
 }
 
-function isAdmin(request: Request) {
+function adminIdentity(request: Request) {
   const cookie = request.headers.get("cookie")?.match(/bb_admin=([^;]+)/)?.[1];
-  if (!cookie) return false;
+  if (!cookie) return null;
   const [payload, signature] = cookie.split(".");
-  if (!payload || !signature) return false;
+  if (!payload || !signature) return null;
   const expected = createHmac("sha256", secret("SESSION_SECRET")).update(payload).digest("base64url");
-  if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return false;
+  if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { email?: string; exp?: number };
-    return data.email === process.env.ADMIN_EMAIL && typeof data.exp === "number" && data.exp > Date.now();
+    return data.email === process.env.ADMIN_EMAIL && typeof data.exp === "number" && data.exp > Date.now() ? data.email : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+function isAdmin(request: Request) {
+  return Boolean(adminIdentity(request));
 }
 
 function customerToken(userId: string) {
@@ -1347,10 +1353,25 @@ async function adminReviews(request: Request, reviewId?: string) {
   return json(rows.map((review) => ({ ...serializeReview(review as ReviewRecord), productName: productNames.get(String(review.productId)) ?? String(review.productId) })).filter((review) => !search || [review.productName, review.reviewerName, review.title, review.body].some((value) => String(value ?? "").toLowerCase().includes(search))));
 }
 
+function cleanStoreSettings(input: JsonRecord) {
+  const document = cleanDocument(input);
+  const shippingCharges = Number(document.shippingCharges ?? businessSettingsDefaults.shippingCharges);
+  const freeShippingThreshold = Number(document.freeShippingThreshold ?? businessSettingsDefaults.freeShippingThreshold);
+  if (!Number.isFinite(shippingCharges) || shippingCharges < 0) throw new Error("Shipping charge must be a valid non-negative number.");
+  if (!Number.isFinite(freeShippingThreshold) || freeShippingThreshold < 0) throw new Error("Free shipping threshold must be a valid non-negative number.");
+  return {
+    shippingCharges,
+    freeShippingThreshold,
+    businessState: String(document.businessState ?? businessSettingsDefaults.businessState).trim().slice(0, 80),
+    businessStateCode: String(document.businessStateCode ?? businessSettingsDefaults.businessStateCode).trim().toUpperCase().slice(0, 10),
+  };
+}
+
 async function storeSettings(request: Request) {
   const database = await db();
   const collection = database.collection("settings");
-  const defaults = { _id: "store", shippingCharges: 250, freeShippingThreshold: 15000 };
+  const defaults = businessSettingsDefaults;
+  const actor = adminIdentity(request) ?? "admin";
   if (request.method === "GET") {
     const current = await collection.findOne({ _id: "store" });
     return json({ ...(current ?? defaults), configured: Boolean(current) });
@@ -1358,13 +1379,14 @@ async function storeSettings(request: Request) {
   if (request.method === "POST") {
     const current = await collection.findOne({ _id: "store" });
     if (current) return fail("Store settings already exist. Edit the existing record.");
-    const input = cleanDocument(await body(request));
-    await collection.insertOne({ ...defaults, ...input, _id: "store", updatedAt: new Date() });
+    const now = new Date();
+    const input = cleanStoreSettings(await body(request));
+    await collection.insertOne({ ...defaults, ...input, _id: "store", ...auditCreateFields(actor, now) });
     return json({ ...(await collection.findOne({ _id: "store" })), configured: true }, { status: 201 });
   }
   if (request.method === "PUT") {
-    const input = cleanDocument(await body(request));
-    await collection.updateOne({ _id: "store" }, { $set: { ...input, updatedAt: new Date() } }, { upsert: true });
+    const input = cleanStoreSettings(await body(request));
+    await collection.updateOne({ _id: "store" }, { $set: { ...input, ...auditUpdateFields(actor) }, $setOnInsert: { ...auditCreateFields(actor) } }, { upsert: true });
     return json({ ...(await collection.findOne({ _id: "store" })), configured: true });
   }
   if (request.method === "DELETE") {

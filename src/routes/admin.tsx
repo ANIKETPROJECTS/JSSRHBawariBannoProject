@@ -1312,13 +1312,18 @@ function AnnouncementCrudPage() {
 }
 
 function SettingsCrudPage() {
-  const [form, setForm] = useState({ shippingCharges: 250, freeShippingThreshold: 15000 });
+  const [form, setForm] = useState({ shippingCharges: 250, freeShippingThreshold: 15000, businessState: "", businessStateCode: "" });
   const [configured, setConfigured] = useState(false);
   const [busy, setBusy] = useState(false);
   async function load() {
     try {
       const data = await api("/api/admin/settings");
-      setForm({ shippingCharges: Number(data.shippingCharges ?? 250), freeShippingThreshold: Number(data.freeShippingThreshold ?? 15000) });
+      setForm({
+        shippingCharges: Number(data.shippingCharges ?? 250),
+        freeShippingThreshold: Number(data.freeShippingThreshold ?? 15000),
+        businessState: String(data.businessState ?? ""),
+        businessStateCode: String(data.businessStateCode ?? ""),
+      });
       setConfigured(data.configured === true);
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load settings."); }
   }
@@ -1331,10 +1336,20 @@ function SettingsCrudPage() {
   }
   async function reset() {
     if (!window.confirm("Delete the saved settings record and restore defaults?")) return;
-    try { const data = await api("/api/admin/settings", { method: "DELETE" }); setForm({ shippingCharges: Number(data.shippingCharges), freeShippingThreshold: Number(data.freeShippingThreshold) }); setConfigured(false); toast.success("Settings reset to defaults."); }
+    try {
+      const data = await api("/api/admin/settings", { method: "DELETE" });
+      setForm({
+        shippingCharges: Number(data.shippingCharges),
+        freeShippingThreshold: Number(data.freeShippingThreshold),
+        businessState: String(data.businessState ?? ""),
+        businessStateCode: String(data.businessStateCode ?? ""),
+      });
+      setConfigured(false);
+      toast.success("Settings reset to defaults.");
+    }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not reset settings."); }
   }
-  return <form onSubmit={save} className="max-w-2xl border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Singleton store record</p><h2 className="mt-2 font-display text-3xl text-primary">Shipping settings</h2><p className="mt-2 text-sm text-muted-foreground">{configured ? "Edit the saved checkout configuration." : "No saved settings record exists yet. Create one below."}</p></div>{configured && <button type="button" onClick={() => void reset()} className="text-xs text-red-700 hover:underline">Delete / reset</button>}</div><label className="mt-7 block text-xs text-muted-foreground">Shipping charge (₹)<input type="number" min="0" value={form.shippingCharges} onChange={(event) => setForm({ ...form, shippingCharges: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="mt-5 block text-xs text-muted-foreground">Free shipping threshold (₹)<input type="number" min="0" value={form.freeShippingThreshold} onChange={(event) => setForm({ ...form, freeShippingThreshold: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : configured ? "Save settings" : "Create settings record"}</button></form>;
+  return <form onSubmit={save} className="max-w-2xl border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Singleton store record</p><h2 className="mt-2 font-display text-3xl text-primary">Store settings</h2><p className="mt-2 text-sm text-muted-foreground">{configured ? "Edit checkout and business configuration." : "No saved settings record exists yet. Create one below."}</p></div>{configured && <button type="button" onClick={() => void reset()} className="text-xs text-red-700 hover:underline">Delete / reset</button>}</div><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="block text-xs text-muted-foreground">Shipping charge (₹)<input type="number" min="0" value={form.shippingCharges} onChange={(event) => setForm({ ...form, shippingCharges: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Free shipping threshold (₹)<input type="number" min="0" value={form.freeShippingThreshold} onChange={(event) => setForm({ ...form, freeShippingThreshold: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Business state<input value={form.businessState} onChange={(event) => setForm({ ...form, businessState: event.target.value })} placeholder="e.g. Gujarat" className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">State code<input value={form.businessStateCode} onChange={(event) => setForm({ ...form, businessStateCode: event.target.value.toUpperCase() })} placeholder="e.g. GJ" maxLength={10} className="mt-2 w-full border border-border px-3 py-3 text-sm uppercase outline-none focus:border-gold" /></label></div><p className="mt-4 text-xs leading-5 text-muted-foreground">The business state is used later to determine IGST versus CGST + SGST on vendor invoices. Leave it blank until your registered business state is confirmed.</p><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : configured ? "Save settings" : "Create settings record"}</button></form>;
 }
 
 function CustomerEditor({ initial, onDone }: { initial: CustomerRecord; onDone: () => void }) {
