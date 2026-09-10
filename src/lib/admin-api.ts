@@ -2528,6 +2528,95 @@ async function adminPurchaseSuggestions(request: Request) {
   }).filter(Boolean);
 }
 
+async function adminProductFinancials(request: Request) {
+  if (request.method !== "GET") return fail("Method not allowed.", 405);
+  const productId = new URL(request.url).searchParams.get("productId")?.trim();
+  if (!productId) return fail("Product ID is required.");
+  const database = await db();
+  const product = await database.collection("products").findOne({ id: productId });
+  if (!product) return fail("Product not found.", 404);
+
+  const batches = await database.collection("stock_batches")
+    .find({ productId, quantityRemaining: { $gt: 0 } })
+    .sort({ receivedDate: 1, createdAt: 1, _id: 1 })
+    .toArray();
+  const invoiceIds = [...new Set(batches
+    .map((batch) => String(batch.sourcePurchaseInvoiceId ?? ""))
+    .filter((id) => ObjectId.isValid(id)))];
+  const vendorIds = [...new Set(batches
+    .map((batch) => String(batch.vendorId ?? ""))
+    .filter((id) => ObjectId.isValid(id)))];
+  const [invoices, vendors] = await Promise.all([
+    invoiceIds.length ? database.collection("purchase_invoices").find({ _id: { $in: invoiceIds.map((id) => new ObjectId(id)) } }).toArray() : [],
+    vendorIds.length ? database.collection("vendors").find({ _id: { $in: vendorIds.map((id) => new ObjectId(id)) } }).toArray() : [],
+  ]);
+  const invoicesById = new Map(invoices.map((invoice) => [String(invoice._id), invoice]));
+  const vendorsById = new Map(vendors.map((vendor) => [String(vendor._id), vendor]));
+  const productPrice = Number(product.price ?? 0);
+  const variants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
+  const variantById = new Map(variants.map((variant) => [String(variant.id ?? ""), variant]));
+  const money = (value: number) => Math.round(value * 100) / 100;
+  const remainingBatches = batches.map((batch) => {
+    const quantityReceived = Math.max(0, Number(batch.quantityReceived ?? 0));
+    const quantityRemaining = Math.max(0, Number(batch.quantityRemaining ?? 0));
+    const sourceType = String(batch.sourceType ?? "unknown");
+    const rawCost = Number(batch.costPricePerUnit);
+    const costKnown = sourceType === "purchase" && Number.isFinite(rawCost);
+    const variant = variantById.get(String(batch.variantId ?? ""));
+    const invoice = invoicesById.get(String(batch.sourcePurchaseInvoiceId ?? ""));
+    const vendor = vendorsById.get(String(batch.vendorId ?? ""));
+    return {
+      id: String(batch._id),
+      variantId: batch.variantId ? String(batch.variantId) : "",
+      variantColor: variant?.color ? String(variant.color) : "",
+      sourceType,
+      sourceLabel: String(batch.sourceLabel ?? (sourceType === "opening_balance" ? "Opening balance" : "Stock batch")),
+      invoiceNumber: invoice?.vendorInvoiceNumber ? String(invoice.vendorInvoiceNumber) : "",
+      vendorName: vendor?.businessName ? String(vendor.businessName) : "",
+      receivedDate: batch.receivedDate instanceof Date ? batch.receivedDate.toISOString() : batch.receivedDate ?? null,
+      quantityReceived,
+      quantityRemaining,
+      quantitySold: Math.max(0, quantityReceived - quantityRemaining),
+      costPricePerUnit: costKnown ? money(rawCost) : null,
+      costKnown,
+      remainingCostValue: costKnown ? money(quantityRemaining * rawCost) : null,
+      sellingValue: money(quantityRemaining * productPrice),
+      margin: costKnown ? money(quantityRemaining * (productPrice - rawCost)) : null,
+      marginPercent: costKnown && productPrice > 0 ? money((productPrice - rawCost) / productPrice * 100) : null,
+    };
+  });
+  const purchaseBackedBatches = remainingBatches.filter((batch) => batch.sourceType === "purchase");
+  const unknownCostBatches = remainingBatches.filter((batch) => !batch.costKnown);
+  const purchaseBackedQuantity = purchaseBackedBatches.reduce((sum, batch) => sum + batch.quantityRemaining, 0);
+  const unknownCostQuantity = unknownCostBatches.reduce((sum, batch) => sum + batch.quantityRemaining, 0);
+  const remainingQuantity = remainingBatches.reduce((sum, batch) => sum + batch.quantityRemaining, 0);
+  const remainingInventoryAtPurchaseCost = purchaseBackedBatches.reduce((sum, batch) => sum + Number(batch.remainingCostValue ?? 0), 0);
+  const inventoryAtSellingPrice = remainingBatches.reduce((sum, batch) => sum + batch.sellingValue, 0);
+  const costedBatchSellingValue = purchaseBackedBatches.reduce((sum, batch) => sum + batch.sellingValue, 0);
+  const costedBatchMargin = purchaseBackedBatches.reduce((sum, batch) => sum + Number(batch.margin ?? 0), 0);
+  const catalogStock = variants.length
+    ? variants.reduce((sum, variant) => sum + Number(variant.stock ?? 0), 0)
+    : Number(product.stock ?? 0);
+  return {
+    productId,
+    productName: String(product.name ?? productId),
+    sellingPricePerUnit: productPrice,
+    catalogStock,
+    trackedStock: remainingQuantity,
+    untrackedStock: Math.max(0, catalogStock - remainingQuantity),
+    remainingQuantity,
+    purchaseBackedQuantity,
+    unknownCostQuantity,
+    remainingInventoryAtPurchaseCost: money(remainingInventoryAtPurchaseCost),
+    inventoryAtSellingPrice: money(inventoryAtSellingPrice),
+    unknownCostSellingValue: money(unknownCostQuantity * productPrice),
+    costedBatchSellingValue: money(costedBatchSellingValue),
+    costedBatchMargin: money(costedBatchMargin),
+    costedBatchMarginPercent: costedBatchSellingValue > 0 ? money(costedBatchMargin / costedBatchSellingValue * 100) : null,
+    batches: remainingBatches,
+  };
+}
+
 async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/login" && request.method === "POST") {
     const input = await body(request);
@@ -2540,6 +2629,7 @@ async function handleAdmin(request: Request, path: string) {
   if (!isAdmin(request)) return fail("Admin authentication required.", 401);
   if (path === "/api/admin/me") return json({ ok: true });
   if (path === "/api/admin/purchase-suggestions") return json(await adminPurchaseSuggestions(request));
+  if (path === "/api/admin/product-financials") return json(await adminProductFinancials(request));
   if (path === "/api/admin/audit-logs") {
     if (request.method !== "GET") return fail("Method not allowed.", 405);
     const url = new URL(request.url);
