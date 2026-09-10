@@ -124,8 +124,8 @@ function Home() {
     <SiteShell>
       {/* Hero */}
        <section className="section-frame section-frame--zari mx-0 w-full p-0 sm:mx-3 sm:w-auto sm:p-3">
-         <div className="grid min-h-[calc(100vh-150px)] overflow-hidden bg-primary lg:grid-cols-[45%_55%]">
-           <div className="order-2 flex items-center border-t border-gold/70 bg-primary px-6 py-12 text-primary-foreground sm:px-10 sm:py-16 lg:order-1 lg:border-r lg:border-t-0 lg:px-12 lg:py-20 xl:px-16">
+         <div className="grid min-h-[calc(100vh-150px)] overflow-hidden bg-espresso lg:grid-cols-[45%_55%]">
+           <div className="order-2 flex items-center border-t border-gold/70 bg-espresso px-6 py-12 text-primary-foreground sm:px-10 sm:py-16 lg:order-1 lg:border-r lg:border-t-0 lg:px-12 lg:py-20 xl:px-16">
              <div className="max-w-[31rem]">
                <p className="text-eyebrow text-gold-soft">{heroDetails[0].eyebrow}</p>
                <h1 className="mt-5 max-w-[14ch] font-display text-[2.15rem] font-medium leading-[0.96] tracking-[-0.035em] min-[420px]:text-[2.5rem] sm:text-5xl lg:text-[clamp(3.4rem,5.2vw,5.6rem)]">
@@ -136,7 +136,7 @@ function Home() {
                </p>
                <Link
                  to="/products"
-                 className="mt-9 inline-flex w-full items-center justify-center gap-3 border border-gold bg-gold px-6 py-4 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-primary sm:w-auto sm:px-8"
+                 className="mt-9 inline-flex w-full items-center justify-center gap-3 border border-gold bg-gold px-6 py-4 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-espresso sm:w-auto sm:px-8"
                >
                  Explore the edit <ArrowRight className="size-3.5" strokeWidth={1.7} />
                </Link>
@@ -155,7 +155,7 @@ function Home() {
       </section>
 
       {/* Categories — compact editorial grid */}
-      <section className="site-container section-frame section-frame--zari overflow-hidden pb-10 pt-10 sm:pb-12 sm:pt-16">
+      <section className="site-container section-frame section-frame--zari overflow-hidden bg-secondary/20 pb-10 pt-10 sm:pb-12 sm:pt-16">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] lg:items-start lg:gap-12">
           <div className="max-w-lg lg:pt-1">
             <p className="text-eyebrow text-muted-foreground">Discover the house</p>
@@ -273,7 +273,7 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14">
+    <section className="site-container section-frame bg-secondary/20 pb-10 pt-10 sm:pb-12 sm:pt-14">
       <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
@@ -291,7 +291,7 @@ function TrendShowcase({ products }: { products: typeof sarees }) {
   if (!feature) return null;
 
   return (
-    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14">
+    <section className="site-container section-frame bg-card pb-10 pt-10 sm:pb-12 sm:pt-14">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5 sm:mb-10">
         <div>
           <p className="text-eyebrow text-muted-foreground">Just arrived</p>

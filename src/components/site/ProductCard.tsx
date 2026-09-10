@@ -95,7 +95,7 @@ export function ProductCard({
           )}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-lg font-medium tracking-wide text-primary sm:text-xl">{formatPrice(saree.price)}</p>
+           <p className="text-lg font-medium tracking-wide text-accent sm:text-xl">{formatPrice(saree.price)}</p>
           {hasDiscount && <><p className="text-sm tracking-wide text-muted-foreground line-through sm:text-base">{formatPrice(originalPrice)}</p><span className="text-[0.65rem] font-medium text-red-700 sm:text-xs">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></>}
           {showAddToCart && (
             <button
