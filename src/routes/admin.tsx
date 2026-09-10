@@ -503,7 +503,7 @@ function SettingsPage() {
 const emptyByResource: Record<Exclude<Tab, "dashboard" | "inventory" | "settings" | "customers" | "reviews" | "coupons">, Record<string, unknown>> = {
   heroes: { title: "", subtitle: "", image: "", href: "/", order: 0, published: true },
   categories: { label: "", slug: "", description: "", image: "", order: 0, published: true },
-  products: { id: "", name: "", fabric: "", price: 0, category: "silk", subcategory: "", image: "", images: [], variants: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false, newArrival: false, trending: false, bestseller: false },
+  products: { id: "", name: "", fabric: "", colors: [], price: 0, category: "silk", subcategory: "", image: "", images: [], variants: [], blouse: "", length: "", care: "", weight: "", countryOfOrigin: "India", description: "", productDetails: "", productSpecification: "", originalPrice: 0, discountType: "percentage", discountValue: "", stock: 0, published: true, featured: false, newArrival: false, trending: false, bestseller: false },
   announcements: { message: "", order: 0, active: true },
 };
 
@@ -796,6 +796,9 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     extraImages: Array.isArray(initial.images) ? initial.images.slice(1).map(String).join("\n") : "",
     productDescription: String(initial.productDescription ?? initial.description ?? ""),
     fabric: String(initial.fabric ?? ""),
+    colors: Array.isArray(initial.colors)
+      ? initial.colors.map(String).filter(Boolean)
+      : String(initial.color ?? "").trim() ? [String(initial.color).trim()] : [],
     length: String(initial.length ?? ""),
     weight: String(initial.weight ?? ""),
     care: String(initial.care ?? ""),
@@ -811,6 +814,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
   const subcategories = categories.filter((category) => String(category.parentSlug ?? "") === String(form.category ?? ""));
   const set = (key: string, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
   const variants = Array.isArray(form.variants) ? form.variants as ProductVariantForm[] : [];
+  const selectedProductColors = Array.isArray(form.colors) ? form.colors.map(String).filter(Boolean) : [];
   const setVariant = (index: number, key: keyof ProductVariantForm, value: string | number) => setForm((current) => ({
     ...current,
     variants: (Array.isArray(current.variants) ? current.variants as ProductVariantForm[] : []).map((variant, itemIndex) => itemIndex === index ? { ...variant, [key]: value } : variant),
@@ -829,6 +833,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     const coverImage = String(form.coverImage ?? "").trim();
     const extraImages = String(form.extraImages ?? "").split(/\r?\n|,/).map((image) => image.trim()).filter(Boolean);
     const rawVariants = variants;
+    const rawProductColors = selectedProductColors;
     const variantColors = new Set<string>();
     let normalizedVariants: { id?: string; color: string; stock: number; image: string; images: string[] }[] = [];
     try {
@@ -851,6 +856,10 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
       toast.error(error instanceof Error ? error.message : "Enter valid color variant details.");
       return;
     }
+    if (normalizedVariants.length === 0 && rawProductColors.length === 0) {
+      toast.error("Choose at least one product colour or add a colour variant.");
+      return;
+    }
     const originalPrice = Number(form.price ?? 0);
     const discountValue = form.discountValue === "" ? 0 : Number(form.discountValue ?? 0);
     if (!coverImage && !normalizedVariants.length) { toast.error("A cover image is required when the product has no color variants."); return; }
@@ -870,6 +879,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
           price: originalPrice,
           originalPrice,
           discountValue,
+          colors: normalizedVariants.length ? [...new Set(normalizedVariants.map((variant) => variant.color))] : rawProductColors,
           image: coverImage,
           images,
            variants: normalizedVariants,
@@ -1002,6 +1012,30 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
             </div>
           )}
         </section>
+        {variants.length === 0 && <section className="border-t border-border pt-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT COLOUR</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Choose the colour used by the storefront filter. Add colour variants above when each colour needs its own image or stock.</p>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {productColors.map((option) => {
+              const selected = selectedProductColors.includes(option.key);
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => set("colors", selected ? selectedProductColors.filter((color) => color !== option.key) : [...selectedProductColors, option.key])}
+                  className={cn("inline-flex items-center gap-2 border px-2.5 py-2 text-xs transition-colors", selected ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary hover:text-primary")}
+                >
+                  <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: option.hex }} />
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          {selectedProductColors.length > 0 && <p className="mt-2 text-[11px] text-muted-foreground">Selected: {selectedProductColors.join(", ")}</p>}
+        </section>}
         <section className="border-t border-border pt-5">
           <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
           <label className="mt-3 block text-xs text-muted-foreground">Description<textarea required value={String(form.productDescription ?? "")} onChange={(event) => set("productDescription", event.target.value)} rows={5} placeholder="Describe the saree, its craft, colour, and occasion…" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label>

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
-import { normalizeProductColor, otherColorKey } from "@/data/colors";
+import { normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-assets";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
@@ -171,6 +171,17 @@ function normalizeProductVariants(value: unknown, productId: string) {
   });
 }
 
+function normalizeProductColors(value: unknown) {
+  const values = Array.isArray(value) ? value : value == null ? [] : [value];
+  const colors = [...new Set(values.map((value) => normalizeProductColor(String(value ?? "").trim())).filter(Boolean))];
+  for (const color of colors) {
+    if (!productColors.some((option) => option.key === color)) {
+      throw new Error(`Choose a color from the approved color palette. "${color}" is not available.`);
+    }
+  }
+  return colors;
+}
+
 async function list(resource: Resource) {
   const collection = (await db()).collection(resource);
   const records = await collection.find({}).sort({ order: 1, createdAt: -1 }).toArray();
@@ -200,12 +211,15 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
       clearSubcategory = true;
     }
     const variants = normalizeProductVariants(document.variants, String(document.id));
+    const colors = normalizeProductColors(document.colors ?? document.color);
     const coverImage = String(document.image ?? "").trim();
     const extraImages = Array.isArray(document.images) ? document.images.map(String).map((image) => image.trim()).filter(Boolean) : [];
     const images = [coverImage, ...extraImages.filter((image) => image !== coverImage)].filter(Boolean).slice(0, 5);
     if (!coverImage && !variants.length) throw new Error("A cover image is required when the product has no color variants.");
     if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
     document.variants = variants;
+    document.colors = variants.length ? [...new Set(variants.map((variant) => variant.color))] : colors;
+    delete document.color;
     document.image = coverImage || variants[0]?.image || "";
     document.images = coverImage ? images : (variants[0]?.images ?? []);
     if (variants.length) document.stock = variants.reduce((total, variant) => total + variant.stock, 0);

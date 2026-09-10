@@ -25,6 +25,7 @@ export type Saree = {
   subcategory?: string; // subcategory id
   image: string;
   images?: string[];
+  colors?: string[];
   variants?: SareeVariant[];
   stock?: number;
   selectedVariantId?: string;

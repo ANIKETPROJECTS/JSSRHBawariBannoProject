@@ -94,6 +94,11 @@ function sareesFromRecords(records: unknown[]): Saree[] {
         ...(item.subcategory ? { subcategory: String(item.subcategory) } : {}),
         image: String(item.image ?? images[0] ?? ""),
         ...(images.length ? { images: images.slice(0, 5) } : {}),
+        ...(Array.isArray(item.colors)
+          ? { colors: item.colors.map(String).map((color) => color.trim()).filter(Boolean) }
+          : typeof item.color === "string" && item.color.trim()
+            ? { colors: [item.color.trim()] }
+            : {}),
         blouse: String(item.blouse ?? ""),
         length: String(item.length ?? ""),
         care: String(item.care ?? ""),
@@ -179,8 +184,11 @@ export function CollectionPage({
   const availableColors = useMemo<ProductColorOption[]>(() => {
     const seen = new Set(productColors.map((color) => color.key));
     const customColors: ProductColorOption[] = [];
-    activeProducts.flatMap((product) => product.variants ?? []).forEach((variant) => {
-      const label = String(variant.color ?? "").trim();
+    activeProducts.flatMap((product) => [
+      ...(product.colors ?? []),
+      ...(product.variants ?? []).map((variant) => variant.color),
+    ]).forEach((value) => {
+      const label = String(value ?? "").trim();
       const key = getColorFilterKey(label);
       if (!label || seen.has(key)) return;
       seen.add(key);
@@ -201,8 +209,11 @@ export function CollectionPage({
         (filters.price === "5000-15000" && s.price >= 5000 && s.price <= 15000) ||
         (filters.price === "15000-30000" && s.price > 15000 && s.price <= 30000) ||
         (filters.price === "over-30000" && s.price > 30000);
-       const variantColors = s.variants?.map((variant) => variant.color).filter(Boolean) ?? [];
-       const colorMatch = filters.colors.length === 0 || (variantColors.length ? variantColors.some((color) => filters.colors.includes(getColorFilterKey(color))) : filters.colors.includes(getSareeColor(s.id)));
+       const savedColors = [
+         ...(s.colors ?? []),
+         ...(s.variants?.map((variant) => variant.color).filter(Boolean) ?? []),
+       ];
+       const colorMatch = filters.colors.length === 0 || (savedColors.length ? savedColors.some((color) => filters.colors.includes(getColorFilterKey(color))) : filters.colors.includes(getSareeColor(s.id)));
       const fabricMatch = filters.fabrics.length === 0 || filters.fabrics.some((fabric) => s.fabric.toLowerCase().includes(fabric.toLowerCase()));
       return priceMatch && colorMatch && fabricMatch;
     });
