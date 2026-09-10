@@ -1226,6 +1226,7 @@ function serializeTrip(trip: JsonRecord, summary: JsonRecord = {}) {
 async function adminBusinessTrips(request: Request, tripId?: string) {
   const database = await db();
   const collection = database.collection("business_trips");
+  const purchaseInvoices = database.collection("purchase_invoices");
   if (tripId && !ObjectId.isValid(tripId)) return fail("Business trip not found.", 404);
   const actor = adminIdentity(request) ?? "admin";
 
@@ -1274,15 +1275,29 @@ async function adminBusinessTrips(request: Request, tripId?: string) {
     } catch (error) {
       return fail(error instanceof Error ? error.message : "Business trip details are invalid.");
     }
+    const purchaseInvoiceIds = [...new Set((Array.isArray(input.purchaseInvoiceIds) ? input.purchaseInvoiceIds : []).map((id) => String(id).trim()).filter(Boolean))];
+    if (purchaseInvoiceIds.some((id) => !ObjectId.isValid(id))) return fail("One or more purchase invoice references are invalid.");
+    const linkedInvoices = purchaseInvoiceIds.length
+      ? await purchaseInvoices.find({ _id: { $in: purchaseInvoiceIds.map((id) => new ObjectId(id)) } }).project({ _id: 1 }).toArray()
+      : [];
+    if (linkedInvoices.length !== purchaseInvoiceIds.length) return fail("One or more selected purchase invoices were not found.");
+    async function syncPurchaseInvoices(targetTripId: string) {
+      await purchaseInvoices.updateMany({ tripId: targetTripId }, { $unset: { tripId: "" } });
+      if (purchaseInvoiceIds.length) {
+        await purchaseInvoices.updateMany({ _id: { $in: purchaseInvoiceIds.map((id) => new ObjectId(id)) } }, { $set: { tripId: targetTripId, updatedAt: new Date(), updatedBy: actor } });
+      }
+    }
     const now = new Date();
     if (tripId) {
       const updated = await collection.findOneAndUpdate({ _id: new ObjectId(tripId) }, { $set: { ...document, ...auditUpdateFields(actor, now) } }, { returnDocument: "after" });
       if (!updated) return fail("Business trip not found.", 404);
+      await syncPurchaseInvoices(tripId);
       await database.collection("audit_logs").insertOne({ entityType: "business_trip", entityId: tripId, action: "updated", actor, changes: document, createdAt: now });
       return json(serializeTrip(updated));
     }
     const created = { ...document, ...auditCreateFields(actor, now) };
     const result = await collection.insertOne(created);
+    await syncPurchaseInvoices(String(result.insertedId));
     await database.collection("audit_logs").insertOne({ entityType: "business_trip", entityId: String(result.insertedId), action: "created", actor, changes: document, createdAt: now });
     return json(serializeTrip({ ...created, _id: result.insertedId }), { status: 201 });
   }

@@ -234,25 +234,32 @@ function ExpensesPage() {
 
 type BusinessTripForm = {
   _id?: string;
+  tripId?: string;
+  totalExpense?: number;
   tripName: string;
   purpose: string;
   location: string;
   startDate: string;
   endDate: string;
   notes: string;
+  purchaseInvoiceIds: string[];
 };
 
 const emptyBusinessTrip: BusinessTripForm = {
+  tripId: "",
+  totalExpense: 0,
   tripName: "",
   purpose: "",
   location: "",
   startDate: new Date().toISOString().slice(0, 10),
   endDate: "",
   notes: "",
+  purchaseInvoiceIds: [],
 };
 
 function BusinessTripsPage() {
   const [trips, setTrips] = useState<BusinessTripRecord[]>([]);
+  const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoiceRecord[]>([]);
   const [editing, setEditing] = useState<BusinessTripForm | null>(null);
   const [selected, setSelected] = useState<BusinessTripRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -261,8 +268,9 @@ function BusinessTripsPage() {
   async function load() {
     setLoading(true);
     try {
-      const rows = await api("/api/admin/business-trips");
-      setTrips(Array.isArray(rows) ? rows : []);
+      const [tripRows, invoiceRows] = await Promise.all([api("/api/admin/business-trips"), api("/api/admin/purchase-invoices")]);
+      setTrips(Array.isArray(tripRows) ? tripRows : []);
+      setPurchaseInvoices(Array.isArray(invoiceRows) ? invoiceRows : []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load business trips.");
     } finally {
@@ -287,7 +295,7 @@ function BusinessTripsPage() {
     try {
       await api(editing._id ? `/api/admin/business-trips/${editing._id}` : "/api/admin/business-trips", {
         method: editing._id ? "PUT" : "POST",
-        body: JSON.stringify(editing),
+        body: JSON.stringify({ ...editing, purchaseInvoiceIds: editing.purchaseInvoiceIds }),
       });
       toast.success(editing._id ? "Business trip updated." : "Business trip created.");
       setEditing(null);
@@ -312,7 +320,7 @@ function BusinessTripsPage() {
     }
   }
 
-  if (editing) return <div className="max-w-3xl"><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to business trips</button><form onSubmit={save} className="border border-[#ded5c9] bg-white p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Travel register</p><h2 className="mt-1 font-display text-3xl text-primary">{editing._id ? "Edit business trip" : "New business trip"}</h2><p className="mt-2 text-sm text-muted-foreground">Group sourcing, vendor, and travel costs without creating inventory movements.</p><div className="mt-7 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground sm:col-span-2">Trip name<input required maxLength={120} value={editing.tripName} onChange={(event) => setEditing({ ...editing, tripName: event.target.value })} placeholder="Jaipur vendor visit" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Start date<input required type="date" value={editing.startDate} onChange={(event) => setEditing({ ...editing, startDate: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">End date (optional)<input type="date" value={editing.endDate} onChange={(event) => setEditing({ ...editing, endDate: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Location<input maxLength={160} value={editing.location} onChange={(event) => setEditing({ ...editing, location: event.target.value })} placeholder="Jaipur, Rajasthan" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Purpose<input maxLength={240} value={editing.purpose} onChange={(event) => setEditing({ ...editing, purpose: event.target.value })} placeholder="Meet weaving partners and source new stock" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground sm:col-span-2">Notes<textarea maxLength={500} rows={4} value={editing.notes} onChange={(event) => setEditing({ ...editing, notes: event.target.value })} placeholder="Optional travel notes" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label></div><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : editing._id ? "Update trip" : "Create trip"}</button></form></div>;
+  if (editing) return <div className="max-w-3xl"><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to business trips</button><form onSubmit={save} className="border border-[#ded5c9] bg-white p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Travel register</p><h2 className="mt-1 font-display text-3xl text-primary">{editing._id ? "Edit business trip" : "New business trip"}</h2><p className="mt-2 text-sm text-muted-foreground">Group sourcing, vendor, and travel costs without creating inventory movements.</p><div className="mt-7 grid gap-4 sm:grid-cols-2"><div className="border border-border bg-[#fbf9f6] px-3 py-2.5"><p className="text-xs text-muted-foreground">Trip ID</p><p className="mt-1 text-sm font-medium text-primary">{editing._id ? editing.tripId : "Auto-generated after saving"}</p></div><div className="border border-border bg-[#fbf9f6] px-3 py-2.5"><p className="text-xs text-muted-foreground">Total Expense (auto)</p><p className="mt-1 text-sm font-medium text-primary">₹{Number(editing.totalExpense ?? 0).toLocaleString("en-IN")}</p><p className="mt-1 text-[10px] text-muted-foreground">Updates from linked expenses</p></div><label className="text-xs text-muted-foreground sm:col-span-2">Trip name<input required maxLength={120} value={editing.tripName} onChange={(event) => setEditing({ ...editing, tripName: event.target.value })} placeholder="Jaipur vendor visit" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Start date<input required type="date" value={editing.startDate} onChange={(event) => setEditing({ ...editing, startDate: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">End date (optional)<input type="date" value={editing.endDate} onChange={(event) => setEditing({ ...editing, endDate: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Location<input maxLength={160} value={editing.location} onChange={(event) => setEditing({ ...editing, location: event.target.value })} placeholder="Jaipur, Rajasthan" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Purpose<input maxLength={240} value={editing.purpose} onChange={(event) => setEditing({ ...editing, purpose: event.target.value })} placeholder="Meet weaving partners and source new stock" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><div className="sm:col-span-2"><p className="text-xs text-muted-foreground">Purchase invoices made during this trip <span className="text-[10px]">(optional)</span></p><div className="mt-1 max-h-44 overflow-y-auto border border-border bg-white">{purchaseInvoices.length === 0 ? <p className="px-3 py-3 text-xs text-muted-foreground">No purchase invoices available yet.</p> : purchaseInvoices.map((invoice) => <label key={invoice._id} className="flex items-center gap-3 border-b border-border px-3 py-2.5 text-sm last:border-0"><input type="checkbox" checked={editing.purchaseInvoiceIds.includes(String(invoice._id))} onChange={(event) => setEditing({ ...editing, purchaseInvoiceIds: event.target.checked ? [...editing.purchaseInvoiceIds, String(invoice._id)] : editing.purchaseInvoiceIds.filter((id) => id !== String(invoice._id)) })} /><span>{invoice.vendorInvoiceNumber || invoice._id?.slice(-8)} · ₹{Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")} <span className="text-xs text-muted-foreground">({invoice.status})</span></span></label>)}</div></div><label className="text-xs text-muted-foreground sm:col-span-2">Notes<textarea maxLength={500} rows={4} value={editing.notes} onChange={(event) => setEditing({ ...editing, notes: event.target.value })} placeholder="Optional travel notes" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label></div><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : editing._id ? "Update trip" : "Create trip"}</button></form></div>;
 
   if (selected) return <BusinessTripDetail trip={selected} onBack={() => setSelected(null)} onEdit={() => setEditing({ _id: selected._id, tripName: String(selected.tripName ?? ""), purpose: String(selected.purpose ?? ""), location: String(selected.location ?? ""), startDate: String(selected.startDate ?? "").slice(0, 10), endDate: String(selected.endDate ?? "").slice(0, 10), notes: String(selected.notes ?? "") })} />;
 
