@@ -1687,6 +1687,9 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/orders") return await adminOrders(request);
   const orderMatch = path.match(/^\/api\/admin\/orders\/([^/]+)$/);
   if (orderMatch) return await adminOrders(request, orderMatch[1]);
+  if (path === "/api/admin/vendors") return await adminVendors(request);
+  const vendorMatch = path.match(/^\/api\/admin\/vendors\/([^/]+)$/);
+  if (vendorMatch) return await adminVendors(request, vendorMatch[1]);
   const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);
   if (customerMatch) return await customersHistory(request, customerMatch[1]);
   const reviewMatch = path.match(/^\/api\/admin\/reviews(?:\/([^/]+))?$/);

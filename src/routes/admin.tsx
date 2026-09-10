@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
+import { BarChart3, Boxes, Building2, CheckCircle2, ChevronRight, Copy, CreditCard, Eye, GripVertical, Heart, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "inventory" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
+type Tab = "dashboard" | "products" | "inventory" | "vendors" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings";
 type RecordItem = Record<string, unknown> & { _id?: string };
 type ProductVariantForm = { id?: string; color: string; stock: number | string; image: string; extraImages: string };
 
@@ -18,6 +18,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
   { id: "products", label: "Products & stock", icon: Package },
   { id: "inventory", label: "Inventory history", icon: BarChart3 },
+  { id: "vendors", label: "Vendors", icon: Building2 },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "customers", label: "Customers", icon: Users },
   { id: "reviews", label: "Reviews", icon: Star },
@@ -94,7 +95,7 @@ function AdminPage() {
           <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
-          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <Dashboard /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -105,6 +106,148 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false);
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); try { await api("/api/admin/login", { method: "POST", body: JSON.stringify({ email, password }) }); onSuccess(); } catch (error) { toast.error(error instanceof Error ? error.message : "Login failed."); } finally { setBusy(false); } }
   return <div className="flex min-h-screen items-center justify-center bg-[#f7f4ef] p-5"><form onSubmit={submit} className="w-full max-w-md border border-[#ded5c9] bg-white p-8 shadow-sm"><Link to="/" className="font-display text-3xl text-primary">Bawari Banno</Link><p className="mt-2 text-sm text-muted-foreground">Sign in to manage your store.</p><label className="mt-8 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Admin email<input required autoComplete="username" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="mt-5 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Password<input required autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><button disabled={busy} className="mt-7 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.18em] text-white disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button></form></div>;
+}
+
+type VendorRecord = RecordItem & {
+  vendorCode?: string;
+  businessName?: string;
+  legalName?: string;
+  gstin?: string;
+  state?: string;
+  stateCode?: string;
+  address?: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  bankDetails?: string;
+  status?: "active" | "inactive";
+  notes?: string;
+  invoiceCount?: number;
+  productCount?: number;
+  lifetimeSpend?: number;
+  invoices?: RecordItem[];
+  products?: RecordItem[];
+};
+
+const emptyVendor: VendorRecord = {
+  businessName: "",
+  legalName: "",
+  gstin: "",
+  state: "",
+  stateCode: "",
+  address: "",
+  contactPerson: "",
+  phone: "",
+  email: "",
+  bankDetails: "",
+  status: "active",
+  notes: "",
+};
+
+function VendorEditor({ initial, onDone }: { initial: VendorRecord; onDone: () => void }) {
+  const [form, setForm] = useState<VendorRecord>({ ...emptyVendor, ...initial });
+  const [busy, setBusy] = useState(false);
+  const set = (key: keyof VendorRecord, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const { _id, createdAt, updatedAt, invoiceCount, productCount, lifetimeSpend, invoices, products, ...payload } = form;
+      await api(`/api/admin/vendors${_id ? `/${_id}` : ""}`, { method: _id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      toast.success(_id ? "Vendor updated." : "Vendor added.");
+      onDone();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save vendor.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <form onSubmit={submit} className="max-w-4xl border border-[#ded5c9] bg-white p-6">
+    <div className="flex items-start justify-between gap-4">
+      <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Vendor master</p><h2 className="mt-1 font-display text-3xl text-primary">{form._id ? "Edit vendor" : "Add vendor"}</h2><p className="mt-2 text-sm text-muted-foreground">{form._id ? `Internal code: ${form.vendorCode ?? "—"}` : "The internal VEN code will be generated when you save."}</p></div>
+      <button type="button" onClick={onDone} className="text-xs text-muted-foreground hover:text-primary">Cancel</button>
+    </div>
+    <div className="mt-7 grid gap-4 sm:grid-cols-2">
+      <label className="text-xs text-muted-foreground">Business name<input required maxLength={160} value={form.businessName ?? ""} onChange={(event) => set("businessName", event.target.value)} placeholder="Heer Fashion" className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">Legal / enterprise name<input maxLength={160} value={form.legalName ?? ""} onChange={(event) => set("legalName", event.target.value)} placeholder="Hanumana Enterprise" className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">GSTIN<input maxLength={30} value={form.gstin ?? ""} onChange={(event) => set("gstin", event.target.value.toUpperCase())} placeholder="24AJGPV0929C1ZD" className="mt-1 w-full border border-border px-3 py-2.5 text-sm uppercase outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">Status<select value={form.status ?? "active"} onChange={(event) => set("status", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+      <label className="text-xs text-muted-foreground">State<input maxLength={80} value={form.state ?? ""} onChange={(event) => set("state", event.target.value)} placeholder="Gujarat" className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">State code<input maxLength={10} value={form.stateCode ?? ""} onChange={(event) => set("stateCode", event.target.value.toUpperCase())} placeholder="GJ" className="mt-1 w-full border border-border px-3 py-2.5 text-sm uppercase outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">Contact person<input maxLength={120} value={form.contactPerson ?? ""} onChange={(event) => set("contactPerson", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">Phone<input maxLength={40} value={form.phone ?? ""} onChange={(event) => set("phone", event.target.value)} placeholder="+91 98765 43210" className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground">Email<input type="email" maxLength={160} value={form.email ?? ""} onChange={(event) => set("email", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Address<textarea rows={3} maxLength={1000} value={form.address ?? ""} onChange={(event) => set("address", event.target.value)} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Bank details <span className="text-[10px]">(optional)</span><textarea rows={2} maxLength={500} value={form.bankDetails ?? ""} onChange={(event) => set("bankDetails", event.target.value)} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Notes<textarea rows={3} maxLength={2000} value={form.notes ?? ""} onChange={(event) => set("notes", event.target.value)} placeholder="Best for silk sarees…" className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>
+    </div>
+    <button disabled={busy} className="mt-7 inline-flex w-full items-center justify-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" />{busy ? "Saving…" : "Save vendor"}</button>
+  </form>;
+}
+
+function VendorsPage() {
+  const [vendors, setVendors] = useState<VendorRecord[]>([]);
+  const [editing, setEditing] = useState<VendorRecord | null>(null);
+  const [selected, setSelected] = useState<VendorRecord | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ search, status });
+      setVendors(await api(`/api/admin/vendors?${params}`));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load vendors.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [search, status]);
+
+  async function openVendor(vendor: VendorRecord) {
+    if (!vendor._id) return;
+    try { setSelected(await api(`/api/admin/vendors/${vendor._id}`)); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not load vendor details."); }
+  }
+
+  async function toggleStatus(vendor: VendorRecord) {
+    if (!vendor._id) return;
+    try {
+      await api(`/api/admin/vendors/${vendor._id}`, { method: "PATCH", body: JSON.stringify({ ...vendor, status: vendor.status === "inactive" ? "active" : "inactive" }) });
+      await load();
+      if (selected?._id === vendor._id) await openVendor({ ...vendor, status: vendor.status === "inactive" ? "active" : "inactive" });
+      toast.success(vendor.status === "inactive" ? "Vendor activated." : "Vendor deactivated.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not change vendor status."); }
+  }
+
+  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to vendors</button><VendorEditor initial={editing} onDone={() => { setEditing(null); void load(); }} /></div>;
+
+  if (selected) {
+    const invoices = selected.invoices ?? [];
+    const products = selected.products ?? [];
+    return <div>
+      <button type="button" onClick={() => setSelected(null)} className="mb-5 text-sm text-primary hover:underline">← Back to vendors</button>
+      <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">{selected.vendorCode}</p><h2 className="mt-1 font-display text-3xl text-primary">{selected.businessName}</h2><p className="mt-2 text-sm text-muted-foreground">{selected.legalName || "Legal name not added"} · {selected.state || "State not added"}</p></div><div className="flex gap-2"><button type="button" onClick={() => setEditing(selected)} className="border border-primary px-4 py-2.5 text-xs text-primary hover:bg-primary hover:text-white">Edit vendor</button><button type="button" onClick={() => void toggleStatus(selected)} className="border border-border px-4 py-2.5 text-xs text-muted-foreground">{selected.status === "inactive" ? "Activate" : "Deactivate"}</button></div></div>
+      <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Invoices" value={selected.invoiceCount ?? 0} icon={CreditCard} /><MetricCard label="Products sourced" value={selected.productCount ?? 0} icon={Package} /><MetricCard label="Lifetime spend" value={`₹${Number(selected.lifetimeSpend ?? 0).toLocaleString("en-IN")}`} icon={BarChart3} /></div>
+      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.2fr)]"><section className="border border-[#ded5c9] bg-white p-6"><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Vendor contact</p><div className="mt-5 space-y-3 text-sm"><p><span className="text-muted-foreground">GSTIN:</span> {selected.gstin || "Not added"}</p><p><span className="text-muted-foreground">Contact:</span> {selected.contactPerson || "Not added"}</p><p><span className="text-muted-foreground">Phone:</span> {selected.phone || "Not added"}</p><p><span className="text-muted-foreground">Email:</span> {selected.email || "Not added"}</p><p className="whitespace-pre-line"><span className="text-muted-foreground">Address:</span> {selected.address || "Not added"}</p><p><span className="text-muted-foreground">Status:</span> {titleCase(selected.status)}</p></div>{selected.notes && <p className="mt-6 border-t border-border pt-5 text-sm leading-relaxed text-muted-foreground">{selected.notes}</p>}</section><section className="border border-[#ded5c9] bg-white p-6"><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Purchase history</p><h3 className="mt-1 font-display text-2xl text-primary">Invoices and sourced products</h3>{invoices.length === 0 && products.length === 0 ? <p className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">No purchase invoices or linked products yet. They will appear here after Purchase Invoices is enabled.</p> : <div className="mt-5 space-y-3">{invoices.map((invoice) => <div key={invoice._id} className="flex justify-between border-b border-border pb-3 text-sm"><span>{String(invoice.vendorInvoiceNumber ?? "Invoice")}</span><span>₹{Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}</span></div>)}</div>}</section></div>
+    </div>;
+  }
+
+  const activeCount = vendors.filter((vendor) => vendor.status !== "inactive").length;
+  const spend = vendors.reduce((sum, vendor) => sum + Number(vendor.lifetimeSpend ?? 0), 0);
+  return <div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Procurement foundation</p><h2 className="mt-1 font-display text-3xl text-primary">Vendors</h2><p className="mt-2 text-sm text-muted-foreground">Manage the suppliers behind your saree inventory.</p></div><button type="button" onClick={() => setEditing({ ...emptyVendor })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add vendor</button></div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Total vendors" value={vendors.length} icon={Building2} /><MetricCard label="Active vendors" value={activeCount} icon={CheckCircle2} /><MetricCard label="Recorded spend" value={`₹${spend.toLocaleString("en-IN")}`} icon={BarChart3} /></div>
+    <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 md:grid-cols-[1fr_180px]"><label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search business, code, GSTIN, or contact…" className="w-full border border-border py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gold" /></label><select value={status} onChange={(event) => setStatus(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[980px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Vendor</th><th className="px-4 py-4">GST / state</th><th className="px-4 py-4">Contact</th><th className="px-4 py-4">Invoices</th><th className="px-4 py-4">Lifetime spend</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Loading vendors…</td></tr> : vendors.length === 0 ? <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No vendors yet. Add your first supplier.</td></tr> : vendors.map((vendor) => <tr key={vendor._id} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><p className="font-medium text-primary">{vendor.businessName}</p><p className="mt-1 text-xs text-gold">{vendor.vendorCode}</p></td><td className="px-4 py-4"><p>{vendor.gstin || "—"}</p><p className="mt-1 text-xs text-muted-foreground">{[vendor.state, vendor.stateCode].filter(Boolean).join(" · ") || "State not added"}</p></td><td className="px-4 py-4"><p>{vendor.contactPerson || "—"}</p><p className="mt-1 text-xs text-muted-foreground">{vendor.phone || vendor.email || "Contact not added"}</p></td><td className="px-4 py-4">{vendor.invoiceCount ?? 0}</td><td className="px-4 py-4">₹{Number(vendor.lifetimeSpend ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4"><button type="button" onClick={() => void toggleStatus(vendor)} className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${vendor.status === "inactive" ? "border-border bg-[#f7f4ef] text-muted-foreground" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{vendor.status === "inactive" ? "Inactive" : "Active"}</button></td><td className="px-4 py-4 text-right"><div className="flex justify-end gap-3"><button type="button" onClick={() => void openVendor(vendor)} className="text-xs text-primary hover:underline">View</button><button type="button" onClick={() => setEditing(vendor)} className="text-xs text-primary hover:underline">Edit</button></div></td></tr>)}</tbody></table></div>
+  </div>;
 }
 
 function Dashboard() {
