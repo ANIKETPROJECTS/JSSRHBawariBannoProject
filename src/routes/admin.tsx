@@ -832,6 +832,30 @@ function PurchaseInvoicesPage() {
   </div>;
 }
 
+function AuditLogsPage() {
+  const [logs, setLogs] = useState<RecordItem[]>([]);
+  const [search, setSearch] = useState("");
+  const [entityType, setEntityType] = useState("all");
+  const [action, setAction] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const params = new URLSearchParams({ search, entityType, action });
+    setLoading(true);
+    api(`/api/admin/audit-logs?${params}`)
+      .then((rows) => setLogs(Array.isArray(rows) ? rows : []))
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Could not load audit logs."))
+      .finally(() => setLoading(false));
+  }, [search, entityType, action]);
+
+  const entityTypes = [...new Set(logs.map((log) => String(log.entityType ?? "")).filter(Boolean))].sort();
+  return <div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Governance</p><h2 className="mt-1 font-display text-3xl text-primary">Audit logs</h2><p className="mt-2 text-sm text-muted-foreground">Review finance and Admin changes with actor, action, record, and saved values.</p></div><span className="text-xs text-muted-foreground">{loading ? "Loading…" : `${logs.length} event${logs.length === 1 ? "" : "s"}`}</span></div>
+    <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 lg:grid-cols-[1fr_190px_170px]"><label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search actor, record ID, action, or details…" className="w-full border border-border py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gold" /></label><select value={entityType} onChange={(event) => setEntityType(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All record types</option>{entityTypes.map((type) => <option key={type} value={type}>{titleCase(type.replaceAll("_", " "))}</option>)}</select><select value={action} onChange={(event) => setAction(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All actions</option>{["created", "updated", "posted", "corrected", "cancelled", "deleted"].map((value) => <option key={value} value={value}>{titleCase(value)}</option>)}</select></div></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[1100px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-4 py-4">When</th><th className="px-4 py-4">Record</th><th className="px-4 py-4">Action</th><th className="px-4 py-4">Actor</th><th className="px-4 py-4">Changes</th></tr></thead><tbody>{loading ? <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">Loading audit logs…</td></tr> : logs.length === 0 ? <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No audit events match these filters.</td></tr> : logs.map((log) => <tr key={log._id} className="border-b border-border align-top last:border-0"><td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground">{log.createdAt ? new Date(String(log.createdAt)).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td><td className="px-4 py-4"><p className="font-medium text-primary">{titleCase(String(log.entityType ?? "record").replaceAll("_", " "))}</p><p className="mt-1 max-w-56 truncate text-xs text-muted-foreground" title={String(log.entityId ?? "")}>{String(log.entityId ?? "—")}</p></td><td className="px-4 py-4"><span className="border border-border bg-[#fbf9f6] px-2.5 py-1 text-[10px] uppercase tracking-[0.08em]">{titleCase(String(log.action ?? ""))}</span></td><td className="px-4 py-4 text-xs text-muted-foreground">{String(log.actor ?? "—")}</td><td className="max-w-[460px] px-4 py-4"><pre className="max-h-28 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-5 text-muted-foreground">{log.changes ? JSON.stringify(log.changes, null, 2) : "No field changes recorded"}</pre></td></tr>)}</tbody></table></div>
+  </div>;
+}
+
 function ProcurementDashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
   useEffect(() => {

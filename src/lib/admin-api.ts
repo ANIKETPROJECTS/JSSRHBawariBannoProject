@@ -1809,6 +1809,7 @@ async function ordersHistory(request: Request) {
 async function adminOrders(request: Request, orderId?: string) {
   const database = await db();
   const collection = database.collection("orders");
+  const actor = adminIdentity(request) ?? "admin";
   if (orderId && !ObjectId.isValid(orderId)) return fail("Order not found.", 404);
 
   if (orderId && request.method === "DELETE") {
@@ -1863,6 +1864,7 @@ async function adminOrders(request: Request, orderId?: string) {
     }
     const result = await collection.deleteOne({ _id: new ObjectId(orderId) });
     if (!result.deletedCount) return fail("Order not found.", 404);
+    await database.collection("audit_logs").insertOne({ entityType: "order", entityId: orderId, action: "deleted", actor, changes: { orderId: existingOrder.orderId }, createdAt: new Date() });
     return json({ ok: true });
   }
 
@@ -1959,6 +1961,16 @@ async function updateOrder(request: Request, id: string) {
     { $set: { status, statusHistory: history, updatedAt: now } },
     { returnDocument: "after" },
   );
+  if (result && String(existing.status ?? "pending") !== status) {
+    await database.collection("audit_logs").insertOne({
+      entityType: "order",
+      entityId: id,
+      action: "updated",
+      actor: adminIdentity(request) ?? "admin",
+      changes: { status: { from: String(existing.status ?? "pending"), to: status } },
+      createdAt: now,
+    });
+  }
   return result ? json(result) : fail("Order not found.", 404);
 }
 
@@ -1967,8 +1979,10 @@ async function customersHistory(request: Request, customerId?: string) {
   const collection = database.collection("customers");
   if (customerId && !ObjectId.isValid(customerId)) return fail("Customer not found.", 404);
   if (customerId && request.method === "DELETE") {
+    const current = await collection.findOne({ _id: new ObjectId(customerId) });
     const result = await collection.deleteOne({ _id: new ObjectId(customerId) });
     if (!result.deletedCount) return fail("Customer not found.", 404);
+    await database.collection("audit_logs").insertOne({ entityType: "customer", entityId: customerId, action: "deleted", actor: adminIdentity(request) ?? "admin", changes: { name: current?.name ?? "", phone: current?.phone ?? "" }, createdAt: new Date() });
     return json({ ok: true });
   }
   if (request.method === "POST" || (customerId && (request.method === "PUT" || request.method === "PATCH"))) {
@@ -1983,10 +1997,12 @@ async function customersHistory(request: Request, customerId?: string) {
     if (duplicate) return fail("A customer with this mobile number already exists.", 409);
     if (customerId) {
       const updated = await collection.findOneAndUpdate({ _id: new ObjectId(customerId) }, { $set: { name, email, phone, updatedAt: new Date() } }, { returnDocument: "after" });
+      if (updated) await database.collection("audit_logs").insertOne({ entityType: "customer", entityId: customerId, action: "updated", actor: adminIdentity(request) ?? "admin", changes: { name, email, phone }, createdAt: new Date() });
       return updated ? json(updated) : fail("Customer not found.", 404);
     }
     const created = { name, email, phone, wishlist: [], addresses: [], createdAt: new Date(), updatedAt: new Date() };
     const result = await collection.insertOne(created);
+    await database.collection("audit_logs").insertOne({ entityType: "customer", entityId: String(result.insertedId), action: "created", actor: adminIdentity(request) ?? "admin", changes: { name, email, phone }, createdAt: new Date() });
     return json({ ...created, _id: result.insertedId }, { status: 201 });
   }
   if (customerId) {
@@ -2465,6 +2481,26 @@ async function handleAdmin(request: Request, path: string) {
   }
   if (!isAdmin(request)) return fail("Admin authentication required.", 401);
   if (path === "/api/admin/me") return json({ ok: true });
+  if (path === "/api/admin/audit-logs") {
+    if (request.method !== "GET") return fail("Method not allowed.", 405);
+    const url = new URL(request.url);
+    const entityType = url.searchParams.get("entityType")?.trim();
+    const action = url.searchParams.get("action")?.trim();
+    const search = url.searchParams.get("search")?.trim().toLowerCase();
+    const query: JsonRecord = {
+      ...(entityType && entityType !== "all" ? { entityType } : {}),
+      ...(action && action !== "all" ? { action } : {}),
+    };
+    const logs = await (await db()).collection("audit_logs").find(query).sort({ createdAt: -1 }).limit(500).toArray();
+    const filtered = search
+      ? logs.filter((log) => `${log.entityType ?? ""} ${log.entityId ?? ""} ${log.actor ?? ""} ${log.action ?? ""} ${JSON.stringify(log.changes ?? {})}`.toLowerCase().includes(search))
+      : logs;
+    return json(filtered.map((log) => ({
+      ...log,
+      _id: String(log._id),
+      createdAt: log.createdAt instanceof Date ? log.createdAt.toISOString() : log.createdAt,
+    })));
+  }
   if (path === "/api/admin/summary") {
     const database = await db();
     const [products, categories, heroes, lowStock, outOfStock] = await Promise.all([
