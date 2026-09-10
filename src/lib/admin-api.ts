@@ -2487,9 +2487,19 @@ async function handleAdmin(request: Request, path: string) {
     const entityType = url.searchParams.get("entityType")?.trim();
     const action = url.searchParams.get("action")?.trim();
     const search = url.searchParams.get("search")?.trim().toLowerCase();
+    const from = url.searchParams.get("from")?.trim();
+    const to = url.searchParams.get("to")?.trim();
+    const createdAt: JsonRecord = {};
+    if (from && !Number.isNaN(Date.parse(`${from}T00:00:00.000Z`))) createdAt.$gte = new Date(`${from}T00:00:00.000Z`);
+    if (to && !Number.isNaN(Date.parse(`${to}T00:00:00.000Z`))) {
+      const end = new Date(`${to}T00:00:00.000Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      createdAt.$lt = end;
+    }
     const query: JsonRecord = {
       ...(entityType && entityType !== "all" ? { entityType } : {}),
       ...(action && action !== "all" ? { action } : {}),
+      ...(Object.keys(createdAt).length ? { createdAt } : {}),
     };
     const logs = await (await db()).collection("audit_logs").find(query).sort({ createdAt: -1 }).limit(500).toArray();
     const filtered = search
