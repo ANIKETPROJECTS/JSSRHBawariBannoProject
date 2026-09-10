@@ -254,6 +254,217 @@ function VendorsPage() {
   </div>;
 }
 
+type PurchaseInvoiceLineForm = {
+  _id?: string;
+  productId: string;
+  variantId: string;
+  vendorProductCode: string;
+  itemName: string;
+  quantityPurchased: number;
+  costPricePerUnit: number;
+};
+
+type PurchaseInvoiceRecord = RecordItem & {
+  vendorId?: string;
+  vendorInvoiceNumber?: string;
+  invoiceDate?: string;
+  receivedDate?: string;
+  placeOfSupply?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  status?: "draft" | "posted" | "cancelled";
+  subtotal?: number;
+  taxType?: string;
+  taxRate?: number;
+  taxAmount?: number;
+  totalPayable?: number;
+  notes?: string;
+  lineCount?: number;
+  vendor?: { _id?: string; vendorCode?: string; businessName?: string };
+  lines?: PurchaseInvoiceLineForm[];
+  postedAt?: string;
+};
+
+const emptyInvoice: PurchaseInvoiceRecord = {
+  vendorId: "",
+  vendorInvoiceNumber: "",
+  invoiceDate: new Date().toISOString().slice(0, 10),
+  receivedDate: new Date().toISOString().slice(0, 10),
+  placeOfSupply: "",
+  paymentMethod: "credit",
+  paymentStatus: "pending",
+  status: "draft",
+  taxType: "",
+  taxRate: 0,
+  notes: "",
+  lines: [{ productId: "", variantId: "", vendorProductCode: "", itemName: "", quantityPurchased: 1, costPricePerUnit: 0 }],
+};
+
+function invoiceStatusStyle(status?: string) {
+  if (status === "posted") return "border-emerald-200 bg-emerald-50 text-emerald-800";
+  if (status === "cancelled") return "border-red-200 bg-red-50 text-red-700";
+  return "border-amber-200 bg-amber-50 text-amber-800";
+}
+
+function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRecord; onDone: (saved?: PurchaseInvoiceRecord) => void | Promise<void> }) {
+  const [form, setForm] = useState<PurchaseInvoiceRecord>({ ...emptyInvoice, ...initial, lines: initial.lines?.length ? initial.lines : emptyInvoice.lines });
+  const [vendors, setVendors] = useState<VendorRecord[]>([]);
+  const [products, setProducts] = useState<RecordItem[]>([]);
+  const [busy, setBusy] = useState(false);
+  const set = (key: keyof PurchaseInvoiceRecord, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
+  const lines = form.lines ?? [];
+  const subtotal = lines.reduce((sum, line) => sum + Number(line.quantityPurchased ?? 0) * Number(line.costPricePerUnit ?? 0), 0);
+  const taxRate = Number(form.taxRate ?? 0);
+  const taxAmount = subtotal * taxRate / 100;
+  const total = subtotal + taxAmount;
+  const locked = form.status !== "draft";
+
+  useEffect(() => {
+    Promise.all([api("/api/admin/vendors?status=active"), api("/api/admin/products")])
+      .then(([vendorRows, productRows]) => { setVendors(vendorRows); setProducts(productRows); })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Could not load invoice options."));
+  }, []);
+
+  function updateLine(index: number, patch: Partial<PurchaseInvoiceLineForm>) {
+    setForm((current) => ({ ...current, lines: (current.lines ?? []).map((line, lineIndex) => lineIndex === index ? { ...line, ...patch } : line) }));
+  }
+
+  function addLine() {
+    setForm((current) => ({ ...current, lines: [...(current.lines ?? []), { productId: "", variantId: "", vendorProductCode: "", itemName: "", quantityPurchased: 1, costPricePerUnit: 0 }] }));
+  }
+
+  function removeLine(index: number) {
+    setForm((current) => ({ ...current, lines: (current.lines ?? []).filter((_, lineIndex) => lineIndex !== index) }));
+  }
+
+  async function submit(postAfterSave = false) {
+    setBusy(true);
+    try {
+      const payload = {
+        vendorId: form.vendorId,
+        vendorInvoiceNumber: form.vendorInvoiceNumber,
+        invoiceDate: form.invoiceDate,
+        receivedDate: form.receivedDate,
+        placeOfSupply: form.placeOfSupply,
+        paymentMethod: form.paymentMethod,
+        paymentStatus: form.paymentStatus,
+        taxType: form.taxType || undefined,
+        taxRate: Number(form.taxRate ?? 0),
+        notes: form.notes,
+        lines: lines.map(({ _id, ...line }) => line),
+      };
+      const saved = await api(`/api/admin/purchase-invoices${form._id ? `/${form._id}` : ""}`, { method: form._id ? "PUT" : "POST", body: JSON.stringify(payload) });
+      if (postAfterSave) {
+        const posted = await api(`/api/admin/purchase-invoices/${saved._id}`, { method: "PATCH", body: JSON.stringify({ action: "post" }) });
+        toast.success("Invoice posted and stock batches created.");
+        await onDone(posted);
+      } else {
+        toast.success(form._id ? "Draft invoice updated." : "Draft invoice saved.");
+        await onDone(saved);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save purchase invoice.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="max-w-6xl border border-[#ded5c9] bg-white p-6">
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Procurement</p><h2 className="mt-1 font-display text-3xl text-primary">{form._id ? "Purchase invoice" : "New purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">{form._id ? `${form.status === "posted" ? "Posted and locked" : "Draft"} invoice` : "Save as a draft, then post when the stock has been checked."}</p></div>
+      <button type="button" onClick={() => void onDone()} className="text-xs text-muted-foreground hover:text-primary">Cancel</button>
+    </div>
+    <fieldset disabled={locked || busy} className="mt-7">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="text-xs text-muted-foreground lg:col-span-2">Vendor<select required value={form.vendorId ?? ""} onChange={(event) => set("vendorId", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">Choose vendor</option>{vendors.map((vendor) => <option key={vendor._id} value={vendor._id}>{vendor.vendorCode} · {vendor.businessName}</option>)}</select></label>
+        <label className="text-xs text-muted-foreground">Vendor invoice number<input required maxLength={80} value={form.vendorInvoiceNumber ?? ""} onChange={(event) => set("vendorInvoiceNumber", event.target.value)} placeholder="INV-2026-001" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+        <label className="text-xs text-muted-foreground">Invoice date<input required type="date" value={String(form.invoiceDate ?? "").slice(0, 10)} onChange={(event) => set("invoiceDate", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+        <label className="text-xs text-muted-foreground">Received date<input type="date" value={String(form.receivedDate ?? "").slice(0, 10)} onChange={(event) => set("receivedDate", event.target.value)} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+        <label className="text-xs text-muted-foreground">Payment method<select value={form.paymentMethod ?? "credit"} onChange={(event) => set("paymentMethod", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="credit">Credit</option><option value="prepaid">Prepaid</option><option value="bank_transfer">Bank transfer</option><option value="cod">COD</option></select></label>
+        <label className="text-xs text-muted-foreground">Payment status<select value={form.paymentStatus ?? "pending"} onChange={(event) => set("paymentStatus", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="pending">Pending</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option></select></label>
+        <label className="text-xs text-muted-foreground">Tax type<select value={form.taxType ?? ""} onChange={(event) => set("taxType", event.target.value)} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm"><option value="">No tax</option><option value="igst">IGST</option><option value="cgst_sgst">CGST + SGST</option></select></label>
+        <label className="text-xs text-muted-foreground">Tax rate (%)<input type="number" min="0" max="100" step="0.01" value={Number(form.taxRate ?? 0)} onChange={(event) => set("taxRate", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+        <label className="text-xs text-muted-foreground">Place of supply<input maxLength={80} value={form.placeOfSupply ?? ""} onChange={(event) => set("placeOfSupply", event.target.value)} placeholder="Gujarat" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label>
+      </div>
+      <div className="mt-8 overflow-x-auto border border-border">
+        <div className="min-w-[920px]">
+          <div className="grid grid-cols-[1.6fr_1fr_1.1fr_0.8fr_1fr_36px] gap-3 border-b border-border bg-[#fbf9f6] px-3 py-3 text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><span>Product</span><span>Colour</span><span>Vendor code</span><span>Qty</span><span>Cost / unit</span><span /></div>
+          {lines.map((line, index) => {
+            const product = products.find((entry) => String(entry.id ?? entry._id) === line.productId);
+            const variants = Array.isArray(product?.variants) ? product.variants as RecordItem[] : [];
+            return <div key={line._id ?? index} className="grid grid-cols-[1.6fr_1fr_1.1fr_0.8fr_1fr_36px] gap-3 border-b border-border px-3 py-3 last:border-0">
+              <select required value={line.productId} onChange={(event) => { const next = products.find((entry) => String(entry.id ?? entry._id) === event.target.value); updateLine(index, { productId: event.target.value, variantId: "", itemName: String(next?.name ?? "") }); }} className="border border-border bg-white px-2 py-2 text-sm"><option value="">Choose product</option>{products.map((entry) => <option key={String(entry.id ?? entry._id)} value={String(entry.id ?? entry._id)}>{String(entry.name ?? entry.id)}</option>)}</select>
+              <select value={line.variantId} disabled={!variants.length} onChange={(event) => { const variant = variants.find((entry) => String(entry.id) === event.target.value); updateLine(index, { variantId: event.target.value, itemName: String(variant?.color ?? product?.name ?? line.itemName) }); }} className="border border-border bg-white px-2 py-2 text-sm disabled:bg-[#f7f4ef]"><option value="">{variants.length ? "Choose colour" : "One stock pool"}</option>{variants.map((variant) => <option key={String(variant.id)} value={String(variant.id)}>{String(variant.color ?? variant.id)}</option>)}</select>
+              <input value={line.vendorProductCode} onChange={(event) => updateLine(index, { vendorProductCode: event.target.value })} placeholder="Supplier SKU" className="border border-border px-2 py-2 text-sm" />
+              <input required min="1" step="1" type="number" value={line.quantityPurchased} onChange={(event) => updateLine(index, { quantityPurchased: Number(event.target.value) })} className="border border-border px-2 py-2 text-sm" />
+              <input required min="0" step="0.01" type="number" value={line.costPricePerUnit} onChange={(event) => updateLine(index, { costPricePerUnit: Number(event.target.value) })} className="border border-border px-2 py-2 text-sm" />
+              <button type="button" disabled={lines.length === 1} onClick={() => removeLine(index)} className="flex items-center justify-center text-muted-foreground hover:text-red-700 disabled:opacity-30"><Trash2 className="size-4" /></button>
+            </div>;
+          })}
+        </div>
+      </div>
+      <button type="button" onClick={addLine} className="mt-3 inline-flex items-center gap-2 text-xs text-primary hover:underline"><Plus className="size-4" /> Add line</button>
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_280px]">
+        <label className="text-xs text-muted-foreground">Notes<textarea rows={4} maxLength={2000} value={form.notes ?? ""} onChange={(event) => set("notes", event.target.value)} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label>
+        <div className="border border-border bg-[#fbf9f6] p-4 text-sm"><div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><strong>₹{subtotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong></div><div className="mt-3 flex justify-between"><span className="text-muted-foreground">Tax ({taxRate || 0}%)</span><strong>₹{taxAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong></div><div className="mt-4 flex justify-between border-t border-border pt-4 text-base"><span className="font-medium text-primary">Total payable</span><strong className="text-primary">₹{total.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</strong></div></div>
+      </div>
+    </fieldset>
+    {!locked && <div className="mt-7 flex flex-wrap gap-3"><button disabled={busy} type="submit" className="inline-flex items-center gap-2 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" />{busy ? "Saving…" : "Save draft"}</button><button disabled={busy} type="button" onClick={() => void submit(true)} className="border border-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-primary disabled:opacity-50">Save & post</button></div>}
+    {locked && <div className="mt-7 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">This invoice is posted and locked. Its purchase stock batch has been created and future corrections must use an explicit correction flow.</div>}
+  </form>;
+}
+
+function PurchaseInvoiceDetail({ invoice, onBack, onEdit }: { invoice: PurchaseInvoiceRecord; onBack: () => void; onEdit: () => void }) {
+  return <div>
+    <button type="button" onClick={onBack} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">{invoice.vendor?.vendorCode} · {invoice.vendorInvoiceNumber}</p><h2 className="mt-1 font-display text-3xl text-primary">{invoice.vendor?.businessName ?? "Purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">Invoice date {String(invoice.invoiceDate ?? "").slice(0, 10)} · {invoice.lines?.length ?? 0} line items</p></div><div className="flex items-center gap-3"><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] ${invoiceStatusStyle(invoice.status)}`}>{invoice.status}</span>{invoice.status === "draft" && <button type="button" onClick={onEdit} className="border border-primary px-4 py-2.5 text-xs text-primary">Edit draft</button>}</div></div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Subtotal" value={`₹${Number(invoice.subtotal ?? 0).toLocaleString("en-IN")}`} icon={FileText} /><MetricCard label="Tax" value={`₹${Number(invoice.taxAmount ?? 0).toLocaleString("en-IN")}`} icon={BarChart3} /><MetricCard label="Total payable" value={`₹${Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}`} icon={CreditCard} /></div>
+    <section className="mt-6 border border-[#ded5c9] bg-white p-6"><div className="grid gap-4 text-sm sm:grid-cols-4"><p><span className="block text-xs text-muted-foreground">Payment</span>{titleCase(invoice.paymentStatus)} · {titleCase(invoice.paymentMethod)}</p><p><span className="block text-xs text-muted-foreground">Tax</span>{invoice.taxType ? `${invoice.taxType} · ${invoice.taxRate}%` : "No tax"}</p><p><span className="block text-xs text-muted-foreground">Place of supply</span>{invoice.placeOfSupply || "Not added"}</p><p><span className="block text-xs text-muted-foreground">Received</span>{String(invoice.receivedDate ?? "").slice(0, 10) || "—"}</p></div><div className="mt-6 overflow-x-auto border border-border"><table className="w-full min-w-[680px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-3 py-3">Item</th><th className="px-3 py-3">Vendor code</th><th className="px-3 py-3">Qty</th><th className="px-3 py-3">Cost / unit</th><th className="px-3 py-3 text-right">Line total</th></tr></thead><tbody>{(invoice.lines ?? []).map((line) => <tr key={line._id} className="border-b border-border last:border-0"><td className="px-3 py-3">{line.itemName}</td><td className="px-3 py-3 text-muted-foreground">{line.vendorProductCode || "—"}</td><td className="px-3 py-3">{line.quantityPurchased}</td><td className="px-3 py-3">₹{Number(line.costPricePerUnit ?? 0).toLocaleString("en-IN")}</td><td className="px-3 py-3 text-right">₹{(Number(line.quantityPurchased ?? 0) * Number(line.costPricePerUnit ?? 0)).toLocaleString("en-IN")}</td></tr>)}</tbody></table></div>{invoice.notes && <p className="mt-5 whitespace-pre-line text-sm text-muted-foreground">{invoice.notes}</p>}</section>
+  </div>;
+}
+
+function PurchaseInvoicesPage() {
+  const [invoices, setInvoices] = useState<PurchaseInvoiceRecord[]>([]);
+  const [editing, setEditing] = useState<PurchaseInvoiceRecord | null>(null);
+  const [selected, setSelected] = useState<PurchaseInvoiceRecord | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [payment, setPayment] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ search, status, payment });
+      setInvoices(await api(`/api/admin/purchase-invoices?${params}`));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load purchase invoices.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [search, status, payment]);
+
+  async function openInvoice(invoice: PurchaseInvoiceRecord) {
+    if (!invoice._id) return;
+    try { setSelected(await api(`/api/admin/purchase-invoices/${invoice._id}`)); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not load invoice details."); }
+  }
+
+  if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button><PurchaseInvoiceEditor initial={editing} onDone={async (saved) => { setEditing(null); await load(); if (saved?._id && saved.status === "posted") await openInvoice(saved); }} /></div>;
+  if (selected) return <PurchaseInvoiceDetail invoice={selected} onBack={() => setSelected(null)} onEdit={() => setEditing(selected)} />;
+
+  const drafts = invoices.filter((invoice) => invoice.status === "draft").length;
+  const postedValue = invoices.filter((invoice) => invoice.status === "posted").reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0);
+  return <div>
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Procurement ledger</p><h2 className="mt-1 font-display text-3xl text-primary">Purchase invoices</h2><p className="mt-2 text-sm text-muted-foreground">Record vendor bills before turning them into stock.</p></div><button type="button" onClick={() => setEditing({ ...emptyInvoice, lines: [...(emptyInvoice.lines ?? [])] })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add invoice</button></div>
+    <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Invoices shown" value={invoices.length} icon={FileText} /><MetricCard label="Drafts" value={drafts} icon={Copy} /><MetricCard label="Posted value" value={`₹${postedValue.toLocaleString("en-IN")}`} icon={BarChart3} /></div>
+    <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 lg:grid-cols-[1fr_160px_180px]"><label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search invoice number, vendor, or code…" className="w-full border border-border py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gold" /></label><select value={status} onChange={(event) => setStatus(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All statuses</option><option value="draft">Draft</option><option value="posted">Posted</option></select><select value={payment} onChange={(event) => setPayment(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All payment statuses</option><option value="pending">Pending</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option></select></div></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-4 py-4">Invoice</th><th className="px-4 py-4">Vendor</th><th className="px-4 py-4">Date</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4">Lines</th><th className="px-4 py-4">Total</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Loading invoices…</td></tr> : invoices.length === 0 ? <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No purchase invoices yet. Add your first vendor bill.</td></tr> : invoices.map((invoice) => <tr key={invoice._id} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><p className="font-medium text-primary">{invoice.vendorInvoiceNumber}</p><p className="mt-1 text-xs text-gold">{invoice._id?.slice(-8)}</p></td><td className="px-4 py-4"><p>{invoice.vendor?.businessName ?? "—"}</p><p className="mt-1 text-xs text-muted-foreground">{invoice.vendor?.vendorCode ?? "—"}</p></td><td className="px-4 py-4">{String(invoice.invoiceDate ?? "").slice(0, 10)}</td><td className="px-4 py-4">{titleCase(invoice.paymentStatus)}</td><td className="px-4 py-4">{invoice.lineCount ?? 0}</td><td className="px-4 py-4">₹{Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4"><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${invoiceStatusStyle(invoice.status)}`}>{invoice.status}</span></td><td className="px-4 py-4 text-right"><div className="flex justify-end gap-3"><button type="button" onClick={() => void openInvoice(invoice)} className="text-xs text-primary hover:underline">View</button>{invoice.status === "draft" && <button type="button" onClick={async () => { if (!invoice._id) return; try { setEditing(await api(`/api/admin/purchase-invoices/${invoice._id}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load invoice."); } }} className="text-xs text-primary hover:underline">Edit</button>}</div></td></tr>)}</tbody></table></div>
+  </div>;
+}
+
 function Dashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
   useEffect(() => {

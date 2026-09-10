@@ -1171,7 +1171,6 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
   const vendorMap = new Map(vendorRows.map((vendor) => [String(vendor._id), vendor]));
   const lineCounts = await lines.aggregate([{ $match: { purchaseInvoiceId: { $in: rows.map((row) => String(row._id)) } } }, { $group: { _id: "$purchaseInvoiceId", count: { $sum: 1 } } }]).toArray();
   const countMap = new Map(lineCounts.map((row) => [String(row._id), Number(row.count)]));
-  const result = rows.map((row) => serializeInvoice(row, vendorMap.get(String(row.vendorId)), []).withLineCount ?? null);
   const filtered = rows.map((row) => {
     const vendor = vendorMap.get(String(row.vendorId));
     const searchable = [row.vendorInvoiceNumber, vendor?.businessName, vendor?.vendorCode].filter(Boolean).join(" ").toLocaleLowerCase();
@@ -1922,6 +1921,9 @@ async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/vendors") return await adminVendors(request);
   const vendorMatch = path.match(/^\/api\/admin\/vendors\/([^/]+)$/);
   if (vendorMatch) return await adminVendors(request, vendorMatch[1]);
+  if (path === "/api/admin/purchase-invoices") return await adminPurchaseInvoices(request);
+  const purchaseInvoiceMatch = path.match(/^\/api\/admin\/purchase-invoices\/([^/]+)$/);
+  if (purchaseInvoiceMatch) return await adminPurchaseInvoices(request, purchaseInvoiceMatch[1]);
   const customerMatch = path.match(/^\/api\/admin\/customers(?:\/([^/]+))?$/);
   if (customerMatch) return await customersHistory(request, customerMatch[1]);
   const reviewMatch = path.match(/^\/api\/admin\/reviews(?:\/([^/]+))?$/);
