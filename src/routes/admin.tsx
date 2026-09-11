@@ -39,7 +39,14 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
 ];
 
 async function api(path: string, init?: RequestInit) {
-  const response = await fetch(path, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
+  const isMultipart = typeof FormData !== "undefined" && init?.body instanceof FormData;
+  const response = await fetch(path, {
+    ...init,
+    headers: {
+      ...(isMultipart ? {} : { "content-type": "application/json" }),
+      ...(init?.headers ?? {}),
+    },
+  });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error ?? "Something went wrong.");
   return result;
