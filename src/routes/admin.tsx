@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, Copy, CreditCard, Eye, FileText, GripVertical, Heart, History, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -52,6 +52,28 @@ async function uploadExpenseReceipt(expenseId: string, file: File) {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error ?? "Could not upload the expense receipt.");
   return result;
+}
+
+type AdminConfirmHandler = (message: string) => Promise<boolean>;
+const AdminConfirmContext = createContext<AdminConfirmHandler | null>(null);
+let activeAdminConfirm: AdminConfirmHandler | null = null;
+
+function adminConfirm(message: string) {
+  return activeAdminConfirm ? activeAdminConfirm(message) : Promise.resolve(false);
+}
+
+function AdminConfirmProvider({ children }: { children: React.ReactNode }) {
+  const [pending, setPending] = useState<{ message: string; resolve: (accepted: boolean) => void } | null>(null);
+  const request = (message: string) => new Promise<boolean>((resolve) => setPending({ message, resolve }));
+  useEffect(() => {
+    activeAdminConfirm = request;
+    return () => { if (activeAdminConfirm === request) activeAdminConfirm = null; };
+  }, []);
+  return <AdminConfirmContext.Provider value={request}>{children}{pending && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title"><div className="w-full max-w-md border border-border bg-white p-6 shadow-xl"><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Admin confirmation</p><h2 id="admin-confirm-title" className="mt-2 font-display text-2xl text-primary">Are you sure?</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{pending.message}</p><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => { pending.resolve(false); setPending(null); }} className="border border-border px-4 py-2.5 text-xs text-primary">Cancel</button><button type="button" autoFocus onClick={() => { pending.resolve(true); setPending(null); }} className="bg-red-700 px-4 py-2.5 text-xs uppercase tracking-[0.12em] text-white">Delete</button></div></div></div>}</AdminConfirmContext.Provider>;
+}
+
+function useAdminConfirmContext() {
+  return useContext(AdminConfirmContext);
 }
 
 function downloadTsv(filename: string, headers: string[], rows: Array<Array<unknown>>) {
@@ -108,6 +130,7 @@ function AdminPage() {
   const visibleTabs = tabs.filter(({ id }) => canAccess(id));
 
   return (
+    <AdminConfirmProvider>
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
       <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "w-16 px-2"}`}>
         <div className={`flex items-center ${sidebarOpen ? "justify-start" : "justify-center"}`}><Link to="/" className={`font-display text-primary ${sidebarOpen ? "text-3xl" : "text-lg"}`} aria-label="Bawari Banno">{sidebarOpen ? "Bawari Banno" : "BB"}</Link></div>
@@ -139,6 +162,7 @@ function AdminPage() {
         </div>
       </main>
     </div>
+    </AdminConfirmProvider>
   );
 }
 
@@ -250,7 +274,7 @@ function ExpensesPage() {
   }
 
   async function remove(expense: ExpenseRecord) {
-    if (!expense._id || !window.confirm("Delete this expense record?")) return;
+    if (!expense._id || !(await adminConfirm("Delete this expense record? This cannot be undone."))) return;
     try {
       await api(`/api/admin/expenses/${expense._id}`, { method: "DELETE" });
       toast.success("Expense deleted.");
@@ -364,7 +388,7 @@ function BusinessTripsPage() {
   }
 
   async function remove(trip: BusinessTripRecord) {
-    if (!trip._id || !window.confirm("Delete this trip? Linked expenses will remain and become unlinked.")) return;
+    if (!trip._id || !(await adminConfirm("Delete this trip? Linked expenses will remain and become unlinked."))) return;
     try {
       await api(`/api/admin/business-trips/${trip._id}`, { method: "DELETE" });
       toast.success("Business trip deleted.");
@@ -816,6 +840,7 @@ function PurchaseInvoicesPage({ initialDraft, onInitialDraftConsumed }: { initia
   const [invoices, setInvoices] = useState<PurchaseInvoiceRecord[]>([]);
   const [editing, setEditing] = useState<PurchaseInvoiceRecord | null>(null);
   const [selected, setSelected] = useState<PurchaseInvoiceRecord | null>(null);
+  const [saveNotice, setSaveNotice] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [payment, setPayment] = useState("all");
@@ -892,6 +917,7 @@ function PurchaseInvoicesPage({ initialDraft, onInitialDraftConsumed }: { initia
     const returnToDetail = Boolean(selected?._id && selected._id === editing._id);
     return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to purchase invoices</button><PurchaseInvoiceEditor initial={editing} onDone={async (saved) => {
       setEditing(null);
+      setSaveNotice(saved?.status === "posted" ? "Purchase invoice posted successfully." : "Draft purchase invoice created successfully. It is now in the invoice list.");
       if (saved?._id) {
         setInvoices((current) => current.some((invoice) => invoice._id === saved._id)
           ? current.map((invoice) => invoice._id === saved._id ? { ...invoice, ...saved, lineCount: saved.lines?.length ?? invoice.lineCount } : invoice)
@@ -908,9 +934,10 @@ function PurchaseInvoicesPage({ initialDraft, onInitialDraftConsumed }: { initia
   const postedValue = invoices.filter((invoice) => invoice.status === "posted").reduce((sum, invoice) => sum + Number(invoice.totalPayable ?? 0), 0);
   return <div>
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Procurement ledger</p><h2 className="mt-1 font-display text-3xl text-primary">Purchase invoices</h2><p className="mt-2 text-sm text-muted-foreground">Record vendor bills before turning them into stock.</p></div><div className="flex flex-wrap gap-3"><button type="button" onClick={exportInvoices} className="border border-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-primary">↓ Export invoices</button><button type="button" onClick={() => setEditing({ ...emptyInvoice, lines: [...(emptyInvoice.lines ?? [])] })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add invoice</button></div></div>
+    {saveNotice && <div className="mt-5 flex items-start justify-between gap-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"><span>{saveNotice}</span><button type="button" onClick={() => setSaveNotice("")} className="text-xs font-medium uppercase tracking-[0.1em] hover:underline" aria-label="Dismiss save notice">Dismiss</button></div>}
     <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Invoices shown" value={invoices.length} icon={FileText} /><MetricCard label="Drafts" value={drafts} icon={Copy} /><MetricCard label="Posted value" value={`₹${postedValue.toLocaleString("en-IN")}`} icon={BarChart3} /></div>
     <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 lg:grid-cols-[1fr_160px_180px]"><label className="relative block"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search invoice number, vendor, or code…" className="w-full border border-border py-2.5 pl-9 pr-3 text-sm outline-none focus:border-gold" /></label><select value={status} onChange={(event) => setStatus(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All statuses</option><option value="draft">Draft</option><option value="posted">Posted</option></select><select value={payment} onChange={(event) => setPayment(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All payment statuses</option><option value="pending">Pending</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option></select></div></div>
-    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-4 py-4">Invoice</th><th className="px-4 py-4">Vendor</th><th className="px-4 py-4">Date</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4">Lines</th><th className="px-4 py-4">Total</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Loading invoices…</td></tr> : invoices.length === 0 ? <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No purchase invoices yet. Add your first vendor bill.</td></tr> : invoices.map((invoice) => <tr key={invoice._id} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><p className="font-medium text-primary">{invoice.vendorInvoiceNumber}</p><p className="mt-1 text-xs text-gold">{invoice._id?.slice(-8)}</p></td><td className="px-4 py-4"><p>{invoice.vendor?.businessName ?? "—"}</p><p className="mt-1 text-xs text-muted-foreground">{invoice.vendor?.vendorCode ?? "—"}</p></td><td className="px-4 py-4">{String(invoice.invoiceDate ?? "").slice(0, 10)}</td><td className="px-4 py-4">{titleCase(invoice.paymentStatus)}</td><td className="px-4 py-4">{invoice.lineCount ?? 0}</td><td className="px-4 py-4">₹{Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4"><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${invoiceStatusStyle(invoice.status)}`}>{invoice.status}</span></td><td className="px-4 py-4 text-right"><div className="flex justify-end gap-3"><button type="button" onClick={() => void openInvoice(invoice)} className="text-xs text-primary hover:underline">View</button>{invoice.status === "draft" && <button type="button" onClick={async () => { if (!invoice._id) return; try { setEditing(await api(`/api/admin/purchase-invoices/${invoice._id}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load invoice."); } }} className="text-xs text-primary hover:underline">Edit</button>}</div></td></tr>)}</tbody></table></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.12em] text-muted-foreground"><tr><th className="px-4 py-4">Invoice</th><th className="px-4 py-4">Vendor</th><th className="px-4 py-4">Date</th><th className="px-4 py-4">Payment</th><th className="px-4 py-4">Lines</th><th className="px-4 py-4">Total</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Actions</th></tr></thead><tbody>{loading ? <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Loading invoices…</td></tr> : invoices.length === 0 ? <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No purchase invoices yet. Add your first vendor bill.</td></tr> : invoices.map((invoice) => <tr key={invoice._id} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><p className="font-medium text-primary">{invoice.vendorInvoiceNumber}</p><p className="mt-1 text-xs text-gold">{invoice._id?.slice(-8)}</p></td><td className="px-4 py-4"><p>{invoice.vendor?.businessName ?? "—"}</p><p className="mt-1 text-xs text-muted-foreground">{invoice.vendor?.vendorCode ?? "—"}</p></td><td className="px-4 py-4">{String(invoice.invoiceDate ?? "").slice(0, 10)}</td><td className="px-4 py-4">{titleCase(invoice.paymentStatus)}</td><td className="px-4 py-4">{invoice.lineCount ?? 0}</td><td className="px-4 py-4">₹{Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4"><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${invoiceStatusStyle(invoice.status)}`}>{invoice.status}</span></td><td className="px-4 py-4 text-right"><div className="flex justify-end gap-3"><button type="button" onClick={() => void openInvoice(invoice)} className="text-xs text-primary hover:underline">View</button>{invoice.status === "draft" && <><button type="button" onClick={async () => { if (!invoice._id) return; try { setEditing(await api(`/api/admin/purchase-invoices/${invoice._id}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load invoice."); } }} className="text-xs text-primary hover:underline">Edit</button><button type="button" onClick={async () => { if (!invoice._id || !(await adminConfirm("This draft purchase invoice and its lines will be permanently deleted. Posted invoices are protected."))) return; try { await api(`/api/admin/purchase-invoices/${invoice._id}`, { method: "DELETE" }); setInvoices((current) => current.filter((item) => item._id !== invoice._id)); setSaveNotice("Draft purchase invoice deleted."); toast.success("Draft invoice deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete invoice."); } }} className="text-xs text-red-700 hover:underline">Delete</button></>}</div></td></tr>)}</tbody></table></div>
   </div>;
 }
 
@@ -1191,7 +1218,7 @@ function OrdersPage() {
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update order."); }
   }
   async function removeOrder(order: Order) {
-    if (!order._id || !window.confirm("Delete this order? Checkout orders will have their reserved stock restored. This cannot be undone.")) return;
+    if (!order._id || !(await adminConfirm("Delete this order? Checkout orders will have their reserved stock restored. This cannot be undone."))) return;
     try {
       await api(`/api/admin/orders/${order._id}`, { method: "DELETE" });
       setOrders((current) => current.filter((item) => item._id !== order._id));
@@ -1338,7 +1365,7 @@ function ReviewsPage() {
   }
 
   async function removeReview(review: AdminReview) {
-    if (!review._id || !window.confirm("Delete this review and its uploaded media? This cannot be undone.")) return;
+    if (!review._id || !(await adminConfirm("Delete this review and its uploaded media? This cannot be undone."))) return;
     try {
       await api(`/api/admin/reviews/${review._id}`, { method: "DELETE" });
       setReviews((current) => current.filter((item) => item._id !== review._id));
@@ -1449,7 +1476,7 @@ function HeroSlidesManager() {
   }
   useEffect(() => { void refresh(); }, []);
   async function remove(item: RecordItem) {
-    if (!item._id || !window.confirm(`Delete ${String(item.title ?? "this hero slide")}? This cannot be undone.`)) return;
+    if (!item._id || !(await adminConfirm(`Delete ${String(item.title ?? "this hero slide")}? This cannot be undone.`))) return;
     try { await api(`/api/admin/heroes/${item._id}`, { method: "DELETE" }); await refresh(); toast.success("Hero slide deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete hero slide."); }
   }
@@ -1530,7 +1557,7 @@ function CouponManager() {
   }
   useEffect(() => { void load(); }, []);
   async function remove(coupon: CouponRecord) {
-    if (!coupon._id || !window.confirm(`Delete coupon ${coupon.code ?? ""}? This cannot be undone.`)) return;
+    if (!coupon._id || !(await adminConfirm(`Delete coupon ${coupon.code ?? ""}? This cannot be undone.`))) return;
     try { await api(`/api/admin/coupons/${coupon._id}`, { method: "DELETE" }); await load(); toast.success("Coupon deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete coupon."); }
   }
@@ -1552,7 +1579,7 @@ function ResourceManager({ resource }: { resource: Exclude<Tab, "dashboard" | "i
     const timer = window.setInterval(() => void refresh(), 5000);
     return () => window.clearInterval(timer);
   }, [resource]);
-  async function remove(id: string) { if (!window.confirm("Delete this record? This cannot be undone.")) return; try { await api(`/api/admin/${resource}/${id}`, { method: "DELETE" }); toast.success("Deleted."); void refresh(); } catch (error) { toast.error(error instanceof Error ? error.message : "Delete failed."); } }
+  async function remove(id: string) { if (!(await adminConfirm("Delete this record? This cannot be undone."))) return; try { await api(`/api/admin/${resource}/${id}`, { method: "DELETE" }); toast.success("Deleted."); void refresh(); } catch (error) { toast.error(error instanceof Error ? error.message : "Delete failed."); } }
   if (resource === "heroes") return <HeroSlidesManager />;
   if (resource === "categories") return <SortableCategoryPage />;
   if (resource === "products") return <ProductViewCrudPage />;
@@ -1574,7 +1601,7 @@ function CategoryManager() {
   function toggle(slug: string) { setExpanded((current) => current.includes(slug) ? current.filter((value) => value !== slug) : [...current, slug]); }
   function productsFor(slug: string) { return products.filter((product) => String(product.category ?? "") === slug); }
   async function remove(category: RecordItem) {
-    if (!category._id || !window.confirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`)) return;
+    if (!category._id || !(await adminConfirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`))) return;
     try {
       await api(`/api/admin/categories/${category._id}`, { method: "DELETE" });
       await load();
@@ -2110,7 +2137,7 @@ function ProductCrudPage() {
   });
 
   async function remove(product: RecordItem) {
-    if (!product._id || !window.confirm(`Delete ${String(product.name ?? product.id ?? "this product")}? This cannot be undone.`)) return;
+    if (!product._id || !(await adminConfirm(`Delete ${String(product.name ?? product.id ?? "this product")}? This cannot be undone.`))) return;
     try {
       await api(`/api/admin/products/${product._id}`, { method: "DELETE" });
       await load();
@@ -2138,7 +2165,7 @@ function CategoryCrudPage() {
   }
   useEffect(() => { void load(); }, []);
   async function remove(category: RecordItem) {
-    if (!category._id || !window.confirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`)) return;
+    if (!category._id || !(await adminConfirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`))) return;
     try { await api(`/api/admin/categories/${category._id}`, { method: "DELETE" }); await load(); toast.success("Category deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete category."); }
   }
@@ -2225,7 +2252,7 @@ function ProductViewCrudPage() {
       && selectedCategory
       && (stockFilter === "all" || (stockFilter === "in-stock" && !stockState.out) || (stockFilter === "needs-reorder" && stockState.needsReorder) || (stockFilter === "out-of-stock" && stockState.out));
   });
-  async function remove(product: RecordItem) { if (!product._id || !window.confirm(`Delete ${String(product.name ?? product.id ?? "this product")}? This cannot be undone.`)) return; try { await api(`/api/admin/products/${product._id}`, { method: "DELETE" }); await load(); toast.success("Product deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete product."); } }
+  async function remove(product: RecordItem) { if (!product._id || !(await adminConfirm(`Delete ${String(product.name ?? product.id ?? "this product")}? This cannot be undone.`))) return; try { await api(`/api/admin/products/${product._id}`, { method: "DELETE" }); await load(); toast.success("Product deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete product."); } }
   if (viewing) return <ProductViewPanel product={viewing} categoryName={categoryName} onClose={() => setViewing(null)} />;
   if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to products</button><div className="max-w-4xl"><SimpleProductEditor initial={editing} categories={categories} onDone={() => { setEditing(null); void load(); }} /></div></div>;
   return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{visible.length === products.length ? `${products.length} products` : `Showing ${visible.length} of ${products.length} products`}</p><h2 className="mt-1 font-display text-3xl text-primary">Products & stock</h2><p className="mt-2 text-sm text-muted-foreground">Live product records from your catalog. Search also includes colour names such as ivory.</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.products })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><div className="mt-7 border border-[#ded5c9] bg-white p-5"><div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-gold"><SlidersHorizontal className="size-3.5" /> Live catalog filters</div><div className="mt-4 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_190px_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, ID, colour, fabric…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All existing categories</option>{categoryOptions.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select><select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All stock levels</option><option value="in-stock">In stock</option><option value="needs-reorder">Needs reorder</option><option value="out-of-stock">Out of stock</option></select><button type="button" onClick={() => { setSearch(""); setCategoryFilter("all"); setStockFilter("all"); }} className="border border-border px-4 py-2.5 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear</button></div></div><div className="mt-4 grid gap-3">{visible.length === 0 ? <div className="border border-dashed border-[#cfc3b5] bg-white p-10 text-center text-sm text-muted-foreground">No live products match these filters.</div> : visible.map((product) => { const variantCount = Array.isArray(product.variants) ? product.variants.length : 0; const stockState = reorderState(product); return <div key={product._id} className="flex flex-wrap items-center gap-4 border border-[#ded5c9] bg-white p-4"><button type="button" onClick={() => setViewing(product)} className="size-16 shrink-0 overflow-hidden bg-[#f0e9df]" aria-label={`View ${String(product.name ?? product.id)}`}><img src={String(product.image ?? "")} alt="" className="h-full w-full object-cover" /></button><div className="min-w-48 flex-1"><button type="button" onClick={() => setViewing(product)} className="text-left font-medium text-primary hover:underline">{String(product.name ?? product.id)}</button><p className="mt-1 text-xs text-muted-foreground">Category: <strong className="font-medium text-primary">{categoryName(product.category)}</strong></p><p className="mt-1 text-xs text-muted-foreground">₹{Number(product.price ?? 0).toLocaleString("en-IN")} · Total stock {Number(product.stock ?? 0)}{variantCount ? ` · ${variantCount} colour variants` : ""}</p></div><span title={stockState.label || undefined} className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] ${stockState.out ? "border-red-200 bg-red-50 text-red-700" : stockState.needsReorder ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{stockState.out ? "Out of stock" : stockState.needsReorder ? "Needs reorder" : "In stock"}</span><button type="button" onClick={() => setViewing(product)} className="border border-primary px-3 py-2 text-xs text-primary hover:bg-primary hover:text-white">View stock</button><button type="button" onClick={() => setEditing({ ...product })} className="border border-border px-3 py-2 text-xs text-primary hover:border-primary">Edit</button><button type="button" onClick={() => void remove(product)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(product.name ?? product.id)}`}><Trash2 className="size-4" /></button></div>; })}</div></div>;
@@ -2245,7 +2272,7 @@ function CategoryViewCrudPage() {
   const [viewing, setViewing] = useState<RecordItem | null>(null);
   async function load() { try { const [categoryItems, productItems] = await Promise.all([api("/api/admin/categories"), api("/api/admin/products")]); setCategories(categoryItems); setProducts(productItems); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load categories."); } }
   useEffect(() => { void load(); }, []);
-  async function remove(category: RecordItem) { if (!category._id || !window.confirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`)) return; try { await api(`/api/admin/categories/${category._id}`, { method: "DELETE" }); await load(); toast.success("Category deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete category."); } }
+  async function remove(category: RecordItem) { if (!category._id || !(await adminConfirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`))) return; try { await api(`/api/admin/categories/${category._id}`, { method: "DELETE" }); await load(); toast.success("Category deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete category."); } }
   if (viewing) return <CategoryViewPanel category={viewing} categories={categories} products={products} onClose={() => setViewing(null)} />;
   if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to categories</button><div className="max-w-xl"><Editor resource="categories" initial={editing} onDone={() => { setEditing(null); void load(); }} /></div></div>;
   const parents = categories.filter((category) => !category.parentSlug);
@@ -2282,7 +2309,7 @@ function SortableCategoryPage() {
     finally { setSavingOrder(false); }
   }
   async function remove(category: RecordItem) {
-    if (!category._id || !window.confirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`)) return;
+    if (!category._id || !(await adminConfirm(`Delete ${String(category.label ?? category.slug ?? "this category")}? This cannot be undone.`))) return;
     try { await api(`/api/admin/categories/${category._id}`, { method: "DELETE" }); await load(); toast.success("Category deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete category."); }
   }
@@ -2298,7 +2325,7 @@ function AnnouncementCrudPage() {
   useEffect(() => { void load(); }, []);
   async function toggle(item: RecordItem) { try { const { _id, ...payload } = item; await api(`/api/admin/announcements/${_id}`, { method: "PUT", body: JSON.stringify({ ...payload, active: item.active !== true }) }); await load(); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not update announcement."); } }
   async function remove(item: RecordItem) {
-    if (!item._id || !window.confirm("Delete this announcement? This cannot be undone.")) return;
+    if (!item._id || !(await adminConfirm("Delete this announcement? This cannot be undone."))) return;
     try { await api(`/api/admin/announcements/${item._id}`, { method: "DELETE" }); await load(); toast.success("Announcement deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete announcement."); }
   }
   const preview = items.find((item) => item.active === true)?.message ?? "Welcome to Bawari Banno";
@@ -2330,7 +2357,7 @@ function SettingsCrudPage({ role }: { role?: AdminProfile["role"] }) {
     finally { setBusy(false); }
   }
   async function reset() {
-    if (!window.confirm("Delete the saved settings record and restore defaults?")) return;
+    if (!(await adminConfirm("Delete the saved settings record and restore defaults? This restores the default store settings."))) return;
     try {
       const data = await api("/api/admin/settings", { method: "DELETE" });
       setForm({
@@ -2381,7 +2408,7 @@ function StaffAccessPanel() {
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not update staff access."); }
   }
   async function remove(item: RecordItem) {
-    if (!window.confirm(`Delete staff access for ${String(item.email)}?`)) return;
+    if (!(await adminConfirm(`Delete staff access for ${String(item.email)}? This cannot be undone.`))) return;
     try { await api(`/api/admin/team/${item._id}`, { method: "DELETE" }); await load(); toast.success("Staff account deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete staff account."); }
   }
@@ -2441,7 +2468,7 @@ function CustomerManagementPage() {
   }
 
   async function remove(customer: CustomerRecord) {
-    if (!customer._id || !window.confirm(`Delete ${String(customer.name ?? "this customer")}? Existing orders will be kept.`)) return;
+    if (!customer._id || !(await adminConfirm(`Delete ${String(customer.name ?? "this customer")}? Existing orders will be kept.`))) return;
     try {
       await api(`/api/admin/customers/${customer._id}`, { method: "DELETE" });
       setSelected(null);
@@ -2510,7 +2537,7 @@ function CustomerCrudPage() {
   useEffect(() => { void load(); }, [search]);
   async function openCustomer(id: string) { try { setSelected(await api(`/api/admin/customers/${id}`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load customer."); } }
   async function remove(customer: CustomerRecord) {
-    if (!customer._id || !window.confirm(`Delete ${String(customer.name ?? "this customer")}? Existing orders will be kept.`)) return;
+    if (!customer._id || !(await adminConfirm(`Delete ${String(customer.name ?? "this customer")}? Existing orders will be kept.`))) return;
     try { await api(`/api/admin/customers/${customer._id}`, { method: "DELETE" }); setSelected(null); await load(); toast.success("Customer deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete customer."); }
   }
@@ -2544,7 +2571,7 @@ function ReviewCrudPage() {
     finally { setBusy(false); }
   }
   async function remove(review: AdminReview) {
-    if (!review._id || !window.confirm("Delete this review and its media? This cannot be undone.")) return;
+    if (!review._id || !(await adminConfirm("Delete this review and its media? This cannot be undone."))) return;
     try { await api(`/api/admin/reviews/${review._id}`, { method: "DELETE" }); setReviews((current) => current.filter((item) => item._id !== review._id)); toast.success("Review deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete review."); }
   }
@@ -2580,7 +2607,7 @@ function OrderCrudPage() {
   async function load() { try { setOrders(await api(`/api/admin/orders?search=${encodeURIComponent(search)}&sort=newest`)); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not load orders."); } }
   useEffect(() => { void load(); }, [search]);
   async function remove(order: Order) {
-    if (!order._id || !window.confirm(`Delete order ${order.orderId ?? ""}? Inventory will not be restored.`)) return;
+    if (!order._id || !(await adminConfirm(`Delete order ${order.orderId ?? ""}? Inventory will not be restored.`))) return;
     try { await api(`/api/admin/orders/${order._id}`, { method: "DELETE" }); await load(); toast.success("Order deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete order."); }
   }
   if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to orders</button><OrderEditor initial={editing} onDone={() => { setEditing(null); void load(); }} /></div>;
@@ -2620,7 +2647,7 @@ function InventoryCrudPage() {
   }
   useEffect(() => { void load(); }, [productId, eventType]);
   async function remove(event: InventoryEvent) {
-    if (!event._id || !window.confirm("Delete this movement? The product stock will be reversed.")) return;
+    if (!event._id || !(await adminConfirm("Delete this movement? The product stock will be reversed."))) return;
     try { await api(`/api/admin/inventory/${event._id}`, { method: "DELETE" }); await load(); toast.success("Inventory movement deleted."); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete inventory movement."); }
   }

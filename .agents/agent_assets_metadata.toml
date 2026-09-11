@@ -70,3 +70,17 @@ mtime_ms = 1788515631114
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/ba79ed9b-a538-4c0c-9b2a-87813b5365f3/facbba8b-265d-416f-8d51-c3964964e94c"
 storage_version_token = "1788515801394712"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "JXS7Cpl177aa5obtpAisO"
+uri = "file://screenshots/admin-invoice-confirmation-settled.jpg"
+type = "image"
+title = "Admin invoice flow preview"
+description = "Preview captured after the Admin workflow restart. The unauthenticated capture shows the expected Admin session bootstrap screen."
+logical_id = "301373c0-f1fa-4add-a6f3-3de4533ea4df"
+content_hash = "sha256:4d597b0301b9cb6c99c048acfa37fa9bfee03a2d003daa72fac56d679e0797cf"
+size = 7402
+mtime_ms = 1789100137788
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:911d6541-dfc5-498a-967f-631f6f1989e2/301373c0-f1fa-4add-a6f3-3de4533ea4df/4589c8a9-6552-4c61-aef6-e6f6624b37bc"
+storage_version_token = "1789100237721589"
+content_type = "image/jpeg"

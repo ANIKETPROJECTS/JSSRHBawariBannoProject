@@ -4,6 +4,7 @@ import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-assets";
 import { auditCreateFields, auditUpdateFields, businessSettingsDefaults, ensureBusinessIndexes } from "@/lib/business-types";
+import { purchaseInvoiceDeletionPolicy } from "@/lib/purchase-invoice-policy";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -1452,6 +1453,30 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
   const lines = database.collection("purchase_invoice_lines");
   const actor = adminIdentity(request) ?? "admin";
   if (invoiceId && !ObjectId.isValid(invoiceId)) return fail("Purchase invoice not found.", 404);
+
+  if (invoiceId && request.method === "DELETE") {
+    const existing = await invoices.findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
+    if (!existing) return fail("Purchase invoice not found.", 404);
+    const deletionPolicy = purchaseInvoiceDeletionPolicy(existing.status);
+    if (!deletionPolicy.allowed) return fail(deletionPolicy.error, deletionPolicy.statusCode);
+    const documentFile = existing.documentFile as JsonRecord | undefined;
+    const fileId = String(documentFile?.id ?? "");
+    if (fileId && ObjectId.isValid(fileId)) {
+      try { await bucket.delete(new ObjectId(fileId)); } catch { /* Metadata deletion remains safe if the attachment is already gone. */ }
+    }
+    await lines.deleteMany({ purchaseInvoiceId: invoiceId });
+    const result = await invoices.deleteOne({ _id: new ObjectId(invoiceId) });
+    if (!result.deletedCount) return fail("Purchase invoice not found.", 404);
+    await database.collection("audit_logs").insertOne({
+      entityType: "purchase_invoice",
+      entityId: invoiceId,
+      action: "deleted",
+      actor,
+      changes: { vendorInvoiceNumber: existing.vendorInvoiceNumber, status: existing.status },
+      createdAt: new Date(),
+    });
+    return json({ ok: true });
+  }
 
   async function buildInvoice(input: JsonRecord, current?: JsonRecord) {
     const vendorId = String(input.vendorId ?? current?.vendorId ?? "").trim();
