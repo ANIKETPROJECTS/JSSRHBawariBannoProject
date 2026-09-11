@@ -10,7 +10,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "expenses" | "business-trips" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings" | "audit-logs";
+type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "expenses-trips" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings" | "audit-logs";
 type RecordItem = Record<string, unknown> & { _id?: string };
 type ProductVariantForm = { id?: string; color: string; stock: number | string; reorderLevel: number | string; image: string; extraImages: string };
 type AdminPermission = "catalog" | "procurement" | "inventory" | "orders" | "customers" | "marketing" | "audit";
@@ -25,8 +25,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "inventory", label: "Inventory history", icon: BarChart3 },
   { id: "vendors", label: "Vendors", icon: Building2 },
   { id: "purchase-invoices", label: "Purchase invoices", icon: FileText },
-  { id: "expenses", label: "Expenses", icon: CreditCard },
-  { id: "business-trips", label: "Business trips", icon: MapPin },
+  { id: "expenses-trips", label: "Expenses & trips", icon: CreditCard },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "customers", label: "Customers", icon: Users },
   { id: "reviews", label: "Reviews", icon: Star },
@@ -131,7 +130,7 @@ function AdminPage() {
   if (!authenticated) return <Login onSuccess={() => { setAuthenticated(true); void api("/api/admin/me").then(setAdminProfile); }} />;
   const canAccess = (id: Tab) => adminProfile?.role === "owner" || ({
     dashboard: true, products: adminProfile?.permissions.includes("catalog"), categories: adminProfile?.permissions.includes("catalog"), heroes: adminProfile?.permissions.includes("catalog"), announcements: adminProfile?.permissions.includes("catalog"), coupons: adminProfile?.permissions.includes("catalog"),
-    "purchase-suggestions": adminProfile?.permissions.includes("procurement"), vendors: adminProfile?.permissions.includes("procurement"), "purchase-invoices": adminProfile?.permissions.includes("procurement"), expenses: adminProfile?.permissions.includes("procurement"), "business-trips": adminProfile?.permissions.includes("procurement"),
+    "purchase-suggestions": adminProfile?.permissions.includes("procurement"), vendors: adminProfile?.permissions.includes("procurement"), "purchase-invoices": adminProfile?.permissions.includes("procurement"), "expenses-trips": adminProfile?.permissions.includes("procurement"),
     inventory: adminProfile?.permissions.includes("inventory"), orders: adminProfile?.permissions.includes("orders"), customers: adminProfile?.permissions.includes("customers"), reviews: adminProfile?.permissions.includes("marketing"), settings: adminProfile?.permissions.includes("settings"), "audit-logs": adminProfile?.permissions.includes("audit"),
   } as Record<Tab, boolean | undefined>)[id] === true;
   const visibleTabs = tabs.filter(({ id }) => canAccess(id));
@@ -165,7 +164,7 @@ function AdminPage() {
            <div className="flex gap-2 overflow-x-auto">{visibleTabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
-          {tab === "dashboard" ? <><ProcurementDashboard /><MarginDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage initialDraft={reorderDraft} onInitialDraftConsumed={() => setReorderDraft(null)} /> : tab === "expenses" ? <ExpensesPage /> : tab === "business-trips" ? <BusinessTripsPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage role={adminProfile?.role} /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : tab === "audit-logs" ? <AuditLogsPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <><ProcurementDashboard /><MarginDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage initialDraft={reorderDraft} onInitialDraftConsumed={() => setReorderDraft(null)} /> : tab === "expenses-trips" ? <ExpensesTripsPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage role={adminProfile?.role} /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : tab === "audit-logs" ? <AuditLogsPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -430,6 +429,20 @@ function BusinessTripsPage() {
 
 function BusinessTripDetail({ trip, onBack, onEdit }: { trip: BusinessTripRecord; onBack: () => void; onEdit: () => void }) {
   return <div><button type="button" onClick={onBack} className="mb-5 text-sm text-primary hover:underline">← Back to business trips</button><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">{trip.tripId}</p><h2 className="mt-1 font-display text-3xl text-primary">{trip.tripName}</h2><p className="mt-2 text-sm text-muted-foreground">{trip.location || "Location not added"} · {String(trip.startDate ?? "").slice(0, 10)}{trip.endDate ? ` to ${String(trip.endDate).slice(0, 10)}` : ""}</p></div><button type="button" onClick={onEdit} className="border border-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-primary">Edit trip</button></div><div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Total Expense (auto)" value={`₹${Number(trip.totalExpense ?? 0).toLocaleString("en-IN")}`} icon={CreditCard} /><MetricCard label="Purchase invoices" value={`₹${Number(trip.purchaseInvoiceTotal ?? 0).toLocaleString("en-IN")}`} icon={FileText} /><MetricCard label="Full trip cost" value={`₹${Number(trip.totalTripCost ?? 0).toLocaleString("en-IN")}`} icon={BarChart3} /></div><section className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-display text-2xl text-primary">Linked expenses</h3><span className="text-xs text-muted-foreground">{trip.expenseCount ?? 0} expense records</span></div>{trip.expenses?.length ? <div className="mt-4 space-y-3">{trip.expenses.map((expense) => <div key={expense._id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"><div><p className="font-medium text-primary">{expense.description}</p><p className="text-xs text-muted-foreground">{String(expense.date ?? "").slice(0, 10)} · {expense.category}</p></div><p className="font-medium">₹{Number(expense.amount ?? 0).toLocaleString("en-IN")}</p></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">No expenses are linked to this trip yet.</p>}</section><section className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-display text-2xl text-primary">Purchase invoices made during trip</h3><span className="text-xs text-muted-foreground">{trip.purchaseInvoiceCount ?? 0} invoices · ₹{Number(trip.purchaseInvoiceTotal ?? 0).toLocaleString("en-IN")}</span></div>{trip.purchaseInvoices?.length ? <div className="mt-4 space-y-3">{trip.purchaseInvoices.map((invoice) => <div key={invoice._id} className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"><div><p className="font-medium text-primary">{invoice.vendorInvoiceNumber}</p><p className="text-xs text-muted-foreground">{String(invoice.invoiceDate ?? "").slice(0, 10)} · {invoice.status}</p></div><p className="font-medium">₹{Number(invoice.totalPayable ?? 0).toLocaleString("en-IN")}</p></div>)}</div> : <p className="mt-4 text-sm text-muted-foreground">No purchase invoices are linked to this trip yet.</p>}</section></div>;
+}
+
+function ExpensesTripsPage() {
+  const [view, setView] = useState<"expenses" | "business-trips">("expenses");
+  return <div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border border-[#ded5c9] bg-white p-2">
+      <p className="px-3 text-xs uppercase tracking-[0.16em] text-muted-foreground">Finance & travel records</p>
+      <div className="flex gap-1">
+        <button type="button" onClick={() => setView("expenses")} aria-pressed={view === "expenses"} className={`px-4 py-2.5 text-xs uppercase tracking-[0.12em] ${view === "expenses" ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>Expenses</button>
+        <button type="button" onClick={() => setView("business-trips")} aria-pressed={view === "business-trips"} className={`px-4 py-2.5 text-xs uppercase tracking-[0.12em] ${view === "business-trips" ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>Business trips</button>
+      </div>
+    </div>
+    {view === "expenses" ? <ExpensesPage /> : <BusinessTripsPage />}
+  </div>;
 }
 
 type VendorRecord = RecordItem & {
