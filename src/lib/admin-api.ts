@@ -1514,9 +1514,20 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     if (!rawLines.length) throw new Error("Add at least one invoice line.");
     const lineDocuments: JsonRecord[] = [];
     for (const [index, rawLine] of rawLines.entries()) {
-      const productId = String(rawLine.productId ?? "").trim();
-      const product = await database.collection("products").findOne({ id: productId });
-      if (!product) throw new Error(`Line ${index + 1}: choose an existing product.`);
+      const vendorProductCode = String(rawLine.vendorProductCode ?? "").trim().slice(0, 80);
+      let productId = String(rawLine.productId ?? "").trim();
+      let product = productId ? await database.collection("products").findOne({ id: productId }) : null;
+      if (!product && vendorProductCode) {
+        const previousBatch = await database.collection("stock_batches").findOne(
+          { vendorId, vendorProductCode, sourceType: "purchase" },
+          { sort: { createdAt: -1 } },
+        );
+        if (previousBatch?.productId) {
+          productId = String(previousBatch.productId);
+          product = await database.collection("products").findOne({ id: productId });
+        }
+      }
+      if (!product) throw new Error(`Line ${index + 1}: choose an existing product or enter a vendor code already linked to a product.`);
       const productVariants = Array.isArray(product.variants) ? product.variants as JsonRecord[] : [];
       const variantId = String(rawLine.variantId ?? "").trim();
       const variant = variantId ? productVariants.find((entry) => String(entry.id ?? "") === variantId) : undefined;
@@ -1529,7 +1540,7 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
       lineDocuments.push({
         productId,
         variantId: variantId || undefined,
-        vendorProductCode: String(rawLine.vendorProductCode ?? "").trim().slice(0, 80),
+        vendorProductCode,
         itemName: String(rawLine.itemName ?? variant?.color ?? product.name ?? productId).trim().slice(0, 180),
         quantityPurchased,
         costPricePerUnit: Math.round(costPricePerUnit * 100) / 100,
@@ -1712,6 +1723,17 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
             ...auditCreateFields(actor),
           };
           const batchResult = await database.collection("stock_batches").insertOne(stockBatch, { session });
+          await database.collection("products").updateOne(
+            { id: String(line.productId) },
+            {
+              $set: {
+                primaryVendorId: String(invoice.vendorId),
+                primaryVendorProductCode: String(line.vendorProductCode ?? ""),
+                updatedAt: new Date(),
+              },
+            },
+            { session },
+          );
           if (variantId) {
             const updated = await database.collection("products").updateOne(
               { id: String(line.productId), variants: { $elemMatch: { id: variantId } } },
@@ -2728,6 +2750,8 @@ async function adminProductFinancials(request: Request) {
       sourceType,
       sourceLabel: String(batch.sourceLabel ?? (sourceType === "opening_balance" ? "Opening balance" : "Stock batch")),
       invoiceNumber: invoice?.vendorInvoiceNumber ? String(invoice.vendorInvoiceNumber) : "",
+      vendorId: batch.vendorId ? String(batch.vendorId) : "",
+      vendorProductCode: batch.vendorProductCode ? String(batch.vendorProductCode) : "",
       vendorName: vendor?.businessName ? String(vendor.businessName) : "",
       receivedDate: batch.receivedDate instanceof Date ? batch.receivedDate.toISOString() : batch.receivedDate ?? null,
       quantityReceived,
