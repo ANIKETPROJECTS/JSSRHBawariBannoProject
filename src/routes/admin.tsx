@@ -60,21 +60,22 @@ async function uploadExpenseReceipt(expenseId: string, file: File) {
   return result;
 }
 
-async function uploadProductImage(file: File) {
+async function uploadProductImage(file: File, folder?: string) {
   const form = new FormData();
   form.append("image", file);
+  if (folder) form.append("folder", folder);
   const response = await fetch("/api/admin/product-images", { method: "POST", body: form });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error ?? "Could not upload the product image.");
   return result as { url: string };
 }
 
-function ProductImagePicker({ value, onChange, label = "Cover image URL", required = false }: { value: string; onChange: (value: string) => void; label?: string; required?: boolean }) {
+function ProductImagePicker({ value, onChange, folder, label = "Cover image URL", required = false }: { value: string; onChange: (value: string) => void; folder?: string; label?: string; required?: boolean }) {
   const [busy, setBusy] = useState(false);
   async function choose(file: File) {
     setBusy(true);
     try {
-      const uploaded = await uploadProductImage(file);
+      const uploaded = await uploadProductImage(file, folder);
       onChange(uploaded.url);
       toast.success("Product image uploaded.");
     } catch (error) {
@@ -756,7 +757,9 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
 
   async function chooseNewProductImage(file: File) {
     try {
-      const uploaded = await uploadProductImage(file);
+      const category = newProduct.category === "__new__" ? newProduct.newCategorySlug : newProduct.category;
+      const folder = `bawari-banno/catalog/${adminSlug(category) || "uncategorized"}/products/${adminSlug(newProduct.code || newProduct.name) || "new-product"}/images`;
+      const uploaded = await uploadProductImage(file, folder);
       setNewProduct((current) => ({ ...current, image: uploaded.url }));
       toast.success("Product image uploaded.");
     } catch (error) {
@@ -2005,7 +2008,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         </section>
         {variants.length === 0 && <section className="border-t border-border pt-5">
           <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required when no color variants are added. Add up to four extra images, one URL per line.</p>
-          <div className="mt-3"><ProductImagePicker value={String(form.coverImage ?? "")} onChange={(value) => set("coverImage", value)} required /></div>
+          <div className="mt-3"><ProductImagePicker value={String(form.coverImage ?? "")} onChange={(value) => set("coverImage", value)} folder={`bawari-banno/catalog/${adminSlug(form.category) || "uncategorized"}/products/${adminSlug(form.id ?? form.name) || "new-product"}/images`} required /></div>
           <label className="mt-3 block text-xs text-muted-foreground">Extra image URLs <span>(optional, maximum 4)</span><textarea value={String(form.extraImages ?? "")} onChange={(event) => set("extraImages", event.target.value)} rows={4} placeholder={"https://…/detail-1.jpg\nhttps://…/detail-2.jpg"} className="mt-1 w-full resize-y border border-border px-3 py-2.5 text-sm" /></label>
         </section>}
         <section className="border-t border-border pt-5">

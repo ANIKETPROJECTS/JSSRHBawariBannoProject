@@ -47,6 +47,100 @@ const productImageBucketName = "product_images";
 const productImageLimit = 8 * 1024 * 1024;
 const productImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
+type CloudinaryUpload = { id: string; url: string; filename: string; contentType: string; size: number; storage: "cloudinary"; publicId: string; resourceType: string };
+
+function cloudinaryConfig() {
+  const raw = process.env.CLOUDINARY_URL;
+  if (!raw) throw new Error("CLOUDINARY_URL is not configured.");
+  const parsed = new URL(raw);
+  const apiKey = decodeURIComponent(parsed.username);
+  const apiSecret = decodeURIComponent(parsed.password);
+  const cloudName = parsed.hostname;
+  if (!apiKey || !apiSecret || !cloudName) throw new Error("CLOUDINARY_URL is invalid.");
+  return { apiKey, apiSecret, cloudName };
+}
+
+function cloudinarySignature(params: Record<string, string>, apiSecret: string) {
+  const serialized = Object.entries(params)
+    .filter(([, value]) => value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+  return createHash("sha1").update(`${serialized}${apiSecret}`).digest("hex");
+}
+
+function cloudinarySegment(value: unknown, fallback: string) {
+  const cleaned = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+  return cleaned || fallback;
+}
+
+function cloudinaryFolder(value: unknown, fallback: string) {
+  const parts = String(value ?? "")
+    .split("/")
+    .map((part) => cloudinarySegment(part, "untitled"))
+    .filter(Boolean);
+  return parts[0] === "bawari-banno" ? parts.join("/") : fallback;
+}
+
+async function uploadToCloudinary(file: File, folder: string, resourceType: "image" | "raw"): Promise<CloudinaryUpload> {
+  const { apiKey, apiSecret, cloudName } = cloudinaryConfig();
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const params = { folder, timestamp };
+  const form = new FormData();
+  form.append("file", new Blob([await file.arrayBuffer()], { type: file.type }), file.name);
+  form.append("api_key", apiKey);
+  form.append("timestamp", timestamp);
+  form.append("folder", folder);
+  form.append("signature", cloudinarySignature(params, apiSecret));
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${resourceType}/upload`, { method: "POST", body: form });
+  const result = await response.json().catch(() => ({})) as JsonRecord;
+  if (!response.ok || !result.secure_url || !result.public_id) {
+    throw new Error(String(result.error && typeof result.error === "object" ? (result.error as JsonRecord).message : result.error ?? "Cloudinary upload failed."));
+  }
+  return {
+    id: String(result.public_id),
+    publicId: String(result.public_id),
+    url: String(result.secure_url),
+    filename: file.name.slice(0, 180) || "upload",
+    contentType: file.type,
+    size: file.size,
+    storage: "cloudinary",
+    resourceType,
+  };
+}
+
+async function deleteFromCloudinary(file: JsonRecord | undefined) {
+  if (String(file?.storage ?? "") !== "cloudinary" || !file?.publicId) return;
+  try {
+    const { apiKey, apiSecret, cloudName } = cloudinaryConfig();
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const resourceType = String(file.resourceType ?? "image");
+    const params = { public_id: String(file.publicId), timestamp };
+    const form = new URLSearchParams({ public_id: String(file.publicId), timestamp, api_key: apiKey, signature: cloudinarySignature(params, apiSecret) });
+    await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/${resourceType}/destroy`, { method: "POST", body: form });
+  } catch {
+    // Storage cleanup must not prevent deleting the MongoDB record.
+  }
+}
+
+async function cloudinaryFileResponse(request: Request, file: JsonRecord, notFoundMessage: string) {
+  const response = await fetch(String(file.url ?? ""));
+  if (!response.ok) return fail(notFoundMessage, 404);
+  const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
+  return new Response(await response.arrayBuffer(), {
+    headers: {
+      "cache-control": "private, no-store",
+      "content-type": String(file.contentType ?? response.headers.get("content-type") ?? "application/octet-stream"),
+      "content-disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(String(file.filename ?? "download"))}`,
+    },
+  });
+}
+
 let clientPromise: Promise<MongoClient> | undefined;
 
 function getClient() {
@@ -1263,6 +1357,13 @@ async function expenseReceipt(request: Request, expenseId: string) {
   if (!expense) return fail("Expense not found.", 404);
   const receiptFile = expense.receiptFile as JsonRecord | undefined;
   const fileId = String(receiptFile?.id ?? "");
+  if (receiptFile?.storage === "cloudinary" && request.method === "GET") return await cloudinaryFileResponse(request, receiptFile, "Expense receipt not found.");
+  if (receiptFile?.storage === "cloudinary" && request.method === "DELETE") {
+    await deleteFromCloudinary(receiptFile);
+    await database.collection("expenses").updateOne({ _id: new ObjectId(expenseId) }, { $unset: { receiptFile: "" }, $set: { updatedAt: new Date() } });
+    await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "receipt_deleted", actor: adminIdentity(request) ?? "admin", changes: { filename: receiptFile.filename }, createdAt: new Date() });
+    return json({ ok: true });
+  }
   const bucket = new GridFSBucket(database, { bucketName: expenseReceiptBucketName });
 
   if (request.method === "GET") {
@@ -1299,6 +1400,14 @@ async function expenseReceipt(request: Request, expenseId: string) {
   if (upload.size > expenseReceiptLimit) return fail("Expense receipts must be smaller than 15 MB.");
   if (!expenseReceiptTypes.has(upload.type)) return fail("Only PDF, JPG, PNG, WEBP, and GIF receipts are supported.");
   try {
+    if (process.env.CLOUDINARY_URL) {
+      const uploaded = await uploadToCloudinary(upload, `bawari-banno/expenses/${cloudinarySegment(expenseId, "expense")}/documents`, upload.type === "application/pdf" ? "raw" : "image");
+      const nextReceiptFile = { ...uploaded, uploadedAt: new Date() };
+      await deleteFromCloudinary(receiptFile);
+      await database.collection("expenses").updateOne({ _id: new ObjectId(expenseId) }, { $set: { receiptFile: nextReceiptFile, updatedAt: new Date() } });
+      await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "receipt_uploaded", actor: adminIdentity(request) ?? "admin", changes: nextReceiptFile, createdAt: new Date() });
+      return json(nextReceiptFile);
+    }
     if (ObjectId.isValid(fileId)) {
       try { await bucket.delete(new ObjectId(fileId)); } catch { /* Replace the metadata even if an old binary is missing. */ }
     }
@@ -1469,8 +1578,10 @@ async function adminPurchaseInvoices(request: Request, invoiceId?: string) {
     if (!deletionPolicy.allowed) return fail(deletionPolicy.error, deletionPolicy.statusCode);
     const documentFile = existing.documentFile as JsonRecord | undefined;
     const fileId = String(documentFile?.id ?? "");
-    if (fileId && ObjectId.isValid(fileId)) {
-      try { await bucket.delete(new ObjectId(fileId)); } catch { /* Metadata deletion remains safe if the attachment is already gone. */ }
+    if (documentFile?.storage === "cloudinary") {
+      await deleteFromCloudinary(documentFile);
+    } else if (fileId && ObjectId.isValid(fileId)) {
+      try { await new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName }).delete(new ObjectId(fileId)); } catch { /* Metadata deletion remains safe if the attachment is already gone. */ }
     }
     await lines.deleteMany({ purchaseInvoiceId: invoiceId });
     const result = await invoices.deleteOne({ _id: new ObjectId(invoiceId) });
@@ -1855,6 +1966,7 @@ async function purchaseInvoiceDocument(request: Request, invoiceId: string) {
   const documentFile = invoice.documentFile as JsonRecord | undefined;
 
   if (request.method === "GET") {
+    if (documentFile?.storage === "cloudinary") return await cloudinaryFileResponse(request, documentFile, "Purchase invoice document not found.");
     const fileId = String(documentFile?.id ?? "");
     if (!ObjectId.isValid(fileId)) return fail("This purchase invoice has no original document.", 404);
     const bucket = new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName });
@@ -1883,6 +1995,31 @@ async function purchaseInvoiceDocument(request: Request, invoiceId: string) {
   if (!purchaseInvoiceDocumentTypes.has(upload.type)) return fail("Only PDF, JPG, PNG, WEBP, and GIF invoice documents are supported.");
 
   try {
+    if (process.env.CLOUDINARY_URL) {
+      const invoiceNumber = cloudinarySegment(invoice.vendorInvoiceNumber, invoiceId);
+      const uploaded = await uploadToCloudinary(upload, `bawari-banno/purchase-invoices/${invoiceNumber}/documents`, upload.type === "application/pdf" ? "raw" : "image");
+      const nextDocumentFile = { ...uploaded, uploadedAt: new Date() };
+      await deleteFromCloudinary(documentFile);
+      await database.collection("purchase_invoices").updateOne(
+        { _id: new ObjectId(invoiceId) },
+        { $set: { documentFile: nextDocumentFile, updatedAt: new Date() } },
+      );
+      await database.collection("audit_logs").insertOne({
+        entityType: "purchase_invoice",
+        entityId: invoiceId,
+        action: "document_uploaded",
+        actor: adminIdentity(request) ?? "admin",
+        changes: nextDocumentFile,
+        createdAt: new Date(),
+      });
+      return json(await (async () => {
+        const refreshed = await database.collection("purchase_invoices").findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
+        if (!refreshed) return {};
+        const vendor = await database.collection("vendors").findOne({ _id: new ObjectId(String(refreshed.vendorId)) });
+        const invoiceLines = await database.collection("purchase_invoice_lines").find({ invoiceId: new ObjectId(invoiceId) }).sort({ createdAt: 1 }).toArray();
+        return serializeInvoice({ ...refreshed, lines: invoiceLines }, vendor ?? undefined);
+      })());
+    }
     const bucket = new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName });
     const fileId = await new Promise<ObjectId>((resolve, reject) => {
       const stream = bucket.openUploadStream(upload.name.slice(0, 180) || "purchase-invoice-document", {
@@ -2299,6 +2436,10 @@ async function uploadProductImage(request: Request) {
   if (!isUpload(upload) || upload.size === 0) return fail("Choose a product image.");
   if (!productImageTypes.has(upload.type)) return fail("Only JPG, PNG, WEBP, and GIF product images are supported.");
   if (upload.size > productImageLimit) return fail("Product images must be smaller than 8 MB.");
+  if (process.env.CLOUDINARY_URL) {
+    const requestedFolder = cloudinaryFolder(form.get("folder"), "bawari-banno/catalog/uncategorized/products/unassigned/images");
+    return json(await uploadToCloudinary(upload, requestedFolder, "image"));
+  }
   const database = await db();
   const bucket = new GridFSBucket(database, { bucketName: productImageBucketName });
   const fileId = await new Promise<ObjectId>((resolve, reject) => {

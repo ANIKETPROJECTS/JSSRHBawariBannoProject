@@ -4,3 +4,4 @@
 - [Financial inventory foundation](financial-inventory-foundation.md) — preserve legacy stock as explicit opening balance until real vendor and cost history exists.
 - [Admin access control](admin-access-control.md) — owner sessions have full access; staff sessions use explicit database-backed permission sets.
 - [Private invoice upload flow](private-invoice-upload-flow.md) — preserve multipart boundaries and allow missing-document recovery without changing posted financial data.
+- [Cloudinary media structure](cloudinary-media-structure.md) — store catalog and Admin attachments in predictable Cloudinary folders while keeping invoice/expense access behind Admin routes.
