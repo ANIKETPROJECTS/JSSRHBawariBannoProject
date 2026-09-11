@@ -3,3 +3,4 @@
 - [Editorial storefront experiments](editorial-storefront-experiments.md) — keep visual redesigns isolated and use local media with graceful fallbacks.
 - [Financial inventory foundation](financial-inventory-foundation.md) — preserve legacy stock as explicit opening balance until real vendor and cost history exists.
 - [Admin access control](admin-access-control.md) — owner sessions have full access; staff sessions use explicit database-backed permission sets.
+- [Private invoice upload flow](private-invoice-upload-flow.md) — preserve multipart boundaries and allow missing-document recovery without changing posted financial data.
