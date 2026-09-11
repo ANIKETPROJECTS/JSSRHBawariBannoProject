@@ -335,6 +335,11 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
       while (await collection.findOne({ id: generatedId })) generatedId = `${baseId}-${suffix++}`;
       document.id = generatedId;
     }
+    const duplicateCode = await collection.findOne({
+      id: String(document.id),
+      ...(id && ObjectId.isValid(id) ? { _id: { $ne: new ObjectId(id) } } : {}),
+    });
+    if (duplicateCode) throw new Error(`Product code "${String(document.id)}" is already in use. Choose a unique code.`);
     const parentSlug = String(document.category ?? "").trim();
     const childSlug = String(document.subcategory ?? "").trim();
     if (childSlug) {

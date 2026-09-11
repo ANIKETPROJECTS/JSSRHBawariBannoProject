@@ -9,6 +9,12 @@ Existing catalog stock must not be assigned invented vendor or cost data. Treat 
 
 **How to apply:** New purchase invoices should create purchase-backed stock batches; legacy stock should be migrated separately and transparently, with optional variant-level linkage.
 
+Products created while matching a purchase invoice must start with zero opening stock; the posted invoice quantity is the only stock increase for that receipt.
+
+**Why:** Seeding the invoice quantity during product creation and then posting the invoice would count the same units twice and make FIFO quantities wrong.
+
+**How to apply:** Treat invoice-created catalog setup as metadata creation only, then let the normal posted-invoice transaction create the purchase batch and inventory movement.
+
 Posted purchase receipts should also be represented in inventory history with the catalog product, color variant, quantity, and before/after stock, but those movement rows must remain locked.
 
 **Why:** Editing or deleting a purchase movement without correcting its source invoice would change product stock while leaving the purchase stock batch and financial record inconsistent.
