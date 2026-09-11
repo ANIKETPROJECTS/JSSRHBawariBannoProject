@@ -43,6 +43,9 @@ const purchaseInvoiceDocumentTypes = new Set(["application/pdf", "image/jpeg", "
 const expenseReceiptBucketName = "expense_receipts";
 const expenseReceiptLimit = 15 * 1024 * 1024;
 const expenseReceiptTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"]);
+const productImageBucketName = "product_images";
+const productImageLimit = 8 * 1024 * 1024;
+const productImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 let clientPromise: Promise<MongoClient> | undefined;
 
@@ -2286,6 +2289,29 @@ function reviewMediaUrl(id: string) {
   return `/api/review-media/${id}`;
 }
 
+function productImageUrl(id: string) {
+  return `/api/product-media/${id}`;
+}
+
+async function uploadProductImage(request: Request) {
+  const form = await request.formData();
+  const upload = form.get("image");
+  if (!isUpload(upload) || upload.size === 0) return fail("Choose a product image.");
+  if (!productImageTypes.has(upload.type)) return fail("Only JPG, PNG, WEBP, and GIF product images are supported.");
+  if (upload.size > productImageLimit) return fail("Product images must be smaller than 8 MB.");
+  const database = await db();
+  const bucket = new GridFSBucket(database, { bucketName: productImageBucketName });
+  const fileId = await new Promise<ObjectId>((resolve, reject) => {
+    const stream = bucket.openUploadStream(upload.name.slice(0, 180) || "product-image", {
+      metadata: { contentType: upload.type },
+    });
+    stream.once("finish", () => resolve(stream.id as ObjectId));
+    stream.once("error", reject);
+    upload.arrayBuffer().then((buffer) => stream.end(Buffer.from(buffer))).catch(reject);
+  });
+  return json({ url: productImageUrl(String(fileId)), filename: upload.name, contentType: upload.type, size: upload.size });
+}
+
 function serializeReview(review: ReviewRecord) {
   return {
     ...review,
@@ -2438,6 +2464,22 @@ async function reviewMedia(request: Request, id: string) {
   const stream = bucket.openDownloadStream(new ObjectId(id));
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
   return new Response(Buffer.concat(chunks), { headers: { "cache-control": "public, max-age=31536000, immutable", "content-type": String(file.metadata?.contentType ?? file.contentType ?? "application/octet-stream") } });
+}
+
+async function productMedia(id: string) {
+  if (!ObjectId.isValid(id)) return fail("Product image not found.", 404);
+  const bucket = new GridFSBucket(await db(), { bucketName: productImageBucketName });
+  const file = await bucket.find({ _id: new ObjectId(id) }).next();
+  if (!file) return fail("Product image not found.", 404);
+  const chunks: Buffer[] = [];
+  const stream = bucket.openDownloadStream(new ObjectId(id));
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return new Response(Buffer.concat(chunks), {
+    headers: {
+      "cache-control": "public, max-age=31536000, immutable",
+      "content-type": String(file.metadata?.contentType ?? file.contentType ?? "application/octet-stream"),
+    },
+  });
 }
 
 async function adminReviews(request: Request, reviewId?: string) {
@@ -2887,6 +2929,7 @@ async function handleAdmin(request: Request, path: string) {
     const context = adminContext(request);
     return json({ ok: true, role: context?.role ?? "owner", permissions: context?.permissions ?? [...adminPermissions] });
   }
+  if (path === "/api/admin/product-images" && request.method === "POST") return await uploadProductImage(request);
   const teamMatch = path.match(/^\/api\/admin\/team(?:\/([^/]+))?$/);
   if (teamMatch) return await adminTeam(request, teamMatch[1]);
   if (path === "/api/admin/purchase-suggestions") return json(await adminPurchaseSuggestions(request));
@@ -3188,6 +3231,7 @@ export async function handleAdminApi(request: Request) {
     if (url.pathname.startsWith("/api/auth/")) return await handleAuth(request, url.pathname);
     if (url.pathname === "/api/phonepe/callback" && request.method === "POST") return await handlePhonePeCallback(request);
     if (url.pathname === "/api/phonepe/status" && request.method === "GET") return await phonePePaymentStatus(request);
+    if (url.pathname.startsWith("/api/product-media/")) return await productMedia(url.pathname.split("/").pop() ?? "");
     if (url.pathname.startsWith("/api/review-media/")) return await reviewMedia(request, url.pathname.split("/").pop() ?? "");
     if (url.pathname === "/api/reviews" || url.pathname === "/api/reviews/summaries") return await productReviews(request);
     if ((url.pathname === "/api/phonepe/checkout" || url.pathname === "/api/inventory/purchase") && request.method === "POST") return await createPhonePeCheckout(request);
