@@ -69,6 +69,12 @@ Operating expenses should remain separate from inventory purchase invoices, even
 
 **How to apply:** Record expenses in their own ledger with category, date, payment mode, optional vendor, and description; do not create inventory movements from expense records.
 
+Expense receipts are private Admin-only attachments stored separately from purchase invoice documents and review media; replacing or deleting an expense must not affect inventory or FIFO records.
+
+**Why:** Receipts provide operating-cost evidence without turning an operating expense into a stock transaction or exposing business documents publicly.
+
+**How to apply:** Keep receipt metadata on the expense record, store file bytes in the dedicated private bucket, and audit upload, replacement, and deletion actions.
+
 Business trips group operating expenses without becoming inventory or purchase records.
 
 **Why:** Travel and sourcing costs need trip-level review, but they should not alter stock, FIFO allocations, or purchase-backed inventory value.

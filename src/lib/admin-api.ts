@@ -39,6 +39,9 @@ const reviewMediaTypes = new Map<string, "image" | "video">([
 const purchaseInvoiceDocumentBucketName = "purchase_invoice_documents";
 const purchaseInvoiceDocumentLimit = 15 * 1024 * 1024;
 const purchaseInvoiceDocumentTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"]);
+const expenseReceiptBucketName = "expense_receipts";
+const expenseReceiptLimit = 15 * 1024 * 1024;
+const expenseReceiptTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 let clientPromise: Promise<MongoClient> | undefined;
 
@@ -1233,11 +1236,84 @@ async function adminExpenses(request: Request, expenseId?: string) {
   if (expenseId && request.method === "DELETE") {
     const deleted = await collection.findOneAndDelete({ _id: new ObjectId(expenseId) });
     if (!deleted) return fail("Expense not found.", 404);
+    const deletedReceiptId = String((deleted.receiptFile as JsonRecord | undefined)?.id ?? "");
+    if (ObjectId.isValid(deletedReceiptId)) {
+      try { await new GridFSBucket(database, { bucketName: expenseReceiptBucketName }).delete(new ObjectId(deletedReceiptId)); } catch { /* Keep expense deletion successful if the binary was already absent. */ }
+    }
     await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "deleted", actor, changes: { amount: deleted.amount, category: deleted.category }, createdAt: new Date() });
     return json({ ok: true });
   }
 
   return fail("Method not allowed.", 405);
+}
+
+async function expenseReceipt(request: Request, expenseId: string) {
+  if (!ObjectId.isValid(expenseId)) return fail("Expense not found.", 404);
+  const database = await db();
+  const expense = await database.collection("expenses").findOne({ _id: new ObjectId(expenseId) }) as JsonRecord | null;
+  if (!expense) return fail("Expense not found.", 404);
+  const receiptFile = expense.receiptFile as JsonRecord | undefined;
+  const fileId = String(receiptFile?.id ?? "");
+  const bucket = new GridFSBucket(database, { bucketName: expenseReceiptBucketName });
+
+  if (request.method === "GET") {
+    if (!ObjectId.isValid(fileId)) return fail("This expense has no receipt.", 404);
+    const file = await bucket.find({ _id: new ObjectId(fileId) }).next();
+    if (!file) return fail("Expense receipt not found.", 404);
+    const chunks: Buffer[] = [];
+    const stream = bucket.openDownloadStream(new ObjectId(fileId));
+    for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+    const filename = String(receiptFile?.filename ?? file.filename ?? "expense-receipt").replace(/["\r\n]/g, "_");
+    const disposition = new URL(request.url).searchParams.get("download") === "1" ? "attachment" : "inline";
+    return new Response(Buffer.concat(chunks), {
+      headers: {
+        "cache-control": "private, no-store",
+        "content-type": String(receiptFile?.contentType ?? file.metadata?.contentType ?? file.contentType ?? "application/octet-stream"),
+        "content-disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      },
+    });
+  }
+
+  if (request.method === "DELETE") {
+    if (ObjectId.isValid(fileId)) {
+      try { await bucket.delete(new ObjectId(fileId)); } catch { /* The metadata cleanup is still safe if the binary was already removed. */ }
+    }
+    await database.collection("expenses").updateOne({ _id: new ObjectId(expenseId) }, { $unset: { receiptFile: "" }, $set: { updatedAt: new Date() } });
+    await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "receipt_deleted", actor: adminIdentity(request) ?? "admin", changes: { filename: receiptFile?.filename }, createdAt: new Date() });
+    return json({ ok: true });
+  }
+
+  if (request.method !== "POST") return fail("Method not allowed.", 405);
+  const form = await request.formData();
+  const upload = form.get("receipt");
+  if (!isUpload(upload) || upload.size === 0) return fail("Choose a PDF or image receipt.");
+  if (upload.size > expenseReceiptLimit) return fail("Expense receipts must be smaller than 15 MB.");
+  if (!expenseReceiptTypes.has(upload.type)) return fail("Only PDF, JPG, PNG, WEBP, and GIF receipts are supported.");
+  try {
+    if (ObjectId.isValid(fileId)) {
+      try { await bucket.delete(new ObjectId(fileId)); } catch { /* Replace the metadata even if an old binary is missing. */ }
+    }
+    const uploadedId = await new Promise<ObjectId>((resolve, reject) => {
+      const stream = bucket.openUploadStream(upload.name.slice(0, 180) || "expense-receipt", {
+        metadata: { contentType: upload.type, expenseId },
+      });
+      stream.once("finish", () => resolve(stream.id as ObjectId));
+      stream.once("error", reject);
+      upload.arrayBuffer().then((buffer) => stream.end(Buffer.from(buffer))).catch(reject);
+    });
+    const nextReceiptFile = {
+      id: String(uploadedId),
+      filename: upload.name.slice(0, 180) || "expense-receipt",
+      contentType: upload.type,
+      size: upload.size,
+      uploadedAt: new Date(),
+    };
+    await database.collection("expenses").updateOne({ _id: new ObjectId(expenseId) }, { $set: { receiptFile: nextReceiptFile, updatedAt: new Date() } });
+    await database.collection("audit_logs").insertOne({ entityType: "expense", entityId: expenseId, action: "receipt_uploaded", actor: adminIdentity(request) ?? "admin", changes: nextReceiptFile, createdAt: new Date() });
+    return json(nextReceiptFile);
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Could not upload the expense receipt.");
+  }
 }
 
 function tripDocument(input: JsonRecord, current?: JsonRecord) {
@@ -3020,6 +3096,8 @@ async function handleAdmin(request: Request, path: string) {
   const orderMatch = path.match(/^\/api\/admin\/orders\/([^/]+)$/);
   if (orderMatch) return await adminOrders(request, orderMatch[1]);
   if (path === "/api/admin/expenses") return await adminExpenses(request);
+  const expenseReceiptMatch = path.match(/^\/api\/admin\/expenses\/([^/]+)\/receipt$/);
+  if (expenseReceiptMatch) return await expenseReceipt(request, expenseReceiptMatch[1]);
   const expenseMatch = path.match(/^\/api\/admin\/expenses\/([^/]+)$/);
   if (expenseMatch) return await adminExpenses(request, expenseMatch[1]);
   if (path === "/api/admin/business-trips") return await adminBusinessTrips(request);
