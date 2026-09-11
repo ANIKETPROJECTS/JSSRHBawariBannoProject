@@ -12,6 +12,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "test": "bun test",
+    "test:admin-smoke": "E2E_ADMIN_SMOKE=1 bun test tests/admin-financial-smoke.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

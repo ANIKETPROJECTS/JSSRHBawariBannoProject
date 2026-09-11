@@ -1845,11 +1845,11 @@ async function purchaseInvoiceDocument(request: Request, invoiceId: string) {
   const invoice = await database.collection("purchase_invoices").findOne({ _id: new ObjectId(invoiceId) }) as JsonRecord | null;
   if (!invoice) return fail("Purchase invoice not found.", 404);
   const documentFile = invoice.documentFile as JsonRecord | undefined;
-  const fileId = String(documentFile?.id ?? "");
-  if (!ObjectId.isValid(fileId)) return fail("This purchase invoice has no original document.", 404);
-  const bucket = new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName });
 
   if (request.method === "GET") {
+    const fileId = String(documentFile?.id ?? "");
+    if (!ObjectId.isValid(fileId)) return fail("This purchase invoice has no original document.", 404);
+    const bucket = new GridFSBucket(database, { bucketName: purchaseInvoiceDocumentBucketName });
     const file = await bucket.find({ _id: new ObjectId(fileId) }).next();
     if (!file) return fail("Purchase invoice document not found.", 404);
     const chunks: Buffer[] = [];
@@ -1867,7 +1867,7 @@ async function purchaseInvoiceDocument(request: Request, invoiceId: string) {
   }
 
   if (request.method !== "POST") return fail("Method not allowed.", 405);
-  if (invoice.status !== "draft") return fail("Posted invoices are locked. Upload a document on a correction draft instead.");
+  if (invoice.status !== "draft" && documentFile?.id) return fail("This posted invoice already has an original document. Use a correction draft for any replacement.");
   const form = await request.formData();
   const upload = form.get("document");
   if (!isUpload(upload) || upload.size === 0) return fail("Choose a PDF or image invoice document.");
@@ -1892,7 +1892,7 @@ async function purchaseInvoiceDocument(request: Request, invoiceId: string) {
       uploadedAt: new Date(),
     };
     await database.collection("purchase_invoices").updateOne(
-      { _id: new ObjectId(invoiceId), status: "draft" },
+      { _id: new ObjectId(invoiceId) },
       { $set: { documentFile, updatedAt: new Date() } },
     );
     await database.collection("audit_logs").insertOne({
