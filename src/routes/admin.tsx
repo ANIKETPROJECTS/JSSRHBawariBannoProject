@@ -668,12 +668,18 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
 
   function matchLine(index: number) {
     const line = lines[index];
-    const query = String(line?.itemName ?? "").trim().toLowerCase();
-    if (!query || line.productId) return;
-    const exact = products.find((product) => [product.name, product.id, product.primaryVendorProductCode].some((value) => String(value ?? "").trim().toLowerCase() === query));
+    const itemQuery = String(line?.itemName ?? "").trim().toLowerCase();
+    const vendorCodeQuery = String(line?.vendorProductCode ?? "").trim().toLowerCase();
+    if ((!itemQuery && !vendorCodeQuery) || line.productId) return;
+    const exact = products.find((product) => {
+      const sameVendor = !form.vendorId || !product.primaryVendorId || String(product.primaryVendorId) === String(form.vendorId);
+      const matchesVendorCode = Boolean(vendorCodeQuery) && String(product.primaryVendorProductCode ?? "").trim().toLowerCase() === vendorCodeQuery;
+      const matchesName = Boolean(itemQuery) && [product.name, product.id].some((value) => String(value ?? "").trim().toLowerCase() === itemQuery);
+      return sameVendor && (matchesVendorCode || matchesName);
+    });
     if (!exact) return;
     const variants = Array.isArray(exact.variants) ? exact.variants as RecordItem[] : [];
-    const variant = variants.find((entry) => String(entry.color ?? "").trim().toLowerCase() === query);
+    const variant = variants.find((entry) => String(entry.color ?? "").trim().toLowerCase() === itemQuery);
     updateLine(index, { productId: String(exact.id ?? exact._id), variantId: variant ? String(variant.id ?? "") : "", itemName: String(variant?.color ?? exact.name ?? line.itemName) });
   }
 
@@ -749,7 +755,7 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
     }
   }
 
-  return <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="max-w-6xl border border-[#ded5c9] bg-white p-6">
+  return <form noValidate onSubmit={(event) => { event.preventDefault(); void submit(); }} className="max-w-6xl border border-[#ded5c9] bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
        <div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Procurement</p><h2 className="mt-1 font-display text-3xl text-primary">{form.correctionOfInvoiceId ? "Correction invoice" : form._id ? "Purchase invoice" : "New purchase invoice"}</h2><p className="mt-2 text-sm text-muted-foreground">{form.correctionOfInvoiceId ? "Prepare a replacement for a posted invoice." : form._id ? `${form.status === "posted" ? "Posted and locked" : "Draft"} invoice` : "Save as a draft, then post when the stock has been checked."}</p></div>
       <button type="button" onClick={() => void onDone()} className="text-xs text-muted-foreground hover:text-primary">Cancel</button>
@@ -2254,7 +2260,7 @@ function ProductViewPanel({ product, categoryName, onClose, onReorder, onProduct
   </div>;
 }
 
-function ProductViewCrudPage() {
+function ProductViewCrudPage({ onReorder }: { onReorder?: (draft: PurchaseInvoiceRecord) => void }) {
   const [products, setProducts] = useState<RecordItem[]>([]);
   const [categories, setCategories] = useState<RecordItem[]>([]);
   const [editing, setEditing] = useState<RecordItem | null>(null);
@@ -2300,7 +2306,7 @@ function ProductViewCrudPage() {
       && (stockFilter === "all" || (stockFilter === "in-stock" && !stockState.out) || (stockFilter === "needs-reorder" && stockState.needsReorder) || (stockFilter === "out-of-stock" && stockState.out));
   });
   async function remove(product: RecordItem) { if (!product._id || !(await adminConfirm(`Delete ${String(product.name ?? product.id ?? "this product")}? This cannot be undone.`))) return; try { await api(`/api/admin/products/${product._id}`, { method: "DELETE" }); await load(); toast.success("Product deleted."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete product."); } }
-  if (viewing) return <ProductViewPanel product={viewing} categoryName={categoryName} onClose={() => setViewing(null)} />;
+  if (viewing) return <ProductViewPanel product={viewing} categoryName={categoryName} onClose={() => setViewing(null)} onReorder={onReorder} onProductUpdated={(updated) => { setViewing(updated); setProducts((current) => current.map((item) => item._id === updated._id ? updated : item)); }} />;
   if (editing) return <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to products</button><div className="max-w-4xl"><SimpleProductEditor initial={editing} categories={categories} onDone={() => { setEditing(null); void load(); }} /></div></div>;
   return <div><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{visible.length === products.length ? `${products.length} products` : `Showing ${visible.length} of ${products.length} products`}</p><h2 className="mt-1 font-display text-3xl text-primary">Products & stock</h2><p className="mt-2 text-sm text-muted-foreground">Live product records from your catalog. Search also includes colour names such as ivory.</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.products })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><div className="mt-7 border border-[#ded5c9] bg-white p-5"><div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-gold"><SlidersHorizontal className="size-3.5" /> Live catalog filters</div><div className="mt-4 grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_190px_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, ID, colour, fabric…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All existing categories</option>{categoryOptions.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}</select><select value={stockFilter} onChange={(event) => setStockFilter(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold"><option value="all">All stock levels</option><option value="in-stock">In stock</option><option value="needs-reorder">Needs reorder</option><option value="out-of-stock">Out of stock</option></select><button type="button" onClick={() => { setSearch(""); setCategoryFilter("all"); setStockFilter("all"); }} className="border border-border px-4 py-2.5 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear</button></div></div><div className="mt-4 grid gap-3">{visible.length === 0 ? <div className="border border-dashed border-[#cfc3b5] bg-white p-10 text-center text-sm text-muted-foreground">No live products match these filters.</div> : visible.map((product) => { const variantCount = Array.isArray(product.variants) ? product.variants.length : 0; const stockState = reorderState(product); return <div key={product._id} className="flex flex-wrap items-center gap-4 border border-[#ded5c9] bg-white p-4"><button type="button" onClick={() => setViewing(product)} className="size-16 shrink-0 overflow-hidden bg-[#f0e9df]" aria-label={`View ${String(product.name ?? product.id)}`}><img src={String(product.image ?? "")} alt="" className="h-full w-full object-cover" /></button><div className="min-w-48 flex-1"><button type="button" onClick={() => setViewing(product)} className="text-left font-medium text-primary hover:underline">{String(product.name ?? product.id)}</button><p className="mt-1 text-xs text-muted-foreground">Category: <strong className="font-medium text-primary">{categoryName(product.category)}</strong></p><p className="mt-1 text-xs text-muted-foreground">₹{Number(product.price ?? 0).toLocaleString("en-IN")} · Total stock {Number(product.stock ?? 0)}{variantCount ? ` · ${variantCount} colour variants` : ""}</p></div><span title={stockState.label || undefined} className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] ${stockState.out ? "border-red-200 bg-red-50 text-red-700" : stockState.needsReorder ? "border-amber-200 bg-amber-50 text-amber-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{stockState.out ? "Out of stock" : stockState.needsReorder ? "Needs reorder" : "In stock"}</span><button type="button" onClick={() => setViewing(product)} className="border border-primary px-3 py-2 text-xs text-primary hover:bg-primary hover:text-white">View stock</button><button type="button" onClick={() => setEditing({ ...product })} className="border border-border px-3 py-2 text-xs text-primary hover:border-primary">Edit</button><button type="button" onClick={() => void remove(product)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(product.name ?? product.id)}`}><Trash2 className="size-4" /></button></div>; })}</div></div>;
 }
