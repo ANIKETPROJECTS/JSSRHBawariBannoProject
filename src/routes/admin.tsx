@@ -13,6 +13,8 @@ export const Route = createFileRoute("/admin")({
 type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "expenses" | "business-trips" | "orders" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings" | "audit-logs";
 type RecordItem = Record<string, unknown> & { _id?: string };
 type ProductVariantForm = { id?: string; color: string; stock: number | string; reorderLevel: number | string; image: string; extraImages: string };
+type AdminPermission = "catalog" | "procurement" | "inventory" | "orders" | "customers" | "marketing" | "audit";
+type AdminProfile = { role: "owner" | "staff"; permissions: string[] };
 type ProductFinancialBatch = { id: string; variantId: string; variantColor: string; sourceType: string; sourceLabel: string; invoiceNumber: string; vendorName: string; receivedDate?: string | null; quantityReceived: number; quantityRemaining: number; quantitySold: number; costPricePerUnit: number | null; costKnown: boolean; remainingCostValue: number | null; sellingValue: number; margin: number | null; marginPercent: number | null };
 type ProductFinancials = { productId: string; productName: string; sellingPricePerUnit: number; catalogStock: number; trackedStock: number; untrackedStock: number; remainingQuantity: number; purchaseBackedQuantity: number; unknownCostQuantity: number; remainingInventoryAtPurchaseCost: number; inventoryAtSellingPrice: number; unknownCostSellingValue: number; costedBatchSellingValue: number; costedBatchMargin: number; costedBatchMarginPercent: number | null; batches: ProductFinancialBatch[] };
 
@@ -59,6 +61,7 @@ function downloadTsv(filename: string, headers: string[], rows: Array<Array<unkn
 function AdminPage() {
   const navigate = useNavigate();
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [reorderDraft, setReorderDraft] = useState<PurchaseInvoiceRecord | null>(null);
@@ -68,7 +71,7 @@ function AdminPage() {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8000);
     api("/api/admin/me", { signal: controller.signal })
-      .then(() => { if (active) setAuthenticated(true); })
+      .then((profile) => { if (active) { setAdminProfile(profile); setAuthenticated(true); } })
       .catch(() => { if (active) setAuthenticated(false); })
       .finally(() => window.clearTimeout(timeout));
     return () => {
@@ -87,7 +90,13 @@ function AdminPage() {
   }
 
   if (authenticated === null) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading admin panel…</div>;
-  if (!authenticated) return <Login onSuccess={() => setAuthenticated(true)} />;
+  if (!authenticated) return <Login onSuccess={() => { setAuthenticated(true); void api("/api/admin/me").then(setAdminProfile); }} />;
+  const canAccess = (id: Tab) => adminProfile?.role === "owner" || ({
+    dashboard: true, products: adminProfile?.permissions.includes("catalog"), categories: adminProfile?.permissions.includes("catalog"), heroes: adminProfile?.permissions.includes("catalog"), announcements: adminProfile?.permissions.includes("catalog"), coupons: adminProfile?.permissions.includes("catalog"),
+    "purchase-suggestions": adminProfile?.permissions.includes("procurement"), vendors: adminProfile?.permissions.includes("procurement"), "purchase-invoices": adminProfile?.permissions.includes("procurement"), expenses: adminProfile?.permissions.includes("procurement"), "business-trips": adminProfile?.permissions.includes("procurement"),
+    inventory: adminProfile?.permissions.includes("inventory"), orders: adminProfile?.permissions.includes("orders"), customers: adminProfile?.permissions.includes("customers"), reviews: adminProfile?.permissions.includes("marketing"), settings: adminProfile?.permissions.includes("settings"), "audit-logs": adminProfile?.permissions.includes("audit"),
+  } as Record<Tab, boolean | undefined>)[id] === true;
+  const visibleTabs = tabs.filter(({ id }) => canAccess(id));
 
   return (
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
@@ -96,7 +105,7 @@ function AdminPage() {
         <button type="button" onClick={() => setSidebarOpen((current) => !current)} className="absolute right-0 top-1/2 z-30 flex size-7 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#ded5c9] bg-white text-muted-foreground shadow-sm transition-colors hover:bg-primary hover:text-white" aria-label={sidebarOpen ? "Minimize sidebar" : "Expand sidebar"} title={sidebarOpen ? "Minimize sidebar" : "Expand sidebar"}>{sidebarOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}</button>
         <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>
         <nav className="mt-12 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
-          {tabs.map(({ id, label, icon: Icon }) => (
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" onClick={() => setTab(id)} title={sidebarOpen ? undefined : label} aria-label={label} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${sidebarOpen ? "" : "justify-center"} ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
               <Icon className="size-4 shrink-0" /> {sidebarOpen && label}
             </button>
@@ -114,10 +123,10 @@ function AdminPage() {
           <Link to="/" className="flex shrink-0 items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-primary sm:text-xs">View storefront <ChevronRight className="size-3" /></Link>
         </header>
         <div className="border-b border-[#ded5c9] bg-white px-5 py-3 lg:hidden">
-          <div className="flex gap-2 overflow-x-auto">{tabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
+           <div className="flex gap-2 overflow-x-auto">{visibleTabs.map(({ id, label }) => <button key={id} type="button" onClick={() => setTab(id)} className={`whitespace-nowrap px-3 py-2 text-xs ${tab === id ? "bg-primary text-white" : "bg-[#f4efe8] text-muted-foreground"}`}>{label}</button>)}</div>
         </div>
         <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
-          {tab === "dashboard" ? <><ProcurementDashboard /><MarginDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage initialDraft={reorderDraft} onInitialDraftConsumed={() => setReorderDraft(null)} /> : tab === "expenses" ? <ExpensesPage /> : tab === "business-trips" ? <BusinessTripsPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : tab === "audit-logs" ? <AuditLogsPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <><ProcurementDashboard /><MarginDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage initialDraft={reorderDraft} onInitialDraftConsumed={() => setReorderDraft(null)} /> : tab === "expenses" ? <ExpensesPage /> : tab === "business-trips" ? <BusinessTripsPage /> : tab === "orders" ? <OrdersPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage role={adminProfile?.role} /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : tab === "audit-logs" ? <AuditLogsPage /> : <ResourceManager resource={tab} />}
         </div>
       </main>
     </div>
@@ -585,6 +594,9 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
   const [vendors, setVendors] = useState<VendorRecord[]>([]);
   const [trips, setTrips] = useState<BusinessTripRecord[]>([]);
   const [products, setProducts] = useState<RecordItem[]>([]);
+  const [categories, setCategories] = useState<RecordItem[]>([]);
+  const [creatingLine, setCreatingLine] = useState<number | null>(null);
+  const [newProduct, setNewProduct] = useState({ name: "", price: 0, category: "", image: "", color: "", stock: 0 });
   const [documentUpload, setDocumentUpload] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const set = (key: keyof PurchaseInvoiceRecord, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
@@ -596,8 +608,8 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
   const locked = form.status !== "draft";
 
   useEffect(() => {
-    Promise.all([api("/api/admin/vendors?status=active"), api("/api/admin/products"), api("/api/admin/business-trips")])
-      .then(([vendorRows, productRows, tripRows]) => { setVendors(vendorRows); setProducts(productRows); setTrips(tripRows); })
+    Promise.all([api("/api/admin/vendors?status=active"), api("/api/admin/products"), api("/api/admin/business-trips"), api("/api/admin/categories")])
+      .then(([vendorRows, productRows, tripRows, categoryRows]) => { setVendors(vendorRows); setProducts(productRows); setTrips(tripRows); setCategories(categoryRows); })
       .catch((error) => toast.error(error instanceof Error ? error.message : "Could not load invoice options."));
   }, []);
 
@@ -611,6 +623,48 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
 
   function removeLine(index: number) {
     setForm((current) => ({ ...current, lines: (current.lines ?? []).filter((_, lineIndex) => lineIndex !== index) }));
+  }
+
+  function matchLine(index: number) {
+    const line = lines[index];
+    const query = String(line?.itemName ?? "").trim().toLowerCase();
+    if (!query || line.productId) return;
+    const exact = products.find((product) => [product.name, product.id, product.primaryVendorProductCode].some((value) => String(value ?? "").trim().toLowerCase() === query));
+    if (!exact) return;
+    const variants = Array.isArray(exact.variants) ? exact.variants as RecordItem[] : [];
+    const variant = variants.find((entry) => String(entry.color ?? "").trim().toLowerCase() === query);
+    updateLine(index, { productId: String(exact.id ?? exact._id), variantId: variant ? String(variant.id ?? "") : "", itemName: String(variant?.color ?? exact.name ?? line.itemName) });
+  }
+
+  async function createProductFromLine(index: number) {
+    const line = lines[index];
+    const name = String(newProduct.name || line?.itemName || "").trim();
+    if (!name || !newProduct.image.trim()) {
+      toast.error("Add a product name and cover image before creating the match.");
+      return;
+    }
+    try {
+      const color = newProduct.color.trim();
+      const payload = {
+        name,
+        price: Number(newProduct.price),
+        originalPrice: Number(newProduct.price),
+        category: newProduct.category || String(categories.find((category) => !category.parentSlug)?.slug ?? "silk"),
+        image: newProduct.image.trim(),
+        stock: color ? 0 : Math.max(0, Math.trunc(Number(newProduct.stock))),
+        colors: color ? [color] : ["ivory"],
+        variants: color ? [{ color, stock: Math.max(0, Math.trunc(Number(newProduct.stock))), reorderLevel: 3, image: newProduct.image.trim(), images: [] }] : [],
+        published: true,
+      };
+      const created = await api("/api/admin/products", { method: "POST", body: JSON.stringify(payload) });
+      setProducts((current) => [...current, created]);
+      const createdVariant = Array.isArray(created.variants) ? created.variants[0] as RecordItem | undefined : undefined;
+      updateLine(index, { productId: String(created.id ?? created._id), variantId: String(createdVariant?.id ?? ""), itemName: String(createdVariant?.color ?? created.name ?? name) });
+      setCreatingLine(null);
+      toast.success("Product created and matched to this invoice line.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create the product match.");
+    }
   }
 
   async function submit(postAfterSave = false) {
@@ -680,7 +734,7 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
             const product = products.find((entry) => String(entry.id ?? entry._id) === line.productId);
             const variants = Array.isArray(product?.variants) ? product.variants as RecordItem[] : [];
             return <div key={line._id ?? index} className="grid grid-cols-[1.6fr_1fr_1.1fr_0.8fr_1fr_36px] gap-3 border-b border-border px-3 py-3 last:border-0">
-              <select required value={line.productId} onChange={(event) => { const next = products.find((entry) => String(entry.id ?? entry._id) === event.target.value); updateLine(index, { productId: event.target.value, variantId: "", itemName: String(next?.name ?? "") }); }} className="border border-border bg-white px-2 py-2 text-sm"><option value="">Choose product</option>{products.map((entry) => <option key={String(entry.id ?? entry._id)} value={String(entry.id ?? entry._id)}>{String(entry.name ?? entry.id)}</option>)}</select>
+              <div><select required value={line.productId} onChange={(event) => { const next = products.find((entry) => String(entry.id ?? entry._id) === event.target.value); updateLine(index, { productId: event.target.value, variantId: "", itemName: String(next?.name ?? line.itemName ?? "") }); }} onBlur={() => matchLine(index)} className="w-full border border-border bg-white px-2 py-2 text-sm"><option value="">Choose product</option>{products.map((entry) => <option key={String(entry.id ?? entry._id)} value={String(entry.id ?? entry._id)}>{String(entry.name ?? entry.id)}</option>)}</select><input value={line.itemName} onChange={(event) => updateLine(index, { itemName: event.target.value, productId: line.productId && String(products.find((entry) => String(entry.id ?? entry._id) === line.productId)?.name ?? "").toLowerCase() === event.target.value.trim().toLowerCase() ? line.productId : "" })} onBlur={() => matchLine(index)} placeholder="Supplier item / paste name to match" className="mt-2 w-full border border-border px-2 py-2 text-xs" />{!line.productId && line.itemName.trim() && <div className="mt-2 space-y-1">{products.filter((entry) => String(entry.name ?? "").toLowerCase().includes(line.itemName.trim().toLowerCase())).slice(0, 3).map((entry) => <button key={String(entry.id ?? entry._id)} type="button" onClick={() => updateLine(index, { productId: String(entry.id ?? entry._id), variantId: "", itemName: String(entry.name ?? "") })} className="block w-full truncate border border-border bg-[#fbf9f6] px-2 py-1 text-left text-[11px] text-primary hover:border-primary">Match: {String(entry.name ?? entry.id)}</button>)}<button type="button" onClick={() => { setCreatingLine(index); setNewProduct({ name: line.itemName, price: 0, category: String(categories.find((category) => !category.parentSlug)?.slug ?? "silk"), image: "", color: "", stock: 0 }); }} className="block w-full border border-dashed border-gold px-2 py-1 text-left text-[11px] text-gold hover:bg-gold/5">No exact match? Create product or colour variant</button></div>}</div>
               <select value={line.variantId} disabled={!variants.length} onChange={(event) => { const variant = variants.find((entry) => String(entry.id) === event.target.value); updateLine(index, { variantId: event.target.value, itemName: String(variant?.color ?? product?.name ?? line.itemName) }); }} className="border border-border bg-white px-2 py-2 text-sm disabled:bg-[#f7f4ef]"><option value="">{variants.length ? "Choose colour" : product ? "Product-level stock (no colours)" : "Choose product first"}</option>{variants.map((variant) => <option key={String(variant.id)} value={String(variant.id)}>{String(variant.color ?? variant.id)}</option>)}</select>
               <input value={line.vendorProductCode} onChange={(event) => updateLine(index, { vendorProductCode: event.target.value })} placeholder="Supplier SKU" className="border border-border px-2 py-2 text-sm" />
               <input required min="1" step="1" type="number" value={line.quantityPurchased} onChange={(event) => updateLine(index, { quantityPurchased: Number(event.target.value) })} className="border border-border px-2 py-2 text-sm" />
@@ -701,6 +755,7 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
     </fieldset>
      {!locked && <div className="mt-7 flex flex-wrap gap-3"><button disabled={busy} type="submit" className="inline-flex items-center gap-2 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50"><Save className="size-4" />{busy ? "Saving…" : form.correctionOfInvoiceId ? "Save correction draft" : "Save draft"}</button><button disabled={busy} type="button" onClick={() => void submit(true)} className="border border-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-primary disabled:opacity-50">{form.correctionOfInvoiceId ? "Save & post correction" : "Save & post"}</button></div>}
     {locked && <div className="mt-7 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">This invoice is posted and locked. Its purchase stock batch has been created and future corrections must use an explicit correction flow.</div>}
+      {creatingLine !== null && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5" onClick={() => setCreatingLine(null)}><div className="w-full max-w-xl border border-border bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Unmatched purchase item</p><h3 className="mt-1 font-display text-2xl text-primary">Create catalog match</h3><p className="mt-2 text-sm text-muted-foreground">Create the product now, then this invoice line will be selected automatically.</p></div><button type="button" onClick={() => setCreatingLine(null)} className="text-sm text-primary">Cancel</button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground sm:col-span-2">Product name<input required value={newProduct.name} onChange={(event) => setNewProduct({ ...newProduct, name: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Selling price (₹)<input required min="0" type="number" value={newProduct.price} onChange={(event) => setNewProduct({ ...newProduct, price: Number(event.target.value) })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Category<select value={newProduct.category} onChange={(event) => setNewProduct({ ...newProduct, category: event.target.value })} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm">{categories.filter((category) => !category.parentSlug).map((category) => <option key={String(category.slug)} value={String(category.slug)}>{String(category.label ?? category.slug)}</option>)}</select></label><label className="text-xs text-muted-foreground">Cover image URL<input required value={newProduct.image} onChange={(event) => setNewProduct({ ...newProduct, image: event.target.value })} placeholder="https://…" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Colour variant (optional)<input value={newProduct.color} onChange={(event) => setNewProduct({ ...newProduct, color: event.target.value })} placeholder="e.g. Ivory" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Opening stock<input min="0" type="number" value={newProduct.stock} onChange={(event) => setNewProduct({ ...newProduct, stock: Number(event.target.value) })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label></div><button type="button" onClick={() => void createProductFromLine(creatingLine)} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white">Create and match line</button></div></div>}
   </form>;
 }
 
@@ -922,6 +977,7 @@ type PurchaseSuggestion = RecordItem & {
   vendorProductCode?: string;
   itemName?: string;
   lastCostPrice?: number;
+  priceHistory?: { costPricePerUnit: number; quantityPurchased: number; invoiceNumber: string; invoiceDate?: string | null }[];
 };
 
 function PurchaseSuggestionsPage({ onOpenProducts, onOpenInvoices, onReorder }: { onOpenProducts: () => void; onOpenInvoices: () => void; onReorder: (draft: PurchaseInvoiceRecord) => void }) {
@@ -946,7 +1002,7 @@ function PurchaseSuggestionsPage({ onOpenProducts, onOpenInvoices, onReorder }: 
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Procurement planning</p><h2 className="mt-1 font-display text-3xl text-primary">Purchase suggestions</h2><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Minimum top-up quantities generated from each product or colour variant’s reorder level. Vendor and cost are not guessed.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={onOpenProducts} className="border border-primary px-4 py-2.5 text-xs text-primary hover:bg-primary hover:text-white">Review stock</button><button type="button" onClick={onOpenInvoices} className="bg-primary px-4 py-2.5 text-xs text-white">Open purchase invoices</button></div></div>
     <div className="mt-6 grid gap-3 sm:grid-cols-3"><MetricCard label="Suggested lines" value={suggestions.length} icon={Boxes} /><MetricCard label="Minimum units to buy" value={unitsToBuy} icon={Package} /><MetricCard label="Out of stock" value={outOfStock} icon={XCircle} /></div>
     <div className="mt-6 border border-[#ded5c9] bg-white p-5"><div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_190px_auto]"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search product, colour, or product ID…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" /><select value={filter} onChange={(event) => setFilter(event.target.value)} className="border border-border bg-white px-3 py-2.5 text-sm"><option value="all">All suggestions</option><option value="out">Out of stock</option><option value="low">Below threshold</option></select><button type="button" onClick={() => { setSearch(""); setFilter("all"); }} className="border border-border px-4 py-2.5 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear</button></div></div>
-    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[1020px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-4 py-4">Product / colour</th><th className="px-4 py-4">On hand</th><th className="px-4 py-4">Reorder level</th><th className="px-4 py-4">Suggested top-up</th><th className="px-4 py-4">Sourcing</th><th className="px-4 py-4 text-right">Next step</th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">Loading suggestions…</td></tr> : visible.length === 0 ? <tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">{suggestions.length === 0 ? "All products are above their reorder levels." : "No suggestions match these filters."}</td></tr> : visible.map((item) => <tr key={String(item.key)} className="border-b border-border last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><div className="flex items-center gap-3"><div className="size-10 shrink-0 overflow-hidden bg-[#f0e9df]"><img src={item.image} alt="" className="h-full w-full object-cover" /></div><div><p className="font-medium text-primary">{item.productName}</p><p className="mt-1 text-xs text-muted-foreground">{item.color || "Product stock"} · {item.productId}</p></div></div></td><td className={`px-4 py-4 font-medium ${item.out ? "text-red-700" : "text-amber-700"}`}>{item.stock}{item.out ? " · Out of stock" : ""}</td><td className="px-4 py-4">{item.reorderLevel}</td><td className="px-4 py-4"><span className="border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">+{item.suggestedQuantity} units</span></td><td className="px-4 py-4 text-xs text-muted-foreground">{item.vendorName ? <><p className="text-primary">{item.vendorName} · {item.vendorCode ?? "—"}</p><p className="mt-1">Code: {item.vendorProductCode || "Not recorded"}{item.lastCostPrice !== undefined ? ` · Last cost ₹${item.lastCostPrice.toLocaleString("en-IN")}` : ""}</p></> : "Vendor not linked"}</td><td className="px-4 py-4 text-right">{item.vendorId && item.lastCostPrice !== undefined ? <button type="button" onClick={() => onReorder({ ...emptyInvoice, vendorId: item.vendorId, vendorInvoiceNumber: "", lines: [{ productId: item.productId, variantId: item.variantId, vendorProductCode: item.vendorProductCode ?? "", itemName: item.itemName ?? item.productName, quantityPurchased: item.suggestedQuantity, costPricePerUnit: item.lastCostPrice }] })} className="border border-primary px-3 py-2 text-xs text-primary hover:bg-primary hover:text-white">Reorder</button> : <button type="button" onClick={onOpenInvoices} className="text-xs text-primary underline underline-offset-2">Open invoices</button>}</td></tr>)}</tbody></table></div>
+    <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[1180px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.14em] text-muted-foreground"><tr><th className="px-4 py-4">Product / colour</th><th className="px-4 py-4">On hand</th><th className="px-4 py-4">Reorder level</th><th className="px-4 py-4">Suggested top-up</th><th className="px-4 py-4">Sourcing</th><th className="px-4 py-4">Price history</th><th className="px-4 py-4 text-right">Next step</th></tr></thead><tbody>{loading ? <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">Loading suggestions…</td></tr> : visible.length === 0 ? <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">{suggestions.length === 0 ? "All products are above their reorder levels." : "No suggestions match these filters."}</td></tr> : visible.map((item) => <tr key={String(item.key)} className="border-b border-border align-top last:border-0 hover:bg-[#fbf9f6]"><td className="px-4 py-4"><div className="flex items-center gap-3"><div className="size-10 shrink-0 overflow-hidden bg-[#f0e9df]"><img src={item.image} alt="" className="h-full w-full object-cover" /></div><div><p className="font-medium text-primary">{item.productName}</p><p className="mt-1 text-xs text-muted-foreground">{item.color || "Product stock"} · {item.productId}</p></div></div></td><td className={`px-4 py-4 font-medium ${item.out ? "text-red-700" : "text-amber-700"}`}>{item.stock}{item.out ? " · Out of stock" : ""}</td><td className="px-4 py-4">{item.reorderLevel}</td><td className="px-4 py-4"><span className="border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800">+{item.suggestedQuantity} units</span></td><td className="px-4 py-4 text-xs text-muted-foreground">{item.vendorName ? <><p className="text-primary">{item.vendorName} · {item.vendorCode ?? "—"}</p><p className="mt-1">Code: {item.vendorProductCode || "Not recorded"}{item.lastCostPrice !== undefined ? ` · Last cost ₹${item.lastCostPrice.toLocaleString("en-IN")}` : ""}</p></> : "Vendor not linked"}</td><td className="px-4 py-4 text-xs text-muted-foreground">{item.priceHistory?.length ? <div className="space-y-1">{item.priceHistory.slice(0, 3).map((history, index) => <p key={`${history.invoiceNumber}-${index}`}><strong className="font-medium text-primary">₹{history.costPricePerUnit.toLocaleString("en-IN")}</strong> · {history.invoiceNumber || "Invoice"}{history.invoiceDate ? ` · ${new Date(history.invoiceDate).toLocaleDateString("en-IN")}` : ""}</p>)}</div> : "No posted price history"}</td><td className="px-4 py-4 text-right">{item.vendorId && item.lastCostPrice !== undefined ? <button type="button" onClick={() => onReorder({ ...emptyInvoice, vendorId: item.vendorId, vendorInvoiceNumber: "", lines: [{ productId: item.productId, variantId: item.variantId, vendorProductCode: item.vendorProductCode ?? "", itemName: item.itemName ?? item.productName, quantityPurchased: item.suggestedQuantity, costPricePerUnit: item.lastCostPrice }] })} className="border border-primary px-3 py-2 text-xs text-primary hover:bg-primary hover:text-white">Reorder</button> : <button type="button" onClick={onOpenInvoices} className="text-xs text-primary underline underline-offset-2">Open invoices</button>}</td></tr>)}</tbody></table></div>
     <p className="mt-4 text-xs text-muted-foreground">Suggested top-up brings stock back to the configured reorder level at minimum. Review the prefilled vendor, code, cost, and quantity before saving or posting the purchase invoice.</p>
   </div>;
 }
@@ -2233,7 +2289,7 @@ function AnnouncementCrudPage() {
     {editing ? <div><button type="button" onClick={() => setEditing(null)} className="mb-5 text-sm text-primary hover:underline">← Back to announcements</button><Editor resource="announcements" initial={editing} onDone={() => { setEditing(null); void load(); }} /></div> : <><div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-muted-foreground">{items.length} records</p><h2 className="mt-1 font-display text-3xl text-primary">Announcement bar</h2><p className="mt-2 text-sm text-muted-foreground">Manage live storefront messages.</p></div><button type="button" onClick={() => setEditing({ ...emptyByResource.announcements })} className="inline-flex items-center gap-2 bg-primary px-4 py-3 text-xs uppercase tracking-[0.14em] text-white"><Plus className="size-4" /> Add new</button></div><section className="mt-6 border border-[#ded5c9] bg-white p-5"><p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Live preview</p><div className="mt-3 bg-primary px-4 py-3 text-center text-xs text-white">{String(preview)}</div></section><div className="mt-5 divide-y divide-border border border-[#ded5c9] bg-white">{items.length === 0 ? <p className="p-8 text-center text-sm text-muted-foreground">No announcements yet.</p> : items.map((item) => <div key={item._id} className="flex flex-wrap items-center gap-3 p-4"><p className={`min-w-48 flex-1 text-sm ${item.active === false ? "text-muted-foreground line-through" : "text-foreground"}`}>{String(item.message ?? "")}</p><button type="button" onClick={() => void toggle(item)} className="text-xs text-muted-foreground">{item.active === false ? "Inactive" : "Active"}</button><button type="button" onClick={() => setEditing({ ...item })} className="border border-border px-3 py-2 text-xs text-primary">Edit</button><button type="button" onClick={() => void remove(item)} className="p-2 text-muted-foreground hover:text-red-700" aria-label="Delete announcement"><Trash2 className="size-4" /></button></div>)}</div></>}</div>;
 }
 
-function SettingsCrudPage() {
+function SettingsCrudPage({ role }: { role?: AdminProfile["role"] }) {
   const [form, setForm] = useState({ shippingCharges: 250, freeShippingThreshold: 15000, businessState: "", businessStateCode: "" });
   const [configured, setConfigured] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -2271,7 +2327,48 @@ function SettingsCrudPage() {
     }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not reset settings."); }
   }
-  return <form onSubmit={save} className="max-w-2xl border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Singleton store record</p><h2 className="mt-2 font-display text-3xl text-primary">Store settings</h2><p className="mt-2 text-sm text-muted-foreground">{configured ? "Edit checkout and business configuration." : "No saved settings record exists yet. Create one below."}</p></div>{configured && <button type="button" onClick={() => void reset()} className="text-xs text-red-700 hover:underline">Delete / reset</button>}</div><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="block text-xs text-muted-foreground">Shipping charge (₹)<input type="number" min="0" value={form.shippingCharges} onChange={(event) => setForm({ ...form, shippingCharges: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Free shipping threshold (₹)<input type="number" min="0" value={form.freeShippingThreshold} onChange={(event) => setForm({ ...form, freeShippingThreshold: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Business state<input value={form.businessState} onChange={(event) => setForm({ ...form, businessState: event.target.value })} placeholder="e.g. Gujarat" className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">State code<input value={form.businessStateCode} onChange={(event) => setForm({ ...form, businessStateCode: event.target.value.toUpperCase() })} placeholder="e.g. GJ" maxLength={10} className="mt-2 w-full border border-border px-3 py-3 text-sm uppercase outline-none focus:border-gold" /></label></div><p className="mt-4 text-xs leading-5 text-muted-foreground">The business state is used later to determine IGST versus CGST + SGST on vendor invoices. Leave it blank until your registered business state is confirmed.</p><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : configured ? "Save settings" : "Create settings record"}</button></form>;
+  return <><form onSubmit={save} className="max-w-2xl border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Singleton store record</p><h2 className="mt-2 font-display text-3xl text-primary">Store settings</h2><p className="mt-2 text-sm text-muted-foreground">{configured ? "Edit checkout and business configuration." : "No saved settings record exists yet. Create one below."}</p></div>{configured && <button type="button" onClick={() => void reset()} className="text-xs text-red-700 hover:underline">Delete / reset</button>}</div><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="block text-xs text-muted-foreground">Shipping charge (₹)<input type="number" min="0" value={form.shippingCharges} onChange={(event) => setForm({ ...form, shippingCharges: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Free shipping threshold (₹)<input type="number" min="0" value={form.freeShippingThreshold} onChange={(event) => setForm({ ...form, freeShippingThreshold: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Business state<input value={form.businessState} onChange={(event) => setForm({ ...form, businessState: event.target.value })} placeholder="e.g. Gujarat" className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">State code<input value={form.businessStateCode} onChange={(event) => setForm({ ...form, businessStateCode: event.target.value.toUpperCase() })} placeholder="e.g. GJ" maxLength={10} className="mt-2 w-full border border-border px-3 py-3 text-sm uppercase outline-none focus:border-gold" /></label></div><p className="mt-4 text-xs leading-5 text-muted-foreground">The business state is used later to determine IGST versus CGST + SGST on vendor invoices. Leave it blank until your registered business state is confirmed.</p><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : configured ? "Save settings" : "Create settings record"}</button></form>{role === "owner" && <StaffAccessPanel />}</>;
+}
+
+const staffPermissionOptions: { value: AdminPermission; label: string }[] = [
+  { value: "catalog", label: "Catalog" },
+  { value: "procurement", label: "Procurement" },
+  { value: "inventory", label: "Inventory" },
+  { value: "orders", label: "Orders" },
+  { value: "customers", label: "Customers" },
+  { value: "marketing", label: "Marketing" },
+  { value: "audit", label: "Audit logs" },
+];
+
+function StaffAccessPanel() {
+  const [staff, setStaff] = useState<RecordItem[]>([]);
+  const [form, setForm] = useState({ email: "", password: "", permissions: ["catalog", "inventory"] as string[] });
+  const [busy, setBusy] = useState(false);
+  async function load() {
+    try { setStaff(await api("/api/admin/team")); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not load staff access."); }
+  }
+  useEffect(() => { void load(); }, []);
+  async function create(event: React.FormEvent) {
+    event.preventDefault(); setBusy(true);
+    try {
+      await api("/api/admin/team", { method: "POST", body: JSON.stringify(form) });
+      setForm({ email: "", password: "", permissions: ["catalog", "inventory"] });
+      await load();
+      toast.success("Staff account created.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not create staff account."); }
+    finally { setBusy(false); }
+  }
+  async function toggle(item: RecordItem) {
+    try { await api(`/api/admin/team/${item._id}`, { method: "PATCH", body: JSON.stringify({ active: item.active !== true }) }); await load(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not update staff access."); }
+  }
+  async function remove(item: RecordItem) {
+    if (!window.confirm(`Delete staff access for ${String(item.email)}?`)) return;
+    try { await api(`/api/admin/team/${item._id}`, { method: "DELETE" }); await load(); toast.success("Staff account deleted."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete staff account."); }
+  }
+  return <section className="mt-6 max-w-4xl border border-[#ded5c9] bg-white p-6"><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Access control</p><h2 className="mt-2 font-display text-3xl text-primary">Owner and staff accounts</h2><p className="mt-2 text-sm text-muted-foreground">Staff can sign in with only the areas selected below. The owner account keeps full access.</p><form onSubmit={create} className="mt-6 border-t border-border pt-5"><div className="grid gap-4 sm:grid-cols-2"><label className="text-xs text-muted-foreground">Staff email<input required type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Temporary password<input required minLength={8} type="password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label></div><div className="mt-4 flex flex-wrap gap-3">{staffPermissionOptions.map((permission) => <label key={permission.value} className="flex items-center gap-2 text-xs text-muted-foreground"><input type="checkbox" checked={form.permissions.includes(permission.value)} onChange={(event) => setForm({ ...form, permissions: event.target.checked ? [...form.permissions, permission.value] : form.permissions.filter((value) => value !== permission.value) })} />{permission.label}</label>)}</div><button disabled={busy} className="mt-5 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Creating…" : "Create staff account"}</button></form><div className="mt-6 divide-y divide-border border-y border-border">{staff.length === 0 ? <p className="py-5 text-sm text-muted-foreground">No staff accounts created yet.</p> : staff.map((item) => <div key={item._id} className="flex flex-wrap items-center gap-3 py-4"><div className="min-w-48 flex-1"><p className="font-medium text-primary">{String(item.email)}</p><p className="mt-1 text-xs text-muted-foreground">{(Array.isArray(item.permissions) ? item.permissions : []).join(" · ")}</p></div><button type="button" onClick={() => void toggle(item)} className={`border px-3 py-2 text-xs ${item.active === false ? "border-border text-muted-foreground" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{item.active === false ? "Inactive" : "Active"}</button><button type="button" onClick={() => void remove(item)} className="p-2 text-muted-foreground hover:text-red-700" aria-label={`Delete ${String(item.email)}`}><Trash2 className="size-4" /></button></div>)}</div></section>;
 }
 
 function CustomerEditor({ initial, onDone }: { initial: CustomerRecord; onDone: () => void }) {

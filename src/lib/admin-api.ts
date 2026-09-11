@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { GridFSBucket, MongoClient, type ClientSession, type Db, ObjectId } from "mongodb";
 import { categories, categoryEdits, sarees } from "@/data/sarees";
 import { normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
@@ -58,6 +58,7 @@ async function db(): Promise<Db> {
     database.collection("products").createIndex({ published: 1, category: 1, createdAt: -1 }),
     database.collection("reviews").createIndex({ productId: 1, status: 1, createdAt: -1 }),
     database.collection("reviews").createIndex({ customerId: 1, createdAt: -1 }),
+    database.collection("admin_users").createIndex({ email: 1 }, { unique: true }),
     ensureBusinessIndexes(database),
   ]);
   return database;
@@ -145,13 +146,18 @@ function secret(name: string) {
   return value;
 }
 
-function sessionToken(email: string) {
-  const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + 1000 * 60 * 60 * 24 * 7 })).toString("base64url");
+const adminPermissions = ["catalog", "procurement", "inventory", "orders", "customers", "marketing", "settings", "audit"] as const;
+type AdminPermission = typeof adminPermissions[number];
+type AdminRole = "owner" | "staff";
+type AdminContext = { email: string; role: AdminRole; permissions: AdminPermission[] };
+
+function sessionToken(email: string, role: AdminRole = "owner", permissions: AdminPermission[] = [...adminPermissions]) {
+  const payload = Buffer.from(JSON.stringify({ email, role, permissions, exp: Date.now() + 1000 * 60 * 60 * 24 * 7 })).toString("base64url");
   const signature = createHmac("sha256", secret("SESSION_SECRET")).update(payload).digest("base64url");
   return `${payload}.${signature}`;
 }
 
-function adminIdentity(request: Request) {
+function adminContext(request: Request): AdminContext | null {
   const cookie = request.headers.get("cookie")?.match(/bb_admin=([^;]+)/)?.[1];
   if (!cookie) return null;
   const [payload, signature] = cookie.split(".");
@@ -159,15 +165,52 @@ function adminIdentity(request: Request) {
   const expected = createHmac("sha256", secret("SESSION_SECRET")).update(payload).digest("base64url");
   if (expected.length !== signature.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) return null;
   try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { email?: string; exp?: number };
-    return data.email === process.env.ADMIN_EMAIL && typeof data.exp === "number" && data.exp > Date.now() ? data.email : null;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { email?: string; role?: AdminRole; permissions?: string[]; exp?: number };
+    if (!data.email || typeof data.exp !== "number" || data.exp <= Date.now()) return null;
+    if (data.email !== process.env.ADMIN_EMAIL && data.role !== "staff") return null;
+    const permissions = (Array.isArray(data.permissions) ? data.permissions : [...adminPermissions]).filter((permission): permission is AdminPermission => adminPermissions.includes(permission as AdminPermission));
+    return { email: data.email, role: data.role === "staff" ? "staff" : "owner", permissions };
   } catch {
     return null;
   }
 }
 
+function adminIdentity(request: Request) {
+  return adminContext(request)?.email ?? null;
+}
+
 function isAdmin(request: Request) {
-  return Boolean(adminIdentity(request));
+  return Boolean(adminContext(request));
+}
+
+function hasAdminPermission(request: Request, permission: AdminPermission) {
+  const context = adminContext(request);
+  return context?.role === "owner" || Boolean(context?.permissions.includes(permission));
+}
+
+function passwordHash(password: string, salt = randomBytes(16).toString("hex")) {
+  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
+}
+
+function passwordMatches(password: string, stored: string) {
+  const [salt, hash] = String(stored).split(":");
+  if (!salt || !hash) return false;
+  const candidate = scryptSync(password, salt, 64).toString("hex");
+  return candidate.length === hash.length && timingSafeEqual(Buffer.from(candidate), Buffer.from(hash));
+}
+
+function adminPermissionForPath(path: string): AdminPermission | null {
+  if (path === "/api/admin/me") return null;
+  if (path === "/api/admin/audit-logs") return "audit";
+  if (path === "/api/admin/settings" || path.startsWith("/api/admin/team")) return "settings";
+  if (path === "/api/admin/analytics" || path === "/api/admin/summary" || path === "/api/admin/product-financials") return "inventory";
+  if (path === "/api/admin/purchase-suggestions" || path.startsWith("/api/admin/purchase-invoices") || path.startsWith("/api/admin/vendors") || path.startsWith("/api/admin/expenses") || path.startsWith("/api/admin/business-trips")) return "procurement";
+  if (path.startsWith("/api/admin/inventory")) return "inventory";
+  if (path.startsWith("/api/admin/orders")) return "orders";
+  if (path.startsWith("/api/admin/customers")) return "customers";
+  if (path.startsWith("/api/admin/reviews")) return "marketing";
+  if (path === "/api/admin/seed" || path.includes("/reorder") || /\/api\/admin\/(products|categories|heroes|announcements|coupons)/.test(path)) return "catalog";
+  return null;
 }
 
 function customerToken(userId: string) {
@@ -2483,9 +2526,11 @@ async function adminPurchaseSuggestions(request: Request) {
     ? await database.collection("purchase_invoice_lines").find({ purchaseInvoiceId: { $in: invoiceIds } }).sort({ createdAt: -1 }).toArray()
     : [];
   const latestLines = new Map<string, Record<string, unknown>>();
+  const historyLines = new Map<string, Record<string, unknown>[]>();
   for (const line of lines) {
     const key = `${String(line.productId ?? "")}::${String(line.variantId ?? "")}`;
     if (!latestLines.has(key)) latestLines.set(key, line as Record<string, unknown>);
+    historyLines.set(key, [...(historyLines.get(key) ?? []), line as Record<string, unknown>]);
   }
   const vendorIds = [...new Set([
     ...postedInvoices.map((invoice) => String(invoice.vendorId ?? "")),
@@ -2503,6 +2548,15 @@ async function adminPurchaseSuggestions(request: Request) {
     const invoice = line ? invoiceById.get(String(line.purchaseInvoiceId ?? "")) : undefined;
     const vendorId = String(invoice?.vendorId ?? product.primaryVendorId ?? "");
     const vendor = vendorsById.get(vendorId);
+    const priceHistory = (historyLines.get(`${productId}::${variantId}`) ?? []).slice(0, 8).map((historyLine) => {
+      const historyInvoice = invoiceById.get(String(historyLine.purchaseInvoiceId ?? ""));
+      return {
+        costPricePerUnit: Number(historyLine.costPricePerUnit ?? 0),
+        quantityPurchased: Number(historyLine.quantityPurchased ?? 0),
+        invoiceNumber: String(historyInvoice?.vendorInvoiceNumber ?? ""),
+        invoiceDate: historyInvoice?.invoiceDate instanceof Date ? historyInvoice.invoiceDate.toISOString() : historyInvoice?.invoiceDate ?? null,
+      };
+    });
     return {
       key: `${String(product._id)}-${variantId || "product"}`,
       productId,
@@ -2520,6 +2574,7 @@ async function adminPurchaseSuggestions(request: Request) {
       vendorProductCode: String(line?.vendorProductCode ?? product.primaryVendorProductCode ?? ""),
       itemName: String(line?.itemName ?? variant?.color ?? product.name ?? productId),
       lastCostPrice: line?.costPricePerUnit === undefined ? undefined : Number(line.costPricePerUnit),
+      priceHistory,
     };
   };
   return products.flatMap((product) => {
@@ -2617,17 +2672,93 @@ async function adminProductFinancials(request: Request) {
   };
 }
 
+async function adminTeam(request: Request, userId?: string) {
+  const context = adminContext(request);
+  if (context?.role !== "owner") return fail("Only the owner can manage staff access.", 403);
+  const database = await db();
+  const users = database.collection("admin_users");
+  if (request.method === "GET") {
+    const records = await users.find({}).sort({ createdAt: -1 }).toArray();
+    return json(records.map((record) => ({
+      _id: String(record._id),
+      email: String(record.email),
+      role: "staff",
+      active: record.active !== false,
+      permissions: Array.isArray(record.permissions) ? record.permissions : [],
+      createdAt: record.createdAt,
+    })));
+  }
+  if (request.method === "POST") {
+    const input = await body(request);
+    const email = String(input.email ?? "").trim().toLowerCase();
+    const password = String(input.password ?? "");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail("Enter a valid staff email.");
+    if (password.length < 8) return fail("Staff passwords must be at least 8 characters.");
+    const permissions = [...new Set((Array.isArray(input.permissions) ? input.permissions : []).map(String).filter((permission): permission is AdminPermission => adminPermissions.includes(permission as AdminPermission)))];
+    if (!permissions.length) return fail("Choose at least one staff permission.");
+    if (email === String(process.env.ADMIN_EMAIL).toLowerCase()) return fail("The owner email cannot be added as staff.");
+    const now = new Date();
+    try {
+      const result = await users.insertOne({ email, passwordHash: passwordHash(password), role: "staff", permissions, active: true, createdAt: now, updatedAt: now });
+      await database.collection("audit_logs").insertOne({ entityType: "admin_user", entityId: String(result.insertedId), action: "created", actor: context.email, changes: { email, permissions }, createdAt: now });
+      return json({ _id: String(result.insertedId), email, role: "staff", active: true, permissions, createdAt: now }, { status: 201 });
+    } catch (error) {
+      return fail(error instanceof Error && error.message.includes("duplicate") ? "A staff account with this email already exists." : "Could not create staff account.");
+    }
+  }
+  if (!userId || !ObjectId.isValid(userId)) return fail("Staff account not found.", 404);
+  const current = await users.findOne({ _id: new ObjectId(userId) });
+  if (!current) return fail("Staff account not found.", 404);
+  if (request.method === "PATCH") {
+    const input = await body(request);
+    const changes: JsonRecord = { updatedAt: new Date() };
+    if (input.active !== undefined) changes.active = input.active === true;
+    if (Array.isArray(input.permissions)) {
+      changes.permissions = [...new Set(input.permissions.map(String).filter((permission): permission is AdminPermission => adminPermissions.includes(permission as AdminPermission)))];
+      if (!(changes.permissions as string[]).length) return fail("Choose at least one staff permission.");
+    }
+    if (input.password !== undefined) {
+      const password = String(input.password);
+      if (password.length < 8) return fail("Staff passwords must be at least 8 characters.");
+      changes.passwordHash = passwordHash(password);
+    }
+    await users.updateOne({ _id: new ObjectId(userId) }, { $set: changes });
+    await database.collection("audit_logs").insertOne({ entityType: "admin_user", entityId: userId, action: "updated", actor: context.email, changes: { ...changes, passwordHash: undefined }, createdAt: new Date() });
+    return json({ _id: userId, email: current.email, role: "staff", active: changes.active ?? current.active !== false, permissions: changes.permissions ?? current.permissions ?? [] });
+  }
+  if (request.method === "DELETE") {
+    await users.deleteOne({ _id: new ObjectId(userId) });
+    await database.collection("audit_logs").insertOne({ entityType: "admin_user", entityId: userId, action: "deleted", actor: context.email, changes: { email: current.email }, createdAt: new Date() });
+    return json({ ok: true });
+  }
+  return fail("Method not allowed.", 405);
+}
+
 async function handleAdmin(request: Request, path: string) {
   if (path === "/api/admin/login" && request.method === "POST") {
     const input = await body(request);
-    if (input.email !== process.env.ADMIN_EMAIL || input.password !== process.env.ADMIN_PASSWORD) return fail("Invalid admin email or password.", 401);
-    return json({ ok: true }, { headers: { "set-cookie": `bb_admin=${sessionToken(String(input.email))}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800` } });
+    const email = String(input.email ?? "").trim().toLowerCase();
+    const password = String(input.password ?? "");
+    if (email === String(process.env.ADMIN_EMAIL ?? "").trim().toLowerCase() && password === process.env.ADMIN_PASSWORD) {
+      return json({ ok: true, role: "owner", permissions: adminPermissions }, { headers: { "set-cookie": `bb_admin=${sessionToken(email)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800` } });
+    }
+    const staff = await (await db()).collection("admin_users").findOne({ email, active: { $ne: false } });
+    if (!staff || !passwordMatches(password, String(staff.passwordHash ?? ""))) return fail("Invalid admin email or password.", 401);
+    const permissions = (Array.isArray(staff.permissions) ? staff.permissions : []).filter((permission): permission is AdminPermission => adminPermissions.includes(permission as AdminPermission));
+    return json({ ok: true, role: "staff", permissions }, { headers: { "set-cookie": `bb_admin=${sessionToken(email, "staff", permissions)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=604800` } });
   }
   if (path === "/api/admin/logout" && request.method === "POST") {
     return json({ ok: true }, { headers: { "set-cookie": "bb_admin=; HttpOnly; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax" } });
   }
   if (!isAdmin(request)) return fail("Admin authentication required.", 401);
-  if (path === "/api/admin/me") return json({ ok: true });
+  const requiredPermission = adminPermissionForPath(path);
+  if (requiredPermission && !hasAdminPermission(request, requiredPermission)) return fail("Your staff role does not have permission for this area.", 403);
+  if (path === "/api/admin/me") {
+    const context = adminContext(request);
+    return json({ ok: true, role: context?.role ?? "owner", permissions: context?.permissions ?? [...adminPermissions] });
+  }
+  const teamMatch = path.match(/^\/api\/admin\/team(?:\/([^/]+))?$/);
+  if (teamMatch) return await adminTeam(request, teamMatch[1]);
   if (path === "/api/admin/purchase-suggestions") return json(await adminPurchaseSuggestions(request));
   if (path === "/api/admin/product-financials") return json(await adminProductFinancials(request));
   if (path === "/api/admin/audit-logs") {
