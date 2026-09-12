@@ -155,7 +155,7 @@ export function Header() {
             <img
               src={logoImage}
               alt="Bawari Banno"
-               className="h-[3.5rem] w-[10rem] object-contain sm:h-[4rem] sm:w-[12rem] lg:h-[4.5rem] lg:w-[15rem]"
+               className="h-[4.25rem] w-[11.5rem] object-contain sm:h-[4.5rem] sm:w-[14rem] lg:h-[4.5rem] lg:w-[15rem]"
             />
         </Link>
 
