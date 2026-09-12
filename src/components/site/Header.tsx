@@ -150,7 +150,7 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-           className="group absolute left-1/2 top-0 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:top-1/2 lg:-translate-y-1/2"
+           className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:top-1/2 lg:-translate-y-1/2"
            >
             <img
               src={logoImage}
