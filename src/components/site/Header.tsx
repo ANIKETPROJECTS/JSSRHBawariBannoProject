@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Menu, Search, X } from "lucide-react";
-import { sarees } from "@/data/sarees";
+import { ChevronDown, Menu, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
@@ -19,130 +18,20 @@ const nav = [
   { to: "/contact", label: "Contact Us" },
 ] as const;
 
-type SearchItem = {
-  id: string;
-  name: string;
-  fabric?: string;
-  category?: string;
-  image: string;
-};
-
-const searchPrompts = ["for silk sarees", "for handloom cotton", "for wedding edits"];
-
 export function Header() {
   const { openCart, items } = useCart();
   const { count: wishlistCount } = useWishlist();
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [searchItems, setSearchItems] = useState<SearchItem[]>(sarees);
-  const [hintIndex, setHintIndex] = useState(0);
-  const [hintText, setHintText] = useState("");
-  const [hintDeleting, setHintDeleting] = useState(false);
   const closeTimer = useRef<number | undefined>(undefined);
-  const desktopSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
-  const focusSearch = () => {
-    setSearchOpen(true);
-    window.requestAnimationFrame(() => {
-      const input = window.matchMedia("(min-width: 1024px)").matches ? desktopSearchInputRef.current : mobileSearchInputRef.current;
-      input?.focus();
-    });
-  };
-
-  useEffect(() => {
-    let active = true;
-    fetch("/api/catalog")
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
-      .then((catalog: { products?: Array<{ id?: string; name?: string; fabric?: string; category?: string; image?: string }> }) => {
-        const liveItems = (catalog.products ?? [])
-          .filter((product) => product.id && product.name && product.image)
-          .map((product) => ({
-            id: String(product.id),
-            name: String(product.name),
-            fabric: product.fabric,
-            category: product.category,
-            image: String(product.image),
-          }));
-        if (active && liveItems.length) setSearchItems(liveItems);
-      })
-      .catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (query) return;
-    const prompt = searchPrompts[hintIndex];
-    const isComplete = !hintDeleting && hintText === prompt;
-    const isEmpty = hintDeleting && hintText.length === 0;
-    const timer = window.setTimeout(() => {
-      if (isComplete) {
-        setHintDeleting(true);
-      } else if (isEmpty) {
-        setHintDeleting(false);
-        setHintIndex((index) => (index + 1) % searchPrompts.length);
-      } else if (hintDeleting) {
-        setHintText(prompt.slice(0, Math.max(0, hintText.length - 1)));
-      } else {
-        setHintText(prompt.slice(0, hintText.length + 1));
-      }
-    }, isComplete ? 1200 : isEmpty ? 350 : hintDeleting ? 55 : 90);
-    return () => window.clearTimeout(timer);
-  }, [hintDeleting, hintIndex, hintText, query]);
-
-  const matchingItems = searchItems
-    .filter((item) => `${item.name} ${item.fabric ?? ""} ${item.category ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()))
-    .slice(0, 4);
-  const searchPlaceholder = query ? "" : `Search ${hintText || "..."}`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
        <div className="relative mx-auto flex h-[3.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:h-[4rem] sm:px-7 lg:h-[4.5rem] lg:px-10">
-        <div className="relative flex min-w-0 items-center">
-          <button
-            type="button"
-            aria-label="Search the collection"
-            aria-expanded={searchOpen}
-            onClick={focusSearch}
-             className="flex shrink-0 items-center gap-2 rounded-full bg-white/15 p-2 text-white transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:px-3"
-          >
-            <Search className="size-[1.05rem]" strokeWidth={1.4} />
-            <span className="hidden text-[0.65rem] font-medium uppercase tracking-[0.16em] lg:inline">Search</span>
-          </button>
-          <input
-            ref={desktopSearchInputRef}
-            id="site-search-desktop"
-            value={query}
-            onFocus={() => setSearchOpen(true)}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label="Search products"
-             className="ml-2 hidden w-32 cursor-text border-b border-white bg-transparent px-1 py-2 text-sm text-white outline-none placeholder:text-white sm:w-52 sm:text-base lg:block lg:w-72"
-          />
-          {searchOpen && query.trim() && (
-            <div className="absolute left-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] border border-border bg-background p-2 shadow-xl">
-              {matchingItems.map((saree) => (
-                <Link
-                  key={saree.id}
-                  to="/products/$productId"
-                  params={{ productId: saree.id }}
-                  onClick={() => { setSearchOpen(false); setQuery(""); }}
-                  className="flex min-w-0 items-center gap-3 p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  <img src={saree.image} alt={saree.name} className="size-12 shrink-0 object-cover" />
-                  <span className="min-w-0 text-sm text-primary">{saree.name}</span>
-                </Link>
-              ))}
-              {matchingItems.length === 0 && (
-                <p className="px-2 py-3 text-sm text-muted-foreground">No matching pieces found.</p>
-              )}
-            </div>
-          )}
-        </div>
+         <div aria-hidden="true" className="w-10 shrink-0 sm:w-16" />
         <Link
            to="/"
            onClick={(event) => {
@@ -159,7 +48,7 @@ export function Header() {
             />
         </Link>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+         <div className="flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:translate-y-0">
           <button
             type="button"
             aria-label="Shopping bag"
@@ -201,40 +90,6 @@ export function Header() {
           >
             {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <Menu className="size-5" strokeWidth={1.6} />}
           </button>
-        </div>
-      </div>
-
-       <div className={`border-t border-white/20 bg-[#ED145B] px-4 py-3 shadow-sm lg:hidden ${searchOpen ? "block" : "hidden"}`}>
-        <div className="relative mx-auto max-w-xl">
-          <input
-            ref={mobileSearchInputRef}
-            id="site-search-mobile"
-            value={query}
-            onFocus={() => setSearchOpen(true)}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={searchPlaceholder}
-            aria-label="Search products"
-             className="w-full cursor-text border-b border-white bg-transparent px-1 py-2 text-base text-white outline-none placeholder:text-white"
-          />
-          {query.trim() && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-3 border border-border bg-background p-2 shadow-xl">
-              {matchingItems.map((saree) => (
-                <Link
-                  key={saree.id}
-                  to="/products/$productId"
-                  params={{ productId: saree.id }}
-                  onClick={() => { setSearchOpen(false); setQuery(""); }}
-                  className="flex min-w-0 items-center gap-3 p-2 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                >
-                  <img src={saree.image} alt={saree.name} className="size-12 shrink-0 object-cover" />
-                  <span className="min-w-0 text-sm text-primary">{saree.name}</span>
-                </Link>
-              ))}
-              {matchingItems.length === 0 && (
-                <p className="px-2 py-3 text-sm text-muted-foreground">No matching pieces found.</p>
-              )}
-            </div>
-          )}
         </div>
       </div>
 

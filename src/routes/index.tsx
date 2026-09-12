@@ -69,7 +69,6 @@ function Home() {
   const [liveProducts, setLiveProducts] = useState<typeof sarees | null>(null);
   const [liveCategoryEdits, setLiveCategoryEdits] = useState<typeof categoryEdits | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
-  const hero = (liveHeroSlides ?? heroSlides)[0] ?? heroSlides[0];
   const homepageProducts = liveProducts ?? sarees;
   const homepageCategoryEdits = liveCategoryEdits ?? categoryEdits;
   const curatedBestsellers = homepageProducts.filter((saree) => saree.featured || saree.bestseller);
@@ -123,23 +122,14 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="relative isolate min-h-[31rem] w-full overflow-hidden bg-espresso sm:min-h-[36rem] lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)]">
-        <img
-          src={hero.image}
-          alt={hero.alt}
-          width={1920}
-          height={1088}
-          className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(22,10,6,0.82)_0%,rgba(43,23,16,0.56)_34%,rgba(74,40,24,0.18)_62%,transparent_100%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(22,10,6,0.38)_0%,transparent_28%)]" />
+      <section className="relative isolate min-h-[31rem] w-full overflow-hidden bg-white sm:min-h-[36rem] lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)]">
         <div className="relative flex min-h-[31rem] items-center px-5 py-16 sm:min-h-[36rem] sm:px-10 sm:py-20 lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)] lg:px-[7vw]">
-          <div className="max-w-[34rem] text-primary-foreground">
+          <div className="max-w-[34rem] text-primary">
             <p className="text-eyebrow text-peachy">{heroDetails[0].eyebrow}</p>
             <h1 className="mt-5 max-w-[12ch] font-display text-[2.65rem] font-medium leading-[0.98] tracking-[-0.035em] min-[420px]:text-5xl sm:text-6xl lg:text-[clamp(4rem,6.2vw,6.7rem)]">
               {heroDetails[0].title}
             </h1>
-            <p className="mt-6 max-w-[28rem] text-sm leading-relaxed text-primary-foreground/82 sm:text-base">
+            <p className="mt-6 max-w-[28rem] text-sm leading-relaxed text-muted-foreground sm:text-base">
               {heroDetails[0].description}
             </p>
             <Link
