@@ -101,7 +101,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
-      <div className="relative mx-auto flex h-[4.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-7 lg:px-10">
+       <div className="relative mx-auto flex h-[5.25rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-7 lg:h-[4.5rem] lg:px-10">
         <div className="relative flex min-w-0 items-center">
           <button
             type="button"
@@ -150,7 +150,7 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-           className="group absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-baseline gap-2 rounded-b-md bg-[#ED145B] px-1 lg:bg-transparent lg:px-0"
+           className="group absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-baseline gap-2"
            >
             <img
               src={logoImage}
