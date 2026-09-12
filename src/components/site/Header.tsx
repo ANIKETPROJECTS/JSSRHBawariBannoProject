@@ -39,7 +39,7 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-           className="group absolute -top-1 -left-4 z-10 flex items-baseline gap-2 sm:-left-4 lg:top-1/2 lg:-left-10 lg:-translate-y-1/2"
+           className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:top-1/2 lg:-translate-y-1/2"
            >
             <img
               src={logoImage}
