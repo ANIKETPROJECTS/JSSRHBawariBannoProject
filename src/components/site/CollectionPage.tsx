@@ -220,7 +220,7 @@ export function CollectionPage({
     const sorted = [...filtered];
     if (sort === "price-asc") sorted.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") sorted.sort((a, b) => b.price - a.price);
-    if (sort === "newest") sorted.sort((a, b) => b.addedOn.localeCompare(a.addedOn));
+    if (sort === "newest") sorted.sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")));
     if (sort === "featured") sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
   }, [collectionProducts, filters, selection, sort]);

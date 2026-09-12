@@ -232,7 +232,7 @@ function Home() {
       ) : (
         <>
           <TrendShowcase
-            products={[...homepageProducts].sort((a, b) => b.addedOn.localeCompare(a.addedOn)).slice(0, 5)}
+            products={[...homepageProducts].sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? ""))).slice(0, 5)}
           />
 
           <ProductRail
