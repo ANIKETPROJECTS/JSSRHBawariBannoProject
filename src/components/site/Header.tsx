@@ -150,12 +150,12 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-           className="group shrink-0 items-baseline gap-2 lg:absolute lg:left-1/2 lg:top-1/2 lg:z-10 lg:flex lg:-translate-x-1/2 lg:-translate-y-1/2"
+           className="group absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-baseline gap-2 rounded-b-md bg-[#ED145B] px-1 lg:bg-transparent lg:px-0"
            >
             <img
               src={logoImage}
               alt="Bawari Banno"
-               className="h-[4.25rem] w-[11.5rem] object-contain sm:h-[4.5rem] sm:w-[14rem] lg:h-[4.5rem] lg:w-[15rem]"
+               className="h-[5.25rem] w-[14rem] object-contain sm:h-[5rem] sm:w-[16rem] lg:h-[4.5rem] lg:w-[15rem]"
             />
         </Link>
 
