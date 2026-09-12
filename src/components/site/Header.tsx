@@ -5,7 +5,7 @@ import { sarees } from "@/data/sarees";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
-import logoImage from "../../../attached_assets/Firefly_RemoveBackground_1789239168431.png";
+import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
 
@@ -155,7 +155,7 @@ export function Header() {
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="size-[4.75rem] object-contain sm:size-[5.25rem] lg:size-[5.75rem]"
+               className="h-[3.5rem] w-[10rem] object-contain sm:h-[4rem] sm:w-[12rem] lg:h-[4.5rem] lg:w-[15rem]"
             />
         </Link>
 

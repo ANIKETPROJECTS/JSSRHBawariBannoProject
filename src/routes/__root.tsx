@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import logoImage from "../../attached_assets/Firefly_RemoveBackground_1789239168431.png";
+import logoImage from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 
 function NotFoundComponent() {
   return (
