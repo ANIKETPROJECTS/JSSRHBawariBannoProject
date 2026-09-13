@@ -163,12 +163,12 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="site-container section-frame bg-secondary/20 pb-10 pt-10 sm:pb-12 sm:pt-14">
+    <section className="mx-auto max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 sm:pb-12 sm:pt-20 lg:px-8">
       <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
-          {products.map((saree) => (
-          <ProductCard key={saree.id} saree={saree} tall showAddToCart />
+        {products.map((saree) => (
+          <ProductCard key={saree.id} saree={saree} tall editorial />
         ))}
       </div>
     </section>
