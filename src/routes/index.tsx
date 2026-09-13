@@ -81,10 +81,16 @@ function Home() {
 
       {/* Categories — portrait card grid */}
       <section className="bg-white px-4 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20">
-        <div className="mx-auto mb-8 max-w-[1440px] sm:mb-10">
-          <h2 className="font-display text-4xl font-medium tracking-tight text-primary sm:text-5xl">
+        <div className="relative mx-auto mb-8 max-w-[1440px] sm:mb-10">
+          <h2 className="text-center font-display text-4xl font-medium tracking-tight text-primary sm:text-5xl">
             Our Categories
           </h2>
+          <Link
+            to="/products"
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            View all
+          </Link>
         </div>
         <div className="mx-auto grid max-w-[1440px] grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
           {homepageCategoryEdits.slice(0, 5).map((category) => (
@@ -100,7 +106,7 @@ function Home() {
                 loading="lazy"
                 width={640}
                 height={800}
-                className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                className="aspect-[2/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               />
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-4 pt-12 text-center font-display text-lg leading-tight text-white sm:text-xl">
                 {category.title}
