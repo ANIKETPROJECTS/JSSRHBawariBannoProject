@@ -12,11 +12,13 @@ export function ProductCard({
   tall = false,
   showAddToCart = false,
   editorial = false,
+  videoSrc,
 }: {
   saree: Saree;
   tall?: boolean;
   showAddToCart?: boolean;
   editorial?: boolean;
+  videoSrc?: string;
 }) {
   const { ids, toggle } = useWishlist();
   const { addItem } = useCart();
@@ -32,14 +34,27 @@ export function ProductCard({
       className="group block"
     >
       <div className="relative overflow-hidden border border-border bg-card">
-        <img
-          src={saree.image}
-          alt={saree.name}
-          loading="lazy"
-          width={900}
-          height={1200}
-          className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
-        />
+        {videoSrc ? (
+          <video
+            src={videoSrc}
+            poster={saree.image}
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-label={`Video of ${saree.name}`}
+            className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
+          />
+        ) : (
+          <img
+            src={saree.image}
+            alt={saree.name}
+            loading="lazy"
+            width={900}
+            height={1200}
+            className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
+          />
+        )}
         {editorial && (
           <span className="absolute left-3 top-3 border border-gold/60 bg-background/85 px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.18em] text-primary">
             {saree.fabric}
