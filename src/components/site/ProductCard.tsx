@@ -1,10 +1,12 @@
+import type { MouseEvent } from "react";
 import { useWishlist } from "./WishlistContext";
 import { useReviewSummary } from "./ReviewsContext";
 import { Link } from "@tanstack/react-router";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { useCart } from "./CartDrawer";
 import { toast } from "sonner";
-import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787336793109.png";
+import addToCartIcon from "../../../attached_assets/shopping-cart_1789324905451.png";
+import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
 function formatReviewCount(count: number) {
@@ -36,8 +38,19 @@ export function ProductCard({
   const { addItem } = useCart();
   const reviewSummary = useReviewSummary(saree.id);
   const isWishlisted = ids.includes(saree.id);
+  const showCardActions = !videoSrc && (showAddToCart || !editorial);
   const originalPrice = Number(saree.originalPrice ?? 0);
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
+
+  const addProductToCart = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (saree.variants?.length) {
+      toast.info("Choose a color on the product page before adding it to your bag.");
+      return;
+    }
+    addItem(saree);
+  };
 
   return (
     <Link
@@ -66,6 +79,28 @@ export function ProductCard({
             height={1200}
             className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
           />
+        )}
+        {showCardActions && (
+          <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-0 transition-transform duration-300 sm:translate-y-full sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0">
+            <button
+              type="button"
+              aria-label={`Add ${saree.name} to cart`}
+              onClick={addProductToCart}
+              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 bg-[#FFE300] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-black transition-colors hover:bg-[#f4d500] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
+            >
+              <img src={addToCartIcon} alt="" aria-hidden="true" className="size-5 object-contain sm:size-6" />
+              <span>Add to Cart</span>
+            </button>
+            <button
+              type="button"
+              aria-label={`Buy ${saree.name} now`}
+              onClick={addProductToCart}
+              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 bg-[#ED145B] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#d91052] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
+            >
+              <img src={buyNowIcon} alt="" aria-hidden="true" className="size-5 object-contain brightness-0 invert sm:size-6" />
+              <span>Buy Now</span>
+            </button>
+          </div>
         )}
         {editorial && (
           <span
@@ -156,24 +191,6 @@ export function ProductCard({
                   : `${Number(saree.discountValue)}% OFF`}
               </span>
             </>
-          )}
-          {showAddToCart && (
-            <button
-              type="button"
-              aria-label={`Add ${saree.name} to cart`}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                if (saree.variants?.length) {
-                  toast.info("Choose a color on the product page before adding it to your bag.");
-                  return;
-                }
-                addItem(saree);
-              }}
-              className="ml-auto flex size-7 shrink-0 items-center justify-center transition-transform hover:scale-110 active:scale-95"
-            >
-              <img src={cartIcon} alt="" aria-hidden="true" className="size-6 object-contain" />
-            </button>
           )}
         </div>
       </div>
