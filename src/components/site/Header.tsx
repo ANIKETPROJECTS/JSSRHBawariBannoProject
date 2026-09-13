@@ -7,6 +7,7 @@ import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
 import searchIcon from "../../../attached_assets/search_(2)_1789284877555.png";
+import whatsappIcon from "../../../attached_assets/whatsapp_1789286832089.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
 
@@ -73,22 +74,46 @@ export function Header() {
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
       <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
-          className="mx-auto flex h-full max-w-[1440px] items-center justify-start gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
+          className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
           style={{ fontFamily: "'Poppins', sans-serif" }}
         >
-          {socialLinks.map(({ label, icon }) => (
+          <div className="flex min-w-0 items-center">
+            {socialLinks.map(({ label, icon }) => (
+              <a
+                key={label}
+                href="#"
+                aria-label={`${label}: @bawaribanno`}
+                className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <img src={icon} alt="" className="size-6 object-contain brightness-0 invert" />
+                <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
+                  @bawaribanno
+                </span>
+              </a>
+            ))}
+          </div>
+          <div className="ml-auto hidden min-w-0 items-center gap-3 md:flex">
             <a
-              key={label}
-              href="#"
-              aria-label={`${label}: @bawaribanno`}
-              className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              href="tel:+911111111111"
+              aria-label="Call Bawari Banno at plus 91 11111 11111"
+              className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <img src={icon} alt="" className="size-6 object-contain brightness-0 invert" />
-              <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
-                @bawaribanno
+              <img src={whatsappIcon} alt="" className="size-5 object-contain brightness-0 invert" />
+              <span className="whitespace-nowrap text-xs font-medium tracking-[0.03em]">
+                +91 11111 11111
               </span>
             </a>
-          ))}
+            <div
+              aria-label='"परंपरा में बसी, आज की नारी।" Tradition, woven into the woman of today.'
+              className="hidden max-w-[34rem] min-w-0 overflow-hidden border-l border-white pl-3 lg:block"
+            >
+              <div className="header-quote-track whitespace-nowrap text-xs font-medium tracking-[0.02em] text-white">
+                <span>"परंपरा में बसी, आज की नारी।"</span>
+                <span className="mx-3" aria-hidden="true">·</span>
+                <span>Tradition, woven into the woman of today.</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div className="relative">

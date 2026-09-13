@@ -5,6 +5,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes header-quote-slide {
+  0%,
+  14% {
+    transform: translateX(100%);
+  }
+  48%,
+  68% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.header-quote-track {
+  animation: header-quote-slide 14s ease-in-out infinite;
+  will-change: transform;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
