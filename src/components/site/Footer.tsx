@@ -20,7 +20,6 @@ export function Footer() {
   return (
     <footer
       className="mt-12 bg-[#ED145B] text-white"
-      style={{ fontFamily: "'Poppins', sans-serif" }}
     >
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <div className="flex flex-col gap-5 border-b border-white/20 py-7 sm:py-8 lg:flex-row lg:items-center lg:justify-between">

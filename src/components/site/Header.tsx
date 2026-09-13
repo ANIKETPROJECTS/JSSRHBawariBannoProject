@@ -75,7 +75,6 @@ export function Header() {
       <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
           className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
-          style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           <div className="flex min-w-0 items-center">
             {socialLinks.map(({ label, icon }) => (
@@ -123,7 +122,7 @@ export function Header() {
             />
         </Link>
 
-         <div className="hidden items-center gap-2 lg:mr-auto lg:flex" style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <div className="hidden items-center gap-2 lg:mr-auto lg:flex">
            <button
              type="button"
              aria-label="Focus search"
@@ -191,7 +190,6 @@ export function Header() {
        <nav
          aria-label="Primary navigation"
           className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-black/15 bg-white px-8 text-black sm:px-12 lg:flex lg:px-20 xl:px-28"
-         style={{ fontFamily: "'Poppins', sans-serif" }}
        >
           {nav.map((item) => (
             item.label === "Categories" ? (
