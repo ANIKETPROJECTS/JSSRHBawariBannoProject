@@ -102,17 +102,6 @@ export function Header() {
               </span>
             </a>
           </div>
-          <div
-            aria-label='"परंपरा में बसी, आज की नारी।" Tradition, woven into the woman of today.'
-            className="ml-auto hidden h-4 w-[min(34rem,38vw)] min-w-0 overflow-hidden lg:block"
-          >
-            <div className="relative h-full whitespace-nowrap text-xs font-medium tracking-[0.02em] text-white">
-              <span className="header-quote-hindi absolute inset-0">"परंपरा में बसी, आज की नारी।"</span>
-              <span className="header-quote-english absolute inset-0">
-                Tradition, woven into the woman of today.
-              </span>
-            </div>
-          </div>
         </div>
       </div>
       <div className="relative">
