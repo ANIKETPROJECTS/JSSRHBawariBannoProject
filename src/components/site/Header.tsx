@@ -104,7 +104,7 @@ export function Header() {
           {nav.map((item) => (
             item.label === "Categories" ? (
               <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
-                  <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
+                  <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
                    Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
                   {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white/20 bg-[#ED145B] p-2 shadow-xl">
@@ -130,7 +130,7 @@ export function Header() {
                 key={`${item.label}-${item.to}`}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                  className="relative py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]"
+                  className="relative whitespace-nowrap py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]"
                 activeProps={{
                   className:
                        "text-white after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-white",
