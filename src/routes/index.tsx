@@ -168,7 +168,7 @@ function ProductRail({
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
         {products.map((saree) => (
-          <ProductCard key={saree.id} saree={saree} tall editorial />
+          <ProductCard key={saree.id} saree={saree} tall editorial showAddToCart />
         ))}
       </div>
     </section>
