@@ -6,8 +6,6 @@ import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
-import facebookIcon from "../../../attached_assets/facebook_1789283484174.png";
-import youtubeIcon from "../../../attached_assets/youtube_1789283515072.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
 
@@ -23,8 +21,6 @@ const nav = [
 
 const socialLinks = [
   { label: "Instagram", icon: instagramIcon },
-  { label: "Facebook", icon: facebookIcon },
-  { label: "YouTube", icon: youtubeIcon },
 ] as const;
 
 export function Header() {
@@ -41,7 +37,7 @@ export function Header() {
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
       <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
-          className="mx-auto flex h-full max-w-[1440px] items-center justify-end gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
+          className="mx-auto flex h-full max-w-[1440px] items-center justify-start gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
           style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           {socialLinks.map(({ label, icon }) => (
@@ -51,8 +47,8 @@ export function Header() {
               aria-label={`${label}: @bawaribanno`}
               className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <img src={icon} alt="" className="size-5 object-contain brightness-0 invert" />
-              <span className="whitespace-nowrap text-xs font-medium tracking-[0.02em]">
+              <img src={icon} alt="" className="size-6 object-contain brightness-0 invert" />
+              <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
                 @bawaribanno
               </span>
             </a>
