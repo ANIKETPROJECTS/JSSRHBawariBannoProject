@@ -123,6 +123,7 @@ function Home() {
         <>
           <ProductRail
             title="New Trends"
+            viewAllTo="/new-arrival"
             products={[...homepageProducts]
               .sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")))
               .slice(0, 5)}
@@ -130,10 +131,15 @@ function Home() {
 
           <ProductRail
             title="Best Sellers"
+            viewAllTo="/bestseller"
             products={homepageBestsellers}
           />
 
-          <ProductRail title="Trending Collection" products={homepageProducts.slice(0, 5)} />
+          <ProductRail
+            title="Trending Collection"
+            viewAllTo="/trending"
+            products={homepageProducts.slice(0, 5)}
+          />
 
           <DrapeVideoGrid products={homepageProducts.slice(0, 5)} />
         </>
@@ -158,16 +164,26 @@ function HomepageCatalogLoader() {
 
 function ProductRail({
   title,
+  viewAllTo,
   products,
 }: {
   title: string;
+  viewAllTo: string;
   products: typeof sarees;
 }) {
   return (
     <section className="mx-auto max-w-[1600px] bg-white px-4 pb-10 pt-16 sm:pb-12 sm:pt-20">
-      <h2 className="text-center font-sans text-4xl font-extrabold leading-tight text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
+      <div className="relative mx-auto mb-8 max-w-[1600px] sm:mb-10">
+        <h2 className="text-center font-sans leading-tight text-primary">{title}</h2>
+        <Link
+          to={viewAllTo}
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          View all
+        </Link>
+      </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 pb-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 pb-3 sm:grid-cols-3 lg:grid-cols-5">
         {products.map((saree) => (
           <ProductCard key={saree.id} saree={saree} tall editorial showAddToCart />
         ))}
@@ -180,12 +196,18 @@ function DrapeVideoGrid({ products }: { products: typeof sarees }) {
   return (
     <section className="mx-auto max-w-[1600px] bg-white px-4 pb-20 pt-16 sm:pb-24 sm:pt-20">
       <div className="mb-8 text-center sm:mb-10">
-        <h2 className="font-sans leading-tight text-primary">
-          Six yards in motion.
-        </h2>
+        <div className="relative mx-auto max-w-[1600px]">
+          <h2 className="font-sans leading-tight text-primary">Six yards in motion.</h2>
+          <Link
+            to="/products"
+            className="absolute right-0 top-1/2 -translate-y-1/2 text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            View all
+          </Link>
+        </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-4 pb-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 pb-3 sm:grid-cols-3 lg:grid-cols-5">
         {products.map((saree) => (
           <ProductCard
             key={saree.id}
