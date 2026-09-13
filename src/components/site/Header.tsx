@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, Menu, Search, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
@@ -29,9 +29,9 @@ export function Header() {
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
+    <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
        <div className="relative mx-auto flex h-[3.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:h-[4rem] sm:px-7 lg:h-[4.5rem] lg:px-10">
-         <div aria-hidden="true" className="w-10 shrink-0 sm:w-16" />
+         <div aria-hidden="true" className="w-10 shrink-0 sm:w-16 lg:hidden" />
         <Link
            to="/"
            onClick={(event) => {
@@ -39,7 +39,7 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-           className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:top-1/2 lg:-translate-y-1/2"
+            className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:relative lg:left-auto lg:top-auto lg:translate-x-0 lg:translate-y-0"
            >
             <img
               src={logoImage}
@@ -48,7 +48,14 @@ export function Header() {
             />
         </Link>
 
-         <div className="flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:translate-y-0">
+         <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:translate-y-0">
+          <Link
+            to="/products"
+            aria-label="Search products"
+            className="hidden rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
+          >
+            <Search className="size-5" strokeWidth={1.6} />
+          </Link>
           <button
             type="button"
             aria-label="Shopping bag"
@@ -93,14 +100,14 @@ export function Header() {
         </div>
       </div>
 
-       <nav aria-label="Primary navigation" className="hidden h-11 items-center justify-center gap-6 border-t border-border/70 bg-white text-foreground lg:flex xl:gap-8">
+       <nav aria-label="Primary navigation" className="absolute left-1/2 top-0 z-0 hidden h-[3.5rem] -translate-x-1/2 items-center justify-center gap-4 lg:flex lg:h-[4.5rem] xl:gap-6">
           {nav.map((item) => (
             item.label === "Categories" ? (
               <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
-                  <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4">
+                  <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
                    Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
-                  {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-border bg-white p-2 shadow-xl">
+                  {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white/20 bg-[#ED145B] p-2 shadow-xl">
                   {[
                     { label: "Silk Sarees", href: "/categories/silk-sarees" },
                     { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
@@ -110,7 +117,7 @@ export function Header() {
                     <Link
                       key={category.label}
                       to={category.href}
-                        className="block px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="block px-3 py-2.5 text-sm text-white transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                       onClick={() => setCategoriesOpen(false)}
                     >
                       {category.label}
@@ -123,10 +130,10 @@ export function Header() {
                 key={`${item.label}-${item.to}`}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                  className="relative py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4"
+                  className="relative py-2 text-[0.68rem] font-medium uppercase tracking-[0.15em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]"
                 activeProps={{
                   className:
-                      "text-primary after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-gold",
+                       "text-white after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-white",
                 }}
               >
                 {item.label}
