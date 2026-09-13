@@ -229,6 +229,25 @@
   }
 }
 
+.admin-sidebar-scrollbar {
+  scrollbar-color: #ed145b #ffe300;
+  scrollbar-width: thin;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar-track {
+  background: #ffe300;
+}
+
+.admin-sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #ed145b;
+  border: 2px solid #ffe300;
+  border-radius: 999px;
+}
+
 /* Saved items are shown on the dedicated Wishlist page, not Account details. */
 #wishlist {
   display: none;
