@@ -1,11 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Menu, Search, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
+import searchIcon from "../../../attached_assets/search_1789284421070.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
 
@@ -29,9 +30,44 @@ export function Header() {
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [typedPlaceholder, setTypedPlaceholder] = useState("Search a saree");
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const closeTimer = useRef<number | undefined>(undefined);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
+
+  useEffect(() => {
+    const phrases = ["Search a saree", "Search a fabric", "Search a collection"];
+    let phraseIndex = 0;
+    let characterIndex = phrases[0].length;
+    let deleting = true;
+    let timer: number | undefined;
+
+    const tick = () => {
+      const phrase = phrases[phraseIndex];
+      if (deleting) {
+        characterIndex -= 1;
+        if (characterIndex === 0) {
+          deleting = false;
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+        }
+      } else {
+        characterIndex += 1;
+        if (characterIndex === phrases[phraseIndex].length) {
+          deleting = true;
+        }
+      }
+
+      setTypedPlaceholder(phrases[phraseIndex].slice(0, characterIndex));
+      timer = window.setTimeout(tick, deleting ? 65 : 105);
+    };
+
+    timer = window.setTimeout(tick, 1200);
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
 
   return (
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
@@ -75,13 +111,25 @@ export function Header() {
         </Link>
 
           <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:ml-auto lg:translate-y-0">
-          <Link
-            to="/products"
-            aria-label="Search products"
-            className="hidden rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
-          >
-            <Search className="size-5" strokeWidth={1.6} />
-          </Link>
+           <div className="hidden items-center gap-2 lg:flex" style={{ fontFamily: "'Poppins', sans-serif" }}>
+             <button
+               type="button"
+               aria-label="Focus search"
+               onClick={() => searchInputRef.current?.focus()}
+               className="rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+             >
+               <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert" />
+             </button>
+             <input
+               ref={searchInputRef}
+               type="search"
+               aria-label="Search the collection"
+               value={query}
+               onChange={(event) => setQuery(event.target.value)}
+               placeholder={`${typedPlaceholder}…`}
+               className="w-36 border-b border-white/60 bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white/80 xl:w-48"
+             />
+           </div>
           <button
             type="button"
             aria-label="Shopping bag"
