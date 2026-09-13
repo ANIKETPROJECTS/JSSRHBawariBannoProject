@@ -86,7 +86,7 @@ function Home() {
           </h2>
           <Link
             to="/products"
-            className="section-view-all absolute right-0 top-1/2 -translate-y-1/2"
+            className="section-view-all section-view-all--aligned absolute right-0 top-1/2 -translate-y-1/2"
           >
             View all
           </Link>
@@ -184,7 +184,7 @@ function ProductRail({
         <h2 className="text-center font-sans leading-tight text-primary">{title}</h2>
         <Link
           to={viewAllTo}
-          className="section-view-all absolute right-0 top-1/2 -translate-y-1/2"
+          className="section-view-all section-view-all--aligned absolute right-0 top-1/2 -translate-y-1/2"
         >
           View all
         </Link>

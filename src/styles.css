@@ -200,7 +200,6 @@ h4 {
 }
 
 .section-view-all {
-  position: relative;
   display: inline-block;
   font-family: var(--font-sans) !important;
   font-size: 0.9375rem;
@@ -210,6 +209,10 @@ h4 {
   text-transform: uppercase;
   color: var(--primary);
   transition: color 180ms ease;
+}
+
+.section-view-all--aligned {
+  position: absolute;
 }
 
 .section-view-all::after {
