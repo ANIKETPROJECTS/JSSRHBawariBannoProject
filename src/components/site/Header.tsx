@@ -104,12 +104,13 @@ export function Header() {
           </div>
           <div
             aria-label='"परंपरा में बसी, आज की नारी।" Tradition, woven into the woman of today.'
-            className="ml-auto hidden max-w-[34rem] min-w-0 overflow-hidden border-l border-white pl-3 lg:block"
+            className="ml-auto hidden h-4 w-[min(34rem,38vw)] min-w-0 overflow-hidden lg:block"
           >
-            <div className="header-quote-track whitespace-nowrap text-xs font-medium tracking-[0.02em] text-white">
-              <span>"परंपरा में बसी, आज की नारी।"</span>
-              <span className="mx-3" aria-hidden="true">·</span>
-              <span>Tradition, woven into the woman of today.</span>
+            <div className="relative h-full whitespace-nowrap text-xs font-medium tracking-[0.02em] text-white">
+              <span className="header-quote-hindi absolute inset-0">"परंपरा में बसी, आज की नारी।"</span>
+              <span className="header-quote-english absolute inset-0">
+                Tradition, woven into the woman of today.
+              </span>
             </div>
           </div>
         </div>
