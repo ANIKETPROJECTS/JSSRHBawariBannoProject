@@ -72,7 +72,7 @@ export function Header() {
 
   return (
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
-      <div className="h-9 border-b border-white/20 bg-[#ED145B]">
+      <div className="h-9 border-b border-black/15 bg-white">
         <div
           className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
           style={{ fontFamily: "'Poppins', sans-serif" }}
@@ -83,9 +83,9 @@ export function Header() {
                 key={label}
                 href="#"
                 aria-label={`${label}: @bawaribanno`}
-                className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex items-center gap-2 rounded-full px-2 py-1 text-black transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
               >
-                <img src={icon} alt="" className="size-6 object-contain brightness-0 invert" />
+                <img src={icon} alt="" className="size-6 object-contain brightness-0" />
                 <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
                   @bawaribanno
                 </span>
@@ -94,9 +94,9 @@ export function Header() {
             <a
               href="https://wa.me/911111111111"
               aria-label="WhatsApp Bawari Banno at plus 91 11111 11111"
-              className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="flex items-center gap-2 rounded-full px-2 py-1 text-black transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
             >
-              <img src={whatsappIcon} alt="" className="size-6 object-contain brightness-0 invert" />
+              <img src={whatsappIcon} alt="" className="size-6 object-contain brightness-0" />
               <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
                 +91 11111 11111
               </span>
@@ -128,9 +128,9 @@ export function Header() {
              type="button"
              aria-label="Focus search"
              onClick={() => searchInputRef.current?.focus()}
-             className="rounded-full p-2 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="rounded-full p-2 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
            >
-              <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+               <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
            </button>
            <input
              ref={searchInputRef}
@@ -139,7 +139,7 @@ export function Header() {
              value={query}
              onChange={(event) => setQuery(event.target.value)}
              placeholder={`${typedPlaceholder}…`}
-             className="w-36 border-b border-white bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white xl:w-48"
+              className="w-36 border-b border-white bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white xl:w-48"
            />
          </div>
 
@@ -148,9 +148,9 @@ export function Header() {
             type="button"
             aria-label="Shopping bag"
             onClick={openCart}
-             className="relative rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="relative rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-             <img src={cartIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+              <img src={cartIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
             {itemCount > 0 && (
                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
                 {itemCount}
@@ -160,9 +160,9 @@ export function Header() {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-             className="relative rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="relative rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-             <img src={wishlistIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+              <img src={wishlistIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
             {wishlistCount > 0 && (
                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
                 {wishlistCount}
@@ -172,16 +172,16 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-             className="hidden rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:block"
+              className="hidden rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:block"
           >
-             <img src={profileIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+              <img src={profileIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
           </Link>
           <button
             type="button"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen((open) => !open)}
-             className="flex rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:hidden"
+              className="flex rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:hidden"
           >
             {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <Menu className="size-5" strokeWidth={1.6} />}
           </button>
@@ -190,16 +190,16 @@ export function Header() {
 
        <nav
          aria-label="Primary navigation"
-         className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-white/20 px-8 sm:px-12 lg:flex lg:px-20 xl:px-28"
+          className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-white/20 px-8 sm:px-12 lg:flex lg:px-20 xl:px-28"
          style={{ fontFamily: "'Poppins', sans-serif" }}
        >
           {nav.map((item) => (
             item.label === "Categories" ? (
               <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
-                  <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
+                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
                    Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
-                  {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white/20 bg-[#ED145B] p-2 shadow-xl">
+                   {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white/20 bg-[#ED145B] p-2 shadow-xl">
                   {[
                     { label: "Silk Sarees", href: "/categories/silk-sarees" },
                     { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
@@ -222,10 +222,10 @@ export function Header() {
                 key={`${item.label}-${item.to}`}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                  className="relative whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]"
+                   className="relative whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]"
                 activeProps={{
                   className:
-                       "text-white after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-white",
+                        "text-white after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-white",
                 }}
               >
                 {item.label}
