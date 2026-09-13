@@ -110,6 +110,25 @@
     border-color: var(--color-border);
   }
 
+  html {
+    scrollbar-color: #ed145b #ffe300;
+    scrollbar-width: thin;
+  }
+
+  html::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: #ffe300;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background: #ed145b;
+    border: 2px solid #ffe300;
+    border-radius: 999px;
+  }
+
   html,
   body,
   #root {
