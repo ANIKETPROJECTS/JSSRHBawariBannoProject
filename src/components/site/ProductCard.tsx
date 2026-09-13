@@ -87,7 +87,7 @@ export function ProductCard({
               type="button"
               aria-label={`Add ${saree.name} to cart`}
               onClick={addProductToCart}
-              className="flex min-h-10 w-full flex-none items-center justify-center gap-1.5 bg-[#FFE300] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-black transition-colors hover:bg-[#f4d500] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
+              className="flex min-h-10 w-full flex-none cursor-pointer items-center justify-center gap-1.5 bg-[#FFE300] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-black transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
             >
               <img src={addToCartIcon} alt="" aria-hidden="true" className="size-5 object-contain sm:size-6" />
               <span>Add to Cart</span>
@@ -96,7 +96,7 @@ export function ProductCard({
               type="button"
               aria-label={`Buy ${saree.name} now`}
               onClick={addProductToCart}
-              className="flex min-h-10 w-full flex-none items-center justify-center gap-1.5 bg-[#ED145B] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#d91052] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
+              className="flex min-h-10 w-full flex-none cursor-pointer items-center justify-center gap-1.5 bg-[#ED145B] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-white transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
             >
               <img src={buyNowIcon} alt="" aria-hidden="true" className="size-5 object-contain brightness-0 invert sm:size-6" />
               <span>Buy Now</span>
@@ -198,7 +198,7 @@ export function ProductCard({
               type="button"
               aria-label={`Add ${saree.name} to cart`}
               onClick={addProductToCart}
-              className="product-card-cart-button ml-auto flex size-7 shrink-0 items-center justify-center transition-transform hover:scale-110 active:scale-95"
+              className="product-card-cart-button ml-auto flex size-7 shrink-0 cursor-pointer items-center justify-center transition-transform hover:scale-110 active:scale-95"
             >
               <img src={productCartIcon} alt="" aria-hidden="true" className="size-6 object-contain" />
             </button>
