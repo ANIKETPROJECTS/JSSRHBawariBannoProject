@@ -54,7 +54,7 @@ function Home() {
             category,
           ]),
         );
-        const nextCategoryEdits = categoryEdits.slice(0, 4).map((fallback) => {
+        const nextCategoryEdits = categoryEdits.map((fallback) => {
           const category = liveCategoryBySlug.get(fallback.id);
           return {
             ...fallback,
@@ -79,41 +79,25 @@ function Home() {
         />
       </section>
 
-      {/* Categories — horizontal card row */}
-      <section className="mx-auto max-w-[1440px] overflow-hidden px-4 pb-0 pt-14 sm:px-8 sm:pt-20 lg:px-10">
-        <div className="mb-10 flex items-end justify-between border-b border-border pb-5">
-          <div>
-            <p className="text-eyebrow text-muted-foreground">Discover the house</p>
-            <h2 className="mt-2 font-display text-4xl font-medium tracking-tight text-primary sm:text-5xl">
-              By tradition, by mood.
-            </h2>
-          </div>
-          <Link
-            to="/products"
-            className="hidden text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:block"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="no-scrollbar -mx-4 flex gap-6 overflow-x-auto px-4 pb-3 sm:mx-0 sm:justify-between sm:gap-4 sm:px-0">
-          {homepageCategoryEdits.slice(0, 7).map((category) => (
+      {/* Categories — portrait card grid */}
+      <section className="bg-white px-4 py-12 sm:px-8 sm:py-16 lg:px-10 lg:py-20">
+        <div className="mx-auto grid max-w-[1440px] grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
+          {homepageCategoryEdits.slice(0, 10).map((category) => (
             <Link
               key={category.id}
               to="/categories/$category"
               params={{ category: category.id }}
-              className="group flex w-[7.6rem] shrink-0 flex-col items-center gap-3 text-center sm:w-36"
+              className="group relative block overflow-hidden bg-[#f8f8f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2"
             >
-              <div className="rounded-full border border-border bg-secondary/60 p-1 transition-colors duration-300 group-hover:border-primary group-hover:bg-gold/25">
-                <img
-                  src={category.image}
-                  alt={category.title}
-                  loading="lazy"
-                  width={320}
-                  height={320}
-                  className="size-[7.1rem] rounded-full object-cover grayscale-[15%] transition-transform duration-500 group-hover:scale-[1.04] group-hover:grayscale-0 sm:size-[8.4rem]"
-                />
-              </div>
-              <span className="font-display text-base leading-tight text-foreground transition-colors group-hover:text-primary sm:text-xl">
+              <img
+                src={category.image}
+                alt={category.title}
+                loading="lazy"
+                width={640}
+                height={800}
+                className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+              />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-4 pt-12 text-center font-display text-lg leading-tight text-white sm:text-xl">
                 {category.title}
               </span>
             </Link>
