@@ -6,7 +6,7 @@ import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
-import searchIcon from "../../../attached_assets/search_1789284421070.png";
+import searchIcon from "../../../attached_assets/search_(1)_1789284813424.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
 
@@ -117,7 +117,7 @@ export function Header() {
              onClick={() => searchInputRef.current?.focus()}
              className="rounded-full p-2 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
            >
-             <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert" />
+              <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
            </button>
            <input
              ref={searchInputRef}
