@@ -91,27 +91,25 @@ export function Header() {
                 </span>
               </a>
             ))}
-          </div>
-          <div className="ml-auto hidden min-w-0 items-center gap-3 md:flex">
             <a
-              href="tel:+911111111111"
-              aria-label="Call Bawari Banno at plus 91 11111 11111"
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              href="https://wa.me/911111111111"
+              aria-label="WhatsApp Bawari Banno at plus 91 11111 11111"
+              className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <img src={whatsappIcon} alt="" className="size-5 object-contain brightness-0 invert" />
-              <span className="whitespace-nowrap text-xs font-medium tracking-[0.03em]">
+              <img src={whatsappIcon} alt="" className="size-6 object-contain brightness-0 invert" />
+              <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
                 +91 11111 11111
               </span>
             </a>
-            <div
-              aria-label='"परंपरा में बसी, आज की नारी।" Tradition, woven into the woman of today.'
-              className="hidden max-w-[34rem] min-w-0 overflow-hidden border-l border-white pl-3 lg:block"
-            >
-              <div className="header-quote-track whitespace-nowrap text-xs font-medium tracking-[0.02em] text-white">
-                <span>"परंपरा में बसी, आज की नारी।"</span>
-                <span className="mx-3" aria-hidden="true">·</span>
-                <span>Tradition, woven into the woman of today.</span>
-              </div>
+          </div>
+          <div
+            aria-label='"परंपरा में बसी, आज की नारी।" Tradition, woven into the woman of today.'
+            className="ml-auto hidden max-w-[34rem] min-w-0 overflow-hidden border-l border-white pl-3 lg:block"
+          >
+            <div className="header-quote-track whitespace-nowrap text-xs font-medium tracking-[0.02em] text-white">
+              <span>"परंपरा में बसी, आज की नारी।"</span>
+              <span className="mx-3" aria-hidden="true">·</span>
+              <span>Tradition, woven into the woman of today.</span>
             </div>
           </div>
         </div>
