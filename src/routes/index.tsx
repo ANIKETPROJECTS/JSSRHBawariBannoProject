@@ -178,8 +178,7 @@ function DrapeVideoGrid({ products }: { products: typeof sarees }) {
   return (
     <section className="mx-auto max-w-[1440px] bg-white px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
       <div className="mb-8 text-center sm:mb-10">
-        <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
-        <h2 className="mt-2 font-sans text-4xl font-extrabold leading-tight text-primary min-[420px]:text-5xl sm:text-6xl">
+        <h2 className="font-sans leading-tight text-primary">
           Six yards in motion.
         </h2>
       </div>

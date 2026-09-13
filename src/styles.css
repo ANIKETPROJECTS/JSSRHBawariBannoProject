@@ -160,10 +160,10 @@
   h2,
   h3,
   h4 {
-    font-family: var(--font-sans);
-    letter-spacing: -0.022em;
-    font-weight: 300;
-    line-height: 1.2;
+    font-family: var(--font-sans) !important;
+    letter-spacing: -0.022em !important;
+    font-weight: 300 !important;
+    line-height: 1.2 !important;
   }
 }
 
