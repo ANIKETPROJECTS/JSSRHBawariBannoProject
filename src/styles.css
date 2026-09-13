@@ -316,5 +316,8 @@ form[class*="max-h-"] {
   .hero-media,
   .category-reveal,
   .trend-reveal,
-  .drape-center-in,
+  .drape-center-in {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
 }
