@@ -71,8 +71,8 @@ export function Header() {
   }, []);
 
   return (
-    <header className="relative sticky top-0 z-40 border-b border-white bg-[#ED145B] text-white backdrop-blur-xl">
-      <div className="h-9 border-b border-white bg-[#ED145B]">
+    <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
+      <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
           className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
           style={{ fontFamily: "'Poppins', sans-serif" }}
@@ -190,7 +190,7 @@ export function Header() {
 
        <nav
          aria-label="Primary navigation"
-         className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-white px-8 sm:px-12 lg:flex lg:px-20 xl:px-28"
+         className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-white/20 px-8 sm:px-12 lg:flex lg:px-20 xl:px-28"
          style={{ fontFamily: "'Poppins', sans-serif" }}
        >
           {nav.map((item) => (
@@ -199,7 +199,7 @@ export function Header() {
                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
                    Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
-                  {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white bg-[#ED145B] p-2 shadow-xl">
+                  {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white/20 bg-[#ED145B] p-2 shadow-xl">
                   {[
                     { label: "Silk Sarees", href: "/categories/silk-sarees" },
                     { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
@@ -235,15 +235,15 @@ export function Header() {
       </nav>
       </div>
       {mobileMenuOpen && (
-          <div className="border-t border-white bg-[#ED145B] px-4 py-4 text-white shadow-sm lg:hidden">
+          <div className="border-t border-border bg-[#ED145B] px-4 py-4 text-white shadow-sm lg:hidden">
            <nav aria-label="Mobile navigation" className="grid gap-1 text-sm">
             {nav.map((item) => (
               item.label === "Categories" ? (
-                  <details key={`${item.label}-${item.to}`} className="border-b border-white pb-1">
+                  <details key={`${item.label}-${item.to}`} className="border-b border-border/70 pb-1">
                         <summary className="cursor-pointer list-none py-2.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
                       Categories <ChevronDown className="float-right mt-0.5 size-4 text-white" strokeWidth={1.5} />
                   </summary>
-                    <div className="grid gap-1 border-l border-white pl-3 pb-2">
+                    <div className="grid gap-1 border-l border-border pl-3 pb-2">
                       <Link to="/categories/silk-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Silk Sarees</Link>
                       <Link to="/categories/cotton-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Cotton Sarees</Link>
                       <Link to="/categories/designer-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Designer Sarees</Link>
@@ -256,8 +256,8 @@ export function Header() {
                   to={item.to}
                   activeOptions={{ exact: item.to === "/" }}
                   onClick={() => setMobileMenuOpen(false)}
-                    className="border-b border-white py-2.5 text-white"
-                    activeProps={{ className: "border-b border-white py-2.5 text-white" }}
+                    className="border-b border-border/70 py-2.5 text-white"
+                    activeProps={{ className: "border-b border-border/70 py-2.5 text-white" }}
                 >
                   {item.label}
                 </Link>
