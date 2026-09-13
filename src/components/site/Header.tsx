@@ -6,7 +6,7 @@ import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
-import searchIcon from "../../../attached_assets/search_(1)_1789284813424.png";
+import searchIcon from "../../../attached_assets/search_(2)_1789284877555.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
 
