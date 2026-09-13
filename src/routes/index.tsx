@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
@@ -134,7 +134,7 @@ function Home() {
 
           <ProductRail title="Trending Collection" products={homepageProducts.slice(0, 5)} />
 
-          <DrapeCarousel products={homepageProducts.slice(0, 5)} />
+          <DrapeVideoGrid products={homepageProducts.slice(0, 5)} />
         </>
       )}
 
@@ -175,124 +175,45 @@ function ProductRail({
   );
 }
 
-function DrapeCarousel({ products }: { products: typeof sarees }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const previousIndex = (activeIndex - 1 + products.length) % products.length;
-  const nextIndex = (activeIndex + 1) % products.length;
-  const activeProduct = products[activeIndex];
-
-  if (!activeProduct) return null;
-
-  const goTo = (direction: number) => {
-    setActiveIndex((index) => (index + direction + products.length) % products.length);
-  };
-
-  const toggleVideo = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      void video.play();
-      setIsPlaying(true);
-    } else {
-      video.pause();
-      setIsPlaying(false);
-    }
-  };
-
+function DrapeVideoGrid({ products }: { products: typeof sarees }) {
   return (
-    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14">
+    <section className="mx-auto max-w-[1440px] px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
-          <h2 className="mt-2 font-display text-5xl font-medium leading-none text-primary sm:text-6xl">
-            Six yards in motion<span className="text-accent">.</span>
+          <h2 className="mt-2 font-display text-4xl font-medium text-primary min-[420px]:text-5xl sm:text-6xl">
+            Six yards in motion.
           </h2>
         </div>
-        <span className="hidden text-eyebrow text-muted-foreground sm:block">Scroll the edit</span>
       </div>
 
-      <div className="relative mx-auto flex max-w-[840px] items-center gap-2 py-10 sm:gap-3">
-        <button
-          type="button"
-          aria-label={`Previous drape: ${products[previousIndex].name}`}
-          onClick={() => goTo(-1)}
-          className="z-20 flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:size-9"
-        >
-          <ChevronLeft className="size-5" strokeWidth={1.2} />
-        </button>
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-2 sm:gap-3">
-          <div className="relative min-w-0 flex-1 basis-0 self-stretch overflow-hidden opacity-35 blur-[2px]">
-            <img
-              src={products[previousIndex].image}
-              alt=""
-              className="size-full object-cover grayscale-[20%]"
+      <div className="mt-7 grid grid-cols-1 gap-5 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        {products.map((saree, index) => (
+          <figure key={saree.id} className="group relative aspect-[9/16] overflow-hidden bg-secondary">
+            <video
+              src={drapeFilm}
+              poster={saree.image}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-label={`Video of ${saree.name}`}
+              className="size-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-          </div>
-
-          <div
-            key={activeProduct.id}
-            className="drape-center-in group relative z-10 aspect-[0.9] w-[52%] shrink-0 overflow-hidden bg-secondary shadow-2xl shadow-ink/10"
-          >
-          <video
-            ref={videoRef}
-            key={drapeFilm}
-            src={drapeFilm}
-            poster={activeProduct.image}
-            autoPlay
-            loop
-            muted
-            playsInline
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            className="size-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-ink/10" />
-          <button
-            type="button"
-            aria-label={isPlaying ? "Pause the drape film" : "Play the drape film"}
-            onClick={toggleVideo}
-            className="absolute left-1/2 top-1/2 flex size-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-primary-foreground/80 bg-ink/25 text-primary-foreground backdrop-blur-sm transition-transform duration-300 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-          >
-            {isPlaying ? <Pause className="size-5" strokeWidth={1.3} /> : <Play className="ml-0.5 size-5 fill-current" strokeWidth={1.3} />}
-          </button>
-          <div className="absolute inset-x-5 bottom-5 text-primary-foreground sm:inset-x-7 sm:bottom-7">
-            <p className="text-eyebrow text-gold-soft">{activeProduct.fabric}</p>
-            <h3 className="mt-1 font-display text-2xl leading-none sm:text-3xl">{activeProduct.name}</h3>
-          </div>
-          </div>
-
-          <div className="relative min-w-0 flex-1 basis-0 self-stretch overflow-hidden opacity-35 blur-[2px]">
-            <img
-              src={products[nextIndex].image}
-              alt=""
-              className="size-full object-cover grayscale-[20%]"
-            />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          aria-label={`Next drape: ${products[nextIndex].name}`}
-          onClick={() => goTo(1)}
-          className="z-20 flex size-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:size-9"
-        >
-          <ChevronRight className="size-5" strokeWidth={1.2} />
-        </button>
-
-        <div className="absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-          {products.map((product, index) => (
-            <button
-              key={product.id}
-              type="button"
-              aria-label={`Show ${product.name}`}
-              aria-current={index === activeIndex}
-              onClick={() => setActiveIndex(index)}
-              className={`h-px transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${index === activeIndex ? "w-8 bg-primary" : "w-3 bg-muted-foreground/60 hover:bg-primary"}`}
-            />
-          ))}
-        </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-ink/10" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="flex size-11 items-center justify-center rounded-full border border-primary-foreground/80 bg-ink/20 text-primary-foreground backdrop-blur-sm transition-transform group-hover:scale-110">
+                <Play className="ml-0.5 size-4 fill-current" strokeWidth={1.5} />
+              </span>
+            </div>
+            <figcaption className="absolute inset-x-0 bottom-0 flex items-end justify-between px-3 pb-3 text-primary-foreground">
+              <span className="text-xs">Customer look</span>
+              <span className="text-[0.65rem] tracking-[0.15em] text-primary-foreground/70">
+                0{index + 1}
+              </span>
+            </figcaption>
+          </figure>
+        ))}
       </div>
     </section>
   );
