@@ -97,17 +97,19 @@ function Home() {
               key={category.id}
               to="/categories/$category"
               params={{ category: category.id }}
-              className="group relative block overflow-hidden bg-[#f8f8f8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2"
+              className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2"
             >
-              <img
-                src={category.image}
-                alt={category.title}
-                loading="lazy"
-                width={640}
-                height={800}
-                className="aspect-[3/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-              />
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-4 pt-12 text-center font-sans text-lg font-medium leading-tight text-white sm:text-xl">
+              <div className="overflow-hidden bg-[#f8f8f8]">
+                <img
+                  src={category.image}
+                  alt={category.title}
+                  loading="lazy"
+                  width={640}
+                  height={800}
+                  className="aspect-[3/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                />
+              </div>
+              <span className="flex min-h-12 items-start justify-center px-2 pt-3 text-center font-sans text-base font-medium leading-tight text-primary sm:text-lg">
                 {category.title}
               </span>
             </Link>

@@ -7,6 +7,13 @@ import { toast } from "sonner";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787336793109.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
+function formatReviewCount(count: number) {
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(count >= 10000 ? 0 : 1).replace(/\.0$/, "")}k`;
+  }
+  return count.toLocaleString("en-IN");
+}
+
 export function ProductCard({
   saree,
   tall = false,
@@ -56,8 +63,20 @@ export function ProductCard({
           />
         )}
         {editorial && (
-          <span className="absolute left-3 top-3 border border-gold/60 bg-background/85 px-2.5 py-1 text-[0.62rem] uppercase tracking-[0.18em] text-primary">
-            {saree.fabric}
+          <span
+            className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1.5 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm"
+            aria-label={
+              reviewSummary.count > 0
+                ? `${reviewSummary.average.toFixed(1)} star rating from ${reviewSummary.count} reviews`
+                : "No reviews yet"
+            }
+          >
+            <span>{reviewSummary.count > 0 ? reviewSummary.average.toFixed(1) : "New"}</span>
+            <span className="text-base leading-none text-[#159c9a]" aria-hidden="true">★</span>
+            <span className="text-slate-400" aria-hidden="true">|</span>
+            <span className="text-xs text-slate-700">
+              {reviewSummary.count > 0 ? formatReviewCount(reviewSummary.count) : "0"}
+            </span>
           </span>
         )}
         <button
@@ -107,17 +126,18 @@ export function ProductCard({
         >
           {saree.name}
         </h3>
-        {editorial && <p className="mt-1 text-sm text-muted-foreground">{saree.fabric}</p>}
         <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          {reviewSummary.count > 0 ? (
-            <>
-              <span className="tracking-[0.12em] text-gold" aria-label={`${reviewSummary.average} out of 5 stars`}>
-                {"★".repeat(Math.max(0, Math.min(5, Math.round(reviewSummary.average))))}
-              </span>
-              <span>{reviewSummary.average.toFixed(1)} ({reviewSummary.count})</span>
-            </>
-          ) : (
-            <span>No reviews yet</span>
+          {!editorial && (
+            reviewSummary.count > 0 ? (
+              <>
+                <span className="tracking-[0.12em] text-gold" aria-label={`${reviewSummary.average} out of 5 stars`}>
+                  {"★".repeat(Math.max(0, Math.min(5, Math.round(reviewSummary.average))))}
+                </span>
+                <span>{reviewSummary.average.toFixed(1)} ({reviewSummary.count})</span>
+              </>
+            ) : (
+              <span>No reviews yet</span>
+            )
           )}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
