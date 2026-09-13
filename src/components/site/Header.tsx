@@ -110,26 +110,27 @@ export function Header() {
             />
         </Link>
 
+         <div className="hidden items-center gap-2 lg:mr-auto lg:flex" style={{ fontFamily: "'Poppins', sans-serif" }}>
+           <button
+             type="button"
+             aria-label="Focus search"
+             onClick={() => searchInputRef.current?.focus()}
+             className="rounded-full p-2 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+           >
+             <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert" />
+           </button>
+           <input
+             ref={searchInputRef}
+             type="search"
+             aria-label="Search the collection"
+             value={query}
+             onChange={(event) => setQuery(event.target.value)}
+             placeholder={`${typedPlaceholder}…`}
+             className="w-36 border-b border-white bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white xl:w-48"
+           />
+         </div>
+
           <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:ml-auto lg:translate-y-0">
-           <div className="hidden items-center gap-2 lg:flex" style={{ fontFamily: "'Poppins', sans-serif" }}>
-             <button
-               type="button"
-               aria-label="Focus search"
-               onClick={() => searchInputRef.current?.focus()}
-               className="rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-             >
-               <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert" />
-             </button>
-             <input
-               ref={searchInputRef}
-               type="search"
-               aria-label="Search the collection"
-               value={query}
-               onChange={(event) => setQuery(event.target.value)}
-               placeholder={`${typedPlaceholder}…`}
-               className="w-36 border-b border-white/60 bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white/80 xl:w-48"
-             />
-           </div>
           <button
             type="button"
             aria-label="Shopping bag"
