@@ -19,22 +19,22 @@ const customerLinks = [
 export function Footer() {
   return (
     <footer
-      className="mt-20 bg-[#ED145B] text-white"
+      className="mt-12 bg-[#ED145B] text-white"
       style={{ fontFamily: "'Poppins', sans-serif" }}
     >
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-        <div className="flex flex-col gap-8 border-b border-white/20 py-10 sm:py-12 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-5 border-b border-white/20 py-7 sm:py-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-md">
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="h-20 w-64 object-contain object-left sm:h-24 sm:w-80"
+              className="h-16 w-56 object-contain object-left sm:h-20 sm:w-64"
             />
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white">
+            <p className="mt-2 max-w-sm text-xs leading-relaxed text-white sm:text-sm">
               Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
           </div>
-          <div className="flex flex-col gap-3 lg:items-end">
+          <div className="flex flex-col gap-2 lg:items-end">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">
               Follow the house
             </p>
@@ -57,10 +57,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="grid gap-10 border-b border-white/20 py-10 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.1fr_1.4fr_1.4fr]">
+        <div className="grid gap-7 border-b border-white/20 py-7 sm:grid-cols-2 sm:gap-8 sm:py-8 lg:grid-cols-[1.1fr_1fr_1.35fr_1.35fr]">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Explore</p>
-            <ul className="mt-5 space-y-3 text-sm">
+            <ul className="mt-3 space-y-2 text-sm">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -77,7 +77,7 @@ export function Footer() {
 
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
-            <ul className="mt-5 space-y-3 text-sm">
+            <ul className="mt-3 space-y-2 text-sm">
               {customerLinks.map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
@@ -90,7 +90,7 @@ export function Footer() {
 
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
-            <address className="mt-5 space-y-3 text-sm not-italic leading-relaxed text-white">
+            <address className="mt-3 space-y-2 text-xs not-italic leading-relaxed text-white sm:text-sm">
               <p className="flex items-start gap-2">
                 <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.7} />
                 <span>
@@ -112,11 +112,11 @@ export function Footer() {
 
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">The Loom Letter</p>
-            <p className="mt-5 text-sm leading-relaxed text-white">
+            <p className="mt-3 text-xs leading-relaxed text-white sm:text-sm">
               New weaves, revival drops and atelier notes, delivered once a month.
             </p>
             <form
-              className="mt-5 flex border-b border-white pb-2 focus-within:border-white"
+              className="mt-3 flex border-b border-white pb-2 focus-within:border-white"
               onSubmit={(event) => event.preventDefault()}
             >
               <label className="sr-only" htmlFor="newsletter">
@@ -139,7 +139,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 py-5 text-xs text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 py-3 text-[0.68rem] text-white sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
           <p>Crafted in India · Website owned by Sejal Sheshmani Yadav</p>
         </div>
