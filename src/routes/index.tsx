@@ -81,7 +81,7 @@ function Home() {
       {/* Categories — portrait card grid */}
       <section className="bg-white px-4 py-12 sm:py-16 lg:py-20">
         <div className="relative mx-auto mb-8 max-w-[1440px] sm:mb-10">
-          <h2 className="text-center font-sans text-4xl font-extrabold leading-tight tracking-tight text-primary sm:text-5xl">
+          <h2 className="text-center font-tan-headline text-4xl font-light leading-tight tracking-tight text-primary/90 sm:text-5xl">
             Our Categories
           </h2>
           <Link
