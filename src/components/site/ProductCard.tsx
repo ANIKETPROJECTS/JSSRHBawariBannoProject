@@ -129,9 +129,9 @@ export function ProductCard({
         >
           {saree.name}
         </h3>
-        <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          {!editorial && (
-            reviewSummary.count > 0 ? (
+        {!editorial && (
+          <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            {reviewSummary.count > 0 ? (
               <>
                 <span className="tracking-[0.12em] text-gold" aria-label={`${reviewSummary.average} out of 5 stars`}>
                   {"★".repeat(Math.max(0, Math.min(5, Math.round(reviewSummary.average))))}
@@ -140,10 +140,10 @@ export function ProductCard({
               </>
             ) : (
               <span>No reviews yet</span>
-            )
-          )}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+            )}
+          </div>
+        )}
+        <div className={`${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}>
            <p className="text-lg font-medium tracking-wide text-accent sm:text-xl">{formatPrice(saree.price)}</p>
           {hasDiscount && <><p className="text-sm tracking-wide text-muted-foreground line-through sm:text-base">{formatPrice(originalPrice)}</p><span className="text-[0.65rem] font-medium text-red-700 sm:text-xs">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></>}
           {showAddToCart && (

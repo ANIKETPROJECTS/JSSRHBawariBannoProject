@@ -79,7 +79,7 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="bg-white px-4 py-12 sm:py-16 lg:py-20">
+      <section className="bg-white px-4 py-12 sm:py-16">
         <div className="relative mx-auto mb-8 max-w-[1600px] sm:mb-10">
           <h2 className="text-center font-sans font-light leading-tight tracking-tight text-primary/90">
             Our Categories
@@ -172,7 +172,7 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="mx-auto max-w-[1600px] bg-white px-4 pb-10 pt-16 sm:pb-12 sm:pt-20">
+    <section className="mx-auto max-w-[1600px] bg-white px-4 py-12 sm:py-16">
       <div className="relative mx-auto mb-8 max-w-[1600px] sm:mb-10">
         <h2 className="text-center font-sans leading-tight text-primary">{title}</h2>
         <Link
@@ -183,7 +183,7 @@ function ProductRail({
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 pb-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {products.map((saree) => (
           <ProductCard key={saree.id} saree={saree} tall editorial showAddToCart />
         ))}
@@ -194,7 +194,7 @@ function ProductRail({
 
 function DrapeVideoGrid({ products }: { products: typeof sarees }) {
   return (
-    <section className="mx-auto max-w-[1600px] bg-white px-4 pb-20 pt-16 sm:pb-24 sm:pt-20">
+    <section className="mx-auto max-w-[1600px] bg-white px-4 py-12 sm:py-16">
       <div className="mb-8 text-center sm:mb-10">
         <div className="relative mx-auto max-w-[1600px]">
           <h2 className="font-sans leading-tight text-primary">Six yards in motion.</h2>
@@ -207,7 +207,7 @@ function DrapeVideoGrid({ products }: { products: typeof sarees }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 pb-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {products.map((saree) => (
           <ProductCard
             key={saree.id}
