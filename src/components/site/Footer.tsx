@@ -7,6 +7,7 @@ const exploreLinks = [
   { label: "New Arrival", to: "/new-arrival" },
   { label: "Bestsellers", to: "/bestseller" },
   { label: "Our Story", to: "/about" },
+  { label: "Contact Us", to: "/contact" },
 ];
 
 const customerLinks = [
@@ -14,6 +15,7 @@ const customerLinks = [
   { label: "Wishlist", to: "/wishlist" },
   { label: "My Account", to: "/profile" },
   { label: "Shipping & Returns", to: "/contact" },
+  { label: "Terms & Conditions", to: "/terms-and-conditions" },
 ];
 
 const policyLinks = [
@@ -29,7 +31,7 @@ export function Footer() {
       className="mt-8 bg-[#ED145B] font-sans text-white"
     >
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-        <div className="grid gap-8 border-b border-white/20 py-8 sm:py-10 lg:grid-cols-[minmax(240px,0.75fr)_minmax(0,2.25fr)] lg:gap-12">
+        <div className="grid gap-7 border-b border-white/20 py-5 sm:py-6 lg:grid-cols-[minmax(240px,0.75fr)_minmax(0,2.25fr)] lg:gap-10">
           <div className="flex flex-col gap-4 lg:pt-1">
             <img
               src={logoImage}
@@ -38,9 +40,6 @@ export function Footer() {
             />
             <p className="mt-1 max-w-sm text-base font-medium leading-snug text-white sm:text-lg">
               Sarees chosen for their colour, craft and the stories they carry forward.
-            </p>
-            <p className="text-base font-medium leading-snug text-white sm:text-lg">
-              Website owned by Sejal Sheshmani Yadav
             </p>
             <div className="mt-3 flex flex-col gap-2">
               <p className="text-base font-medium uppercase tracking-[0.2em] text-white">
@@ -65,7 +64,7 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 sm:gap-10 lg:grid-cols-4 lg:items-center">
+          <div className="grid gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:items-start">
             <div>
             <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Explore</p>
             <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
@@ -129,6 +128,9 @@ export function Footer() {
                 </li>
               ))}
             </ul>
+            <p className="mt-5 max-w-[16rem] text-base font-medium leading-snug text-white">
+              Website owned by Sejal Sheshmani Yadav
+            </p>
             </div>
           </div>
         </div>
