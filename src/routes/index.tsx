@@ -79,8 +79,8 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="bg-white px-4 py-12 sm:py-16">
-        <div className="relative mx-auto mb-8 max-w-[1600px] sm:mb-10">
+      <section className="bg-white px-4 pb-0 pt-10 sm:pt-12">
+        <div className="relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
           <h2 className="text-center font-sans font-light leading-tight tracking-tight text-primary/90">
             Our Categories
           </h2>
@@ -172,8 +172,8 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="mx-auto max-w-[1600px] bg-white px-4 py-12 sm:py-16">
-      <div className="relative mx-auto mb-8 max-w-[1600px] sm:mb-10">
+    <section className="mx-auto max-w-[1600px] bg-white px-4 pb-0 pt-8 sm:pt-10">
+      <div className="relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
         <h2 className="text-center font-sans leading-tight text-primary">{title}</h2>
         <Link
           to={viewAllTo}
@@ -194,8 +194,8 @@ function ProductRail({
 
 function DrapeVideoGrid({ products }: { products: typeof sarees }) {
   return (
-    <section className="mx-auto max-w-[1600px] bg-white px-4 py-12 sm:py-16">
-      <div className="mb-8 text-center sm:mb-10">
+    <section className="mx-auto max-w-[1600px] bg-white px-4 pb-0 pt-8 sm:pt-10">
+      <div className="mb-4 text-center sm:mb-5">
         <div className="relative mx-auto max-w-[1600px]">
           <h2 className="font-sans leading-tight text-primary">Six yards in motion.</h2>
           <Link
