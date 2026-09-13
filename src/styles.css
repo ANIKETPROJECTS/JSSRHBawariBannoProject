@@ -174,7 +174,7 @@
  */
 h1,
 h2 {
-  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-size: clamp(2.4rem, 4.2vw, 3.1rem);
 }
 
 h3 {
@@ -193,9 +193,85 @@ h4 {
 
 .category-card-name {
   font-family: var(--font-sans) !important;
-  font-weight: 300 !important;
-  letter-spacing: -0.022em !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
   line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+
+.section-view-all {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-sans) !important;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--primary);
+  transition: color 180ms ease;
+}
+
+.section-view-all::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.25rem;
+  left: 0;
+  height: 1px;
+  background: #ed145b;
+  content: "";
+}
+
+.section-view-all:hover,
+.section-view-all:focus-visible {
+  color: #ed145b;
+}
+
+.site-nav-link,
+.site-nav-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans) !important;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: #111827;
+  transition: color 180ms ease;
+}
+
+.site-nav-link::after,
+.site-nav-trigger::after {
+  position: absolute;
+  right: 0;
+  bottom: 0.15rem;
+  left: 0;
+  height: 1.5px;
+  background: #ed145b;
+  content: "";
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 220ms ease;
+}
+
+.site-nav-link:hover,
+.site-nav-link:focus-visible,
+.site-nav-link.is-active,
+.site-nav-trigger:hover,
+.site-nav-trigger:focus-visible,
+.site-nav-trigger.is-active {
+  color: #ed145b;
+}
+
+.site-nav-link:hover::after,
+.site-nav-link:focus-visible::after,
+.site-nav-link.is-active::after,
+.site-nav-trigger:hover::after,
+.site-nav-trigger:focus-visible::after,
+.site-nav-trigger.is-active::after {
+  transform: scaleX(1);
 }
 
 button,

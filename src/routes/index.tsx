@@ -80,13 +80,13 @@ function Home() {
 
       {/* Categories — portrait card grid */}
       <section className="bg-white px-4 pb-0 pt-10 sm:pt-12">
-        <div className="relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
+        <div className="relative mx-auto mb-4 max-w-[1600px] pb-6 sm:mb-5 sm:pb-7">
           <h2 className="text-center font-sans font-light leading-tight tracking-tight text-primary/90">
             Our Categories
           </h2>
           <Link
             to="/products"
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="section-view-all absolute bottom-0 right-0"
           >
             View all
           </Link>
@@ -109,7 +109,7 @@ function Home() {
                   className="aspect-[3/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                 />
               </div>
-              <span className="category-card-name flex min-h-12 items-start justify-center px-2 pt-3 text-center text-base text-primary sm:text-lg">
+              <span className="category-card-name flex min-h-12 items-start justify-center px-2 pt-3 text-center text-lg text-primary sm:text-xl">
                 {category.title}
               </span>
             </Link>
@@ -180,11 +180,11 @@ function ProductRail({
 }) {
   return (
     <section className="mx-auto max-w-[1600px] bg-white px-4 pb-0 pt-8 sm:pt-10">
-      <div className="relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
+      <div className="relative mx-auto mb-4 max-w-[1600px] pb-6 sm:mb-5 sm:pb-7">
         <h2 className="text-center font-sans leading-tight text-primary">{title}</h2>
         <Link
           to={viewAllTo}
-          className="absolute right-0 top-1/2 -translate-y-1/2 text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="section-view-all absolute bottom-0 right-0"
         >
           View all
         </Link>

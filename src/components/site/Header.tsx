@@ -194,7 +194,7 @@ export function Header() {
           {nav.map((item) => (
             item.label === "Categories" ? (
               <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
-                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-black transition-colors hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 focus-visible:ring-offset-white">
+                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className={`site-nav-trigger py-2 ${categoriesOpen ? "is-active" : ""}`}>
                    Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
                    {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-black/15 bg-white p-2 shadow-xl">
@@ -220,10 +220,9 @@ export function Header() {
                 key={`${item.label}-${item.to}`}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                   className="relative whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-black transition-colors hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 focus-visible:ring-offset-white"
+                    className="site-nav-link py-2"
                 activeProps={{
-                  className:
-                        "text-black after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-black",
+                   className: "site-nav-link is-active py-2",
                 }}
               >
                 {item.label}
@@ -234,7 +233,7 @@ export function Header() {
       </div>
       {mobileMenuOpen && (
           <div className="border-t border-border bg-[#ED145B] px-4 py-4 text-white shadow-sm lg:hidden">
-           <nav aria-label="Mobile navigation" className="grid gap-1 text-sm">
+           <nav aria-label="Mobile navigation" className="grid gap-1 font-sans text-base font-medium tracking-[0.04em]">
             {nav.map((item) => (
               item.label === "Categories" ? (
                   <details key={`${item.label}-${item.to}`} className="border-b border-border/70 pb-1">
