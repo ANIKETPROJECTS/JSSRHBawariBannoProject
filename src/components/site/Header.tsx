@@ -36,7 +36,7 @@ export function Header() {
 
   return (
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
-      <div className="h-9 border-b border-white/15 bg-[#c80f4b]">
+      <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-end gap-1 px-4 sm:px-7 lg:px-10">
           {socialLinks.map(({ label, Icon }) => (
             <a
