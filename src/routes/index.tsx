@@ -163,7 +163,7 @@ function ProductRail({
   products: typeof sarees;
 }) {
   return (
-    <section className="mx-auto max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 sm:pb-12 sm:pt-20 lg:px-8">
+    <section className="mx-auto max-w-[1440px] bg-white px-4 pb-10 pt-16 sm:px-6 sm:pb-12 sm:pt-20 lg:px-8">
       <h2 className="text-center font-sans text-4xl font-extrabold leading-tight text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
@@ -177,7 +177,7 @@ function ProductRail({
 
 function DrapeVideoGrid({ products }: { products: typeof sarees }) {
   return (
-    <section className="mx-auto max-w-[1440px] px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
+    <section className="mx-auto max-w-[1440px] bg-white px-4 pb-20 pt-16 sm:px-6 sm:pb-24 sm:pt-20 lg:px-8">
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
