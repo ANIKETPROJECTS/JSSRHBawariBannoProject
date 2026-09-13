@@ -87,7 +87,7 @@ export function ProductCard({
       </div>
       <div className="pt-4">
         <h3 className={editorial
-          ? "font-display text-xl leading-tight text-foreground transition-colors group-hover:text-primary"
+          ? "font-sans text-xl font-medium leading-tight text-foreground transition-colors group-hover:text-primary"
           : "min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl"}
         >
           {saree.name}

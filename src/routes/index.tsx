@@ -82,7 +82,7 @@ function Home() {
       {/* Categories — portrait card grid */}
       <section className="bg-white px-4 py-12 sm:py-16 lg:py-20">
         <div className="relative mx-auto mb-8 max-w-[1440px] sm:mb-10">
-          <h2 className="text-center font-display text-4xl font-medium tracking-tight text-primary sm:text-5xl">
+          <h2 className="text-center font-sans text-4xl font-semibold tracking-tight text-primary sm:text-5xl">
             Our Categories
           </h2>
           <Link
@@ -108,7 +108,7 @@ function Home() {
                 height={800}
                 className="aspect-[3/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               />
-              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-4 pt-12 text-center font-display text-lg leading-tight text-white sm:text-xl">
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-4 pt-12 text-center font-sans text-lg font-medium leading-tight text-white sm:text-xl">
                 {category.title}
               </span>
             </Link>
@@ -164,7 +164,7 @@ function ProductRail({
 }) {
   return (
     <section className="mx-auto max-w-[1440px] px-4 pb-10 pt-16 sm:px-6 sm:pb-12 sm:pt-20 lg:px-8">
-      <h2 className="text-center font-display text-4xl font-light text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
+      <h2 className="text-center font-sans text-4xl font-semibold text-primary min-[420px]:text-5xl sm:text-6xl">{title}</h2>
 
       <div className="mt-8 grid grid-cols-1 gap-8 pb-3 min-[420px]:grid-cols-2 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
         {products.map((saree) => (
@@ -181,7 +181,7 @@ function DrapeVideoGrid({ products }: { products: typeof sarees }) {
       <div className="mb-8 flex items-end justify-between border-b border-border pb-5">
         <div>
           <p className="text-eyebrow text-muted-foreground">A glimpse at the drape</p>
-          <h2 className="mt-2 font-display text-4xl font-medium text-primary min-[420px]:text-5xl sm:text-6xl">
+          <h2 className="mt-2 font-sans text-4xl font-semibold text-primary min-[420px]:text-5xl sm:text-6xl">
             Six yards in motion.
           </h2>
         </div>
