@@ -39,12 +39,12 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-            className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:relative lg:left-auto lg:top-auto lg:translate-x-0 lg:translate-y-0"
+            className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:relative lg:left-auto lg:top-auto lg:self-start lg:translate-x-0 lg:translate-y-0"
            >
             <img
               src={logoImage}
               alt="Bawari Banno"
-               className="h-[5rem] w-[13.5rem] object-contain sm:h-[5.25rem] sm:w-[14rem] lg:h-[4.5rem] lg:w-[15rem]"
+                className="h-[5rem] w-[13.5rem] object-contain sm:h-[5.25rem] sm:w-[14rem] lg:h-[6.25rem] lg:w-[20rem]"
             />
         </Link>
 
