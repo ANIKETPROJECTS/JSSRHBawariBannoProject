@@ -16,6 +16,13 @@ const customerLinks = [
   { label: "Shipping & Returns", to: "/contact" },
 ];
 
+const policyLinks = [
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Terms & Conditions", href: "/terms-and-conditions" },
+  { label: "Shipping Policy", href: "/shipping-policy" },
+  { label: "Return & Refund Policy", href: "/return-refund-policy" },
+];
+
 export function Footer() {
   return (
     <footer
@@ -27,10 +34,13 @@ export function Footer() {
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="h-24 w-80 object-contain object-left sm:h-28 sm:w-[22rem]"
+              className="h-28 w-[22rem] object-contain object-left sm:h-32 sm:w-[26rem]"
             />
             <p className="mt-1 max-w-sm text-sm font-medium leading-snug text-white sm:text-base">
               Sarees chosen for their colour, craft and the stories they carry forward.
+            </p>
+            <p className="text-sm font-medium leading-snug text-white sm:text-base">
+              Website owned by Sejal Sheshmani Yadav
             </p>
             <div className="mt-2 flex flex-col gap-1.5">
               <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">
@@ -109,38 +119,22 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">The Loom Letter</p>
-            <p className="mt-2 text-sm font-medium leading-snug text-white sm:text-base">
-              New weaves, revival drops and atelier notes, delivered once a month.
-            </p>
-            <form
-              className="mt-2 flex border-b border-white pb-1.5 focus-within:border-white"
-              onSubmit={(event) => event.preventDefault()}
-            >
-              <label className="sr-only" htmlFor="newsletter">
-                Email address
-              </label>
-              <input
-                id="newsletter"
-                type="email"
-                placeholder="your@email.com"
-                className="min-w-0 flex-1 bg-transparent text-base font-medium text-white outline-none placeholder:text-white"
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-1 text-sm font-medium uppercase tracking-[0.16em] text-white hover:opacity-70"
-              >
-                Join
-                <ArrowUpRight className="size-3" strokeWidth={1.7} />
-              </button>
-            </form>
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Policies</p>
+            <ul className="mt-2 space-y-1 text-base font-medium leading-snug">
+              {policyLinks.map((item) => (
+                <li key={item.label}>
+                  <a href={item.href} className="text-white transition-opacity hover:opacity-70">
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 py-2 text-xs font-medium text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1.5 py-2 text-xs font-medium text-white">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
-          <p>Crafted in India · Website owned by Sejal Sheshmani Yadav</p>
         </div>
       </div>
     </footer>

@@ -189,7 +189,7 @@ export function Header() {
 
        <nav
          aria-label="Primary navigation"
-          className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-black/15 bg-white px-8 text-black sm:px-12 lg:flex lg:px-20 xl:px-28"
+           className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-black/15 bg-white px-4 text-black sm:px-8 lg:flex lg:px-10 xl:px-16"
        >
           {nav.map((item) => (
             item.label === "Categories" ? (
