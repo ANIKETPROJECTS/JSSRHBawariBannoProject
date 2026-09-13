@@ -41,7 +41,7 @@ export function Header() {
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
       <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
-          className="mx-auto flex h-full max-w-[1440px] items-center justify-end gap-2 px-4 sm:gap-3 sm:px-7 lg:px-10"
+          className="mx-auto flex h-full max-w-[1440px] items-center justify-end gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
           style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           {socialLinks.map(({ label, icon }) => (
@@ -49,10 +49,10 @@ export function Header() {
               key={label}
               href="#"
               aria-label={`${label}: @bawaribanno`}
-              className="flex items-center gap-1.5 rounded-full px-1.5 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <img src={icon} alt="" className="size-3.5 object-contain brightness-0 invert" />
-              <span className="whitespace-nowrap text-[0.62rem] font-medium tracking-[0.02em]">
+              <img src={icon} alt="" className="size-5 object-contain brightness-0 invert" />
+              <span className="whitespace-nowrap text-xs font-medium tracking-[0.02em]">
                 @bawaribanno
               </span>
             </a>
