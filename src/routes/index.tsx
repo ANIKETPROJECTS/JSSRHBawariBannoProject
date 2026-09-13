@@ -141,7 +141,14 @@ function Home() {
             products={homepageProducts.slice(0, 5)}
           />
 
-          <DrapeVideoGrid products={homepageProducts.slice(0, 5)} />
+          <ClientTestimonials
+            videos={homepageProducts.slice(0, 5).map((saree, index) => ({
+              id: `testimonial-${saree.id}-${index}`,
+              src: drapeFilm,
+              poster: saree.image,
+              label: `Client testimonial ${index + 1}`,
+            }))}
+          />
         </>
       )}
 
@@ -192,31 +199,38 @@ function ProductRail({
   );
 }
 
-function DrapeVideoGrid({ products }: { products: typeof sarees }) {
+function ClientTestimonials({
+  videos,
+}: {
+  videos: Array<{
+    id: string;
+    src: string;
+    poster: string;
+    label: string;
+  }>;
+}) {
   return (
     <section className="mx-auto max-w-[1600px] bg-white px-4 pb-0 pt-8 sm:pt-10">
       <div className="mb-4 text-center sm:mb-5">
         <div className="relative mx-auto max-w-[1600px]">
-          <h2 className="font-sans leading-tight text-primary">Six yards in motion.</h2>
-          <Link
-            to="/products"
-            className="absolute right-0 top-1/2 -translate-y-1/2 text-eyebrow text-primary underline decoration-accent underline-offset-8 transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            View all
-          </Link>
+          <h2 className="font-sans leading-tight text-primary">Client Testimonials</h2>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {products.map((saree) => (
-          <ProductCard
-            key={saree.id}
-            saree={saree}
-            tall
-            editorial
-            showAddToCart
-            videoSrc={drapeFilm}
-          />
+        {videos.map((video) => (
+          <div key={video.id} className="group relative overflow-hidden border border-border bg-card">
+            <video
+              src={video.src}
+              poster={video.poster}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-label={video.label}
+              className="aspect-[3/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            />
+          </div>
         ))}
       </div>
     </section>
