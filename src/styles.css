@@ -111,7 +111,7 @@
   }
 
   html {
-    scrollbar-color: #ed145b #ffe300;
+    scrollbar-color: #ed145b #ffffff;
     scrollbar-width: thin;
   }
 
@@ -120,12 +120,12 @@
   }
 
   html::-webkit-scrollbar-track {
-    background: #ffe300;
+    background: #ffffff;
   }
 
   html::-webkit-scrollbar-thumb {
     background: #ed145b;
-    border: 2px solid #ffe300;
+    border: 2px solid #ffffff;
     border-radius: 999px;
   }
 
