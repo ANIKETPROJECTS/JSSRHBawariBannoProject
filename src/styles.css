@@ -191,6 +191,13 @@ h4 {
   white-space: nowrap;
 }
 
+.category-card-name {
+  font-family: var(--font-sans) !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.022em !important;
+  line-height: 1.2 !important;
+}
+
 button,
 input,
 textarea,
