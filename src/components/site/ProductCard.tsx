@@ -125,15 +125,15 @@ export function ProductCard({
             event.stopPropagation();
             void toggle(saree.id);
           }}
-          className={`absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-background/90 backdrop-blur-sm transition-colors sm:right-3 sm:top-3 ${
-            isWishlisted ? "text-red-600" : "text-foreground/75 hover:text-red-600"
+          className={`product-card-wishlist-button absolute right-2 top-2 flex size-9 cursor-pointer items-center justify-center rounded-full bg-transparent transition-colors sm:right-3 sm:top-3 ${
+            isWishlisted ? "text-[#ED145B]" : "text-foreground/75 hover:text-[#ED145B]"
           }`}
         >
           <span className="relative size-[1.35rem] transition-transform duration-200 group-hover:scale-105 active:scale-90">
             <svg
               viewBox="0 0 512 512"
               aria-hidden="true"
-              className={`absolute inset-0 size-full transition-opacity duration-200 ${
+              className={`wishlist-heart-fill absolute inset-0 size-full transition-opacity duration-200 ${
                 isWishlisted ? "opacity-100" : "opacity-0"
               }`}
             >
@@ -146,12 +146,9 @@ export function ProductCard({
               src={wishlistHeart}
               alt=""
               aria-hidden="true"
-              className="relative size-full object-contain transition-opacity duration-200"
-              style={{
-                filter: isWishlisted
-                  ? "brightness(0) saturate(100%) invert(19%) sepia(93%) saturate(3480%) hue-rotate(348deg) brightness(91%) contrast(94%)"
-                  : "none",
-              }}
+              className={`wishlist-heart-image relative size-full object-contain transition-opacity duration-200 ${
+                isWishlisted ? "opacity-0" : "opacity-100"
+              }`}
             />
           </span>
         </button>

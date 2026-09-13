@@ -200,6 +200,16 @@ h4 {
   filter: brightness(0) saturate(100%) invert(18%) sepia(95%) saturate(5620%) hue-rotate(335deg) brightness(93%) contrast(97%);
 }
 
+.product-card-wishlist-button:hover .wishlist-heart-fill,
+.product-card-wishlist-button:focus-visible .wishlist-heart-fill {
+  opacity: 1;
+}
+
+.product-card-wishlist-button:hover .wishlist-heart-image,
+.product-card-wishlist-button:focus-visible .wishlist-heart-image {
+  opacity: 0;
+}
+
 .category-card-name {
   font-family: var(--font-sans) !important;
   font-weight: 500 !important;
