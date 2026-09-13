@@ -29,24 +29,24 @@ export function Footer() {
       className="mt-8 bg-[#ED145B] font-sans text-white"
     >
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-        <div className="grid gap-6 border-b border-white/20 py-5 sm:py-6 lg:grid-cols-[minmax(220px,0.75fr)_minmax(0,2.25fr)] lg:gap-10">
-          <div className="flex flex-col gap-3 lg:pt-1">
+        <div className="grid gap-8 border-b border-white/20 py-8 sm:py-10 lg:grid-cols-[minmax(240px,0.75fr)_minmax(0,2.25fr)] lg:gap-12">
+          <div className="flex flex-col gap-4 lg:pt-1">
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="h-28 w-[22rem] object-contain object-left sm:h-32 sm:w-[26rem]"
+              className="h-32 w-[24rem] object-contain object-left sm:h-36 sm:w-[28rem]"
             />
-            <p className="mt-1 max-w-sm text-sm font-medium leading-snug text-white sm:text-base">
+            <p className="mt-1 max-w-sm text-base font-medium leading-snug text-white sm:text-lg">
               Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
-            <p className="text-sm font-medium leading-snug text-white sm:text-base">
+            <p className="text-base font-medium leading-snug text-white sm:text-lg">
               Website owned by Sejal Sheshmani Yadav
             </p>
-            <div className="mt-2 flex flex-col gap-1.5">
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">
+            <div className="mt-3 flex flex-col gap-2">
+              <p className="text-base font-medium uppercase tracking-[0.2em] text-white">
                 Follow the house
               </p>
-              <div className="flex gap-2.5">
+              <div className="flex gap-3">
                 {[
                   { label: "Instagram", Icon: Instagram },
                   { label: "Facebook", Icon: Facebook },
@@ -56,7 +56,7 @@ export function Footer() {
                     key={label}
                     href="#"
                     aria-label={label}
-                    className="flex size-10 items-center justify-center rounded-full border border-white text-white transition-colors hover:bg-white hover:text-[#ED145B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="flex size-11 items-center justify-center rounded-full border border-white text-white transition-colors hover:bg-white hover:text-[#ED145B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <Icon className="size-4" strokeWidth={1.7} />
                   </a>
@@ -65,10 +65,10 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          <div className="grid gap-8 sm:grid-cols-2 sm:gap-10 lg:grid-cols-4 lg:items-center">
             <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Explore</p>
-            <ul className="mt-2 space-y-1 text-base font-medium leading-snug">
+            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Explore</p>
+            <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -84,8 +84,8 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
-            <ul className="mt-2 space-y-1 text-base font-medium leading-snug">
+            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
+            <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
               {customerLinks.map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
@@ -97,8 +97,8 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
-            <address className="mt-2 space-y-1.5 text-sm font-medium not-italic leading-snug text-white sm:text-base">
+            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
+            <address className="mt-3 space-y-2 text-base font-medium not-italic leading-snug text-white sm:text-lg">
               <p className="flex items-start gap-2">
                 <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.7} />
                 <span>
@@ -119,8 +119,8 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Policies</p>
-            <ul className="mt-2 space-y-1 text-base font-medium leading-snug">
+            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Policies</p>
+            <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -133,7 +133,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 py-2 text-xs font-medium text-white">
+        <div className="flex flex-col gap-1.5 py-4 text-sm font-medium text-white">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
         </div>
       </div>
