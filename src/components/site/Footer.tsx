@@ -1,113 +1,123 @@
 import { Link } from "@tanstack/react-router";
-import { Facebook, Instagram, Youtube } from "lucide-react";
-import storyImage from "@/assets/story.jpg";
-import atelierFilm from "@/assets/atelier-film.mp4";
+import { ArrowUpRight, Facebook, Instagram, Mail, MapPin, Phone, Youtube } from "lucide-react";
+import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+
+const exploreLinks = [
+  { label: "All Sarees", to: "/products" },
+  { label: "New Arrival", to: "/new-arrival" },
+  { label: "Bestsellers", to: "/bestseller" },
+  { label: "Our Story", to: "/about" },
+];
+
+const customerLinks = [
+  { label: "Contact Us", to: "/contact" },
+  { label: "Wishlist", to: "/wishlist" },
+  { label: "My Account", to: "/profile" },
+  { label: "Shipping & Returns", to: "/contact" },
+];
 
 export function Footer() {
   return (
-    <footer className="section-frame section-frame--zari relative mx-2 mt-24 overflow-hidden bg-royal text-primary-foreground sm:mx-3">
-      <video
-        className="footer-film-media pointer-events-none absolute inset-0 size-full object-cover"
-        autoPlay
-        muted
-        loop
-        playsInline
-        poster={storyImage}
-        aria-label="Moving textile details from the Bawari Banno atelier"
-      >
-        <source src={atelierFilm} type="video/mp4" />
-      </video>
-      <div className="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/65 to-ink/75" />
-      <div className="fabric-texture relative">
-        <div className="mx-auto max-w-[1440px] px-5 py-7 sm:px-10 sm:py-9">
-          <div className="flex flex-wrap items-end justify-between gap-5 border-b border-primary-foreground/25 pb-6 sm:pb-8">
-            <div className="max-w-lg">
-              <p className="text-eyebrow text-gold-soft">The house note</p>
-              <p className="mt-2 font-display text-3xl leading-[0.95] tracking-tight sm:text-5xl">
-                Made to be remembered.
-              </p>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-primary-foreground/80">
-                A living archive of Indian textiles, gathered with care and sent from our atelier to
-                yours.
-              </p>
-            </div>
-            <span className="text-eyebrow text-primary-foreground/70">
-              Bawari Banno · 1974—2026
-            </span>
-          </div>
-        </div>
-        <div className="mx-auto grid max-w-[1440px] gap-7 px-5 pb-7 sm:gap-8 sm:px-10 sm:pb-9 md:grid-cols-4">
-          <div>
-            <p className="font-display text-3xl tracking-tight">Bawari Banno</p>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-primary-foreground/75">
-              Handpicked handloom and heirloom sarees, sourced directly from weaving clusters across
-              India since 1974.
+    <footer
+      className="mt-20 bg-[#ED145B] text-white"
+      style={{ fontFamily: "'Poppins', sans-serif" }}
+    >
+      <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+        <div className="flex flex-col gap-8 border-b border-white/20 py-10 sm:py-12 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-md">
+            <img
+              src={logoImage}
+              alt="Bawari Banno"
+              className="h-20 w-64 object-contain object-left sm:h-24 sm:w-80"
+            />
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white">
+              Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
-            <div className="mt-4 flex gap-3">
-              {[Instagram, Facebook, Youtube].map((Icon, i) => (
+          </div>
+          <div className="flex flex-col gap-3 lg:items-end">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">
+              Follow the house
+            </p>
+            <div className="flex gap-2">
+              {[
+                { label: "Instagram", Icon: Instagram },
+                { label: "Facebook", Icon: Facebook },
+                { label: "YouTube", Icon: Youtube },
+              ].map(({ label, Icon }) => (
                 <a
-                  key={i}
+                  key={label}
                   href="#"
-                  aria-label="Social link"
-                  className="rounded-full border border-primary-foreground/25 p-2.5 transition-colors hover:border-gold hover:text-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                  aria-label={label}
+                  className="flex size-10 items-center justify-center rounded-full border border-white text-white transition-colors hover:bg-white hover:text-[#ED145B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
-                  <Icon className="size-4" strokeWidth={1.5} />
+                  <Icon className="size-4" strokeWidth={1.7} />
                 </a>
               ))}
             </div>
           </div>
+        </div>
 
+        <div className="grid gap-10 border-b border-white/20 py-10 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.1fr_1.4fr_1.4fr]">
           <div>
-            <p className="text-eyebrow text-gold-soft">Explore</p>
-            <ul className="mt-3 space-y-2 text-sm text-primary-foreground/80">
-              <li>
-                <Link to="/products" className="hover:text-gold">
-                  All Sarees
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="hover:text-gold">
-                  Our Story
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="hover:text-gold">
-                  Contact Us
-                </Link>
-              </li>
-              <li>
-                <Link to="/products" className="hover:text-gold">
-                  Wedding Collection
-                </Link>
-              </li>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Explore</p>
+            <ul className="mt-5 space-y-3 text-sm">
+              {exploreLinks.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    to={item.to}
+                    className="inline-flex items-center gap-1 text-white transition-opacity hover:opacity-70"
+                  >
+                    {item.label}
+                    <ArrowUpRight className="size-3" strokeWidth={1.7} />
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           <div>
-            <p className="text-eyebrow text-gold-soft">Visit</p>
-            <address className="mt-3 space-y-1.5 text-sm not-italic leading-relaxed text-primary-foreground/80">
-              <p>
-                Hubtown Greenwood CHS,
-                <br />
-                Flat No. 805/A Wing, 8th Floor,
-                <br />
-                Pokhran Road No. 1, Vartak Nagar,
-                <br />
-                Thane (W), 400606
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
+            <ul className="mt-5 space-y-3 text-sm">
+              {customerLinks.map((item) => (
+                <li key={item.label}>
+                  <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
+            <address className="mt-5 space-y-3 text-sm not-italic leading-relaxed text-white">
+              <p className="flex items-start gap-2">
+                <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.7} />
+                <span>
+                  Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor,
+                  <br />
+                  Pokhran Road No. 1, Vartak Nagar, Thane (W), 400606
+                </span>
               </p>
-              <p>+91 84597 69859</p>
-              <p>info@bawaribanno.com</p>
+              <a href="tel:+918459769859" className="flex items-center gap-2 hover:opacity-70">
+                <Phone className="size-4 shrink-0" strokeWidth={1.7} />
+                +91 84597 69859
+              </a>
+              <a href="mailto:info@bawaribanno.com" className="flex items-center gap-2 hover:opacity-70">
+                <Mail className="size-4 shrink-0" strokeWidth={1.7} />
+                info@bawaribanno.com
+              </a>
             </address>
           </div>
 
           <div>
-            <p className="text-eyebrow text-gold-soft">The Loom Letter</p>
-            <p className="mt-3 text-sm text-primary-foreground/75">
-              New weaves, revival drops and atelier notes — once a month.
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">The Loom Letter</p>
+            <p className="mt-5 text-sm leading-relaxed text-white">
+              New weaves, revival drops and atelier notes, delivered once a month.
             </p>
             <form
-              className="mt-3 flex min-w-0 border-b border-primary-foreground/30 focus-within:border-gold"
-              onSubmit={(e) => e.preventDefault()}
+              className="mt-5 flex border-b border-white pb-2 focus-within:border-white"
+              onSubmit={(event) => event.preventDefault()}
             >
               <label className="sr-only" htmlFor="newsletter">
                 Email address
@@ -116,20 +126,22 @@ export function Footer() {
                 id="newsletter"
                 type="email"
                 placeholder="your@email.com"
-                className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none placeholder:text-primary-foreground/45"
+                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white"
               />
-              <button type="submit" className="shrink-0 text-eyebrow text-gold">
+              <button
+                type="submit"
+                className="flex items-center gap-1 text-xs font-medium uppercase tracking-[0.16em] text-white hover:opacity-70"
+              >
                 Join
+                <ArrowUpRight className="size-3" strokeWidth={1.7} />
               </button>
             </form>
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/25">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-5 py-3 text-xs text-primary-foreground/65 sm:px-10 sm:py-4">
-            <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
-            <p>Crafted in India · Website owned by Sejal Sheshmani Yadav</p>
-          </div>
+        <div className="flex flex-col gap-3 py-5 text-xs text-white sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
+          <p>Crafted in India · Website owned by Sejal Sheshmani Yadav</p>
         </div>
       </div>
     </footer>

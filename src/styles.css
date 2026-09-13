@@ -273,10 +273,6 @@ form[class*="max-h-"] {
   animation: drape-center-in 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.footer-film-media {
-  animation: film-drift 16s ease-in-out infinite alternate;
-}
-
 @keyframes category-reveal {
   from {
     opacity: 0;
@@ -315,19 +311,10 @@ form[class*="max-h-"] {
   to { transform: scale(1); }
 }
 
-@keyframes film-drift {
-  from { transform: scale(1.02) translate3d(-1%, 0, 0); }
-  to { transform: scale(1.08) translate3d(1%, -1%, 0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hero-fade-in,
   .hero-media,
   .category-reveal,
   .trend-reveal,
   .drape-center-in,
-  .footer-film-media {
-    animation-duration: 1ms;
-    animation-iteration-count: 1;
-  }
 }
