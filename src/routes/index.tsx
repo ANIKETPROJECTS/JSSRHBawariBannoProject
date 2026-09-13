@@ -80,7 +80,7 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="bg-white px-4 py-12 sm:px-8 sm:py-16 lg:px-0 lg:py-20">
+      <section className="bg-white px-4 py-12 sm:py-16 lg:py-20">
         <div className="relative mx-auto mb-8 max-w-[1440px] sm:mb-10">
           <h2 className="text-center font-display text-4xl font-medium tracking-tight text-primary sm:text-5xl">
             Our Categories
@@ -92,7 +92,7 @@ function Home() {
             View all
           </Link>
         </div>
-        <div className="mx-auto grid max-w-[1600px] grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        <div className="mx-auto grid max-w-[1600px] grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {homepageCategoryEdits.slice(0, 5).map((category) => (
             <Link
               key={category.id}
