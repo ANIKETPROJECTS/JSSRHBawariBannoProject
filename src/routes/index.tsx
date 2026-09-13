@@ -80,13 +80,13 @@ function Home() {
 
       {/* Categories — portrait card grid */}
       <section className="bg-white px-4 pb-0 pt-10 sm:pt-12">
-        <div className="mx-auto mb-4 max-w-[1600px] sm:mb-5">
+        <div className="relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
           <h2 className="text-center font-sans font-light leading-tight tracking-tight text-primary/90">
             Our Categories
           </h2>
           <Link
             to="/products"
-            className="section-view-all mt-2 block w-fit"
+            className="section-view-all absolute right-0 top-1/2 -translate-y-1/2"
           >
             View all
           </Link>
@@ -180,11 +180,11 @@ function ProductRail({
 }) {
   return (
     <section className="mx-auto max-w-[1600px] bg-white px-4 pb-0 pt-8 sm:pt-10">
-      <div className="mx-auto mb-4 max-w-[1600px] sm:mb-5">
+      <div className="relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
         <h2 className="text-center font-sans leading-tight text-primary">{title}</h2>
         <Link
           to={viewAllTo}
-          className="section-view-all mt-2 block w-fit"
+          className="section-view-all absolute right-0 top-1/2 -translate-y-1/2"
         >
           View all
         </Link>
