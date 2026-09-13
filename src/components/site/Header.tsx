@@ -36,7 +36,7 @@ export function Header() {
 
   return (
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
-      <div className="h-7 border-b border-white/15 bg-[#c80f4b]">
+      <div className="h-9 border-b border-white/15 bg-[#c80f4b]">
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-end gap-1 px-4 sm:px-7 lg:px-10">
           {socialLinks.map(({ label, Icon }) => (
             <a
@@ -51,7 +51,7 @@ export function Header() {
         </div>
       </div>
       <div className="relative">
-       <div className="relative mx-auto flex h-[3.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:h-[4rem] sm:px-7 lg:h-[3.5rem] lg:px-10">
+       <div className="relative mx-auto flex h-[3.5rem] max-w-[1440px] items-center justify-between gap-3 px-4 sm:h-[4rem] sm:px-7 lg:h-[4.5rem] lg:px-10">
          <div aria-hidden="true" className="w-10 shrink-0 sm:w-16 lg:hidden" />
         <Link
            to="/"
@@ -60,16 +60,16 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-            className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:-top-5"
+            className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:-top-9"
            >
             <img
               src={logoImage}
               alt="Bawari Banno"
-                className="h-[5rem] w-[13.5rem] object-contain sm:h-[5.25rem] sm:w-[14rem] lg:h-[6.25rem] lg:w-[20rem]"
+                 className="h-[5rem] w-[13.5rem] object-contain sm:h-[5.25rem] sm:w-[14rem] lg:h-[8rem] lg:w-[25rem]"
             />
         </Link>
 
-         <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:translate-y-0">
+          <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:ml-auto lg:translate-y-0">
           <Link
             to="/products"
             aria-label="Search products"
@@ -121,7 +121,7 @@ export function Header() {
         </div>
       </div>
 
-       <nav aria-label="Primary navigation" className="relative hidden h-9 w-full items-center justify-center gap-4 border-t border-white/20 lg:flex xl:gap-6">
+       <nav aria-label="Primary navigation" className="relative hidden h-11 w-full items-center justify-center gap-4 border-t border-white/20 lg:flex xl:gap-6">
           {nav.map((item) => (
             item.label === "Categories" ? (
               <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
