@@ -111,7 +111,7 @@
   }
 
   html {
-    scrollbar-color: #ffe300 #ffffff;
+    scrollbar-color: #ed145b #ffffff;
     scrollbar-width: thin;
   }
 
@@ -124,7 +124,7 @@
   }
 
   html::-webkit-scrollbar-thumb {
-    background: #ffe300;
+    background: #ed145b;
     border: 2px solid #ffffff;
     border-radius: 999px;
   }
