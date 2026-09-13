@@ -4,45 +4,8 @@ import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
-import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
-import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
-import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
 import drapeFilm from "@/assets/drape-film.mp4";
-
-const heroSlides = [
-  {
-    image: maroonHeroImage,
-    alt: "Woman in a maroon silk saree beneath a carved palace arch",
-  },
-  {
-    image: tealHeroImage,
-    alt: "Woman in a teal silk saree on a sunlit heritage terrace",
-  },
-  {
-    image: emeraldHeroImage,
-    alt: "Woman in an emerald handloom saree inside a textile atelier",
-  },
-] as const;
-
-const heroDetails = [
-  {
-    eyebrow: "The Festive Edit · 2026",
-    title: "A quieter kind of grandeur.",
-    description: "Heirloom silk, handloom cotton and the considered beauty of a drape made slowly.",
-  },
-  {
-    eyebrow: "The Heritage Edit · 2026",
-    title: "Colour with a memory.",
-    description: "Light-catching silk and old-world architecture, composed for celebrations that linger.",
-  },
-  {
-    eyebrow: "The Atelier Edit · 2026",
-    title: "Woven for the in-between.",
-    description: "Tactile handloom, softened light and the everyday ritual of dressing with intention.",
-  },
-] as const;
-
-const legacyHeroImages = new Set(["/src/assets/hero.jpg", "/src/assets/story.jpg", "/src/assets/craft.jpg"]);
+import heroImage from "../../attached_assets/Gemini_Generated_Image_h64dhbh64dhbh64d_1789288153200.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -65,7 +28,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const [liveHeroSlides, setLiveHeroSlides] = useState<typeof heroSlides | null>(null);
   const [liveProducts, setLiveProducts] = useState<typeof sarees | null>(null);
   const [liveCategoryEdits, setLiveCategoryEdits] = useState<typeof categoryEdits | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
@@ -81,22 +43,9 @@ function Home() {
     fetch("/api/catalog")
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
       .then((catalog: {
-        heroes?: Array<{ image?: string; alt?: string }>;
         products?: typeof sarees;
         categories?: Array<{ id?: string; slug?: string; label?: string; image?: string }>;
       }) => {
-        const nextSlides = (catalog.heroes ?? [])
-          .filter((slide) => slide.image)
-          .map((slide, index) => {
-            const image = String(slide.image);
-            const replacement = legacyHeroImages.has(image) ? heroSlides[index % heroSlides.length] : null;
-            return {
-              image: replacement?.image ?? image,
-              alt: replacement?.alt ?? String(slide.alt ?? "Bawari Banno saree collection"),
-            };
-          });
-        if (nextSlides.length) setLiveHeroSlides(nextSlides as typeof heroSlides);
-
         if (catalog.products?.length) setLiveProducts(catalog.products);
 
         const liveCategoryBySlug = new Map(
@@ -122,24 +71,12 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="relative isolate min-h-[31rem] w-full overflow-hidden bg-white sm:min-h-[36rem] lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)]">
-        <div className="relative flex min-h-[31rem] items-center px-5 py-16 sm:min-h-[36rem] sm:px-10 sm:py-20 lg:min-h-[clamp(38rem,calc(100vh-8.5rem),48rem)] lg:px-[7vw]">
-          <div className="max-w-[34rem] text-primary">
-            <p className="text-eyebrow text-peachy">{heroDetails[0].eyebrow}</p>
-            <h1 className="mt-5 max-w-[12ch] font-display text-[2.65rem] font-medium leading-[0.98] tracking-[-0.035em] min-[420px]:text-5xl sm:text-6xl lg:text-[clamp(4rem,6.2vw,6.7rem)]">
-              {heroDetails[0].title}
-            </h1>
-            <p className="mt-6 max-w-[28rem] text-sm leading-relaxed text-muted-foreground sm:text-base">
-              {heroDetails[0].description}
-            </p>
-            <Link
-              to="/products"
-              className="mt-9 inline-flex w-full items-center justify-center gap-3 border border-peachy bg-peachy px-6 py-4 text-eyebrow text-ink transition-colors hover:bg-transparent hover:text-peachy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-peachy focus-visible:ring-offset-2 focus-visible:ring-offset-espresso sm:w-auto sm:px-8"
-            >
-              Explore the edit <ArrowRight className="size-3.5" strokeWidth={1.7} />
-            </Link>
-          </div>
-        </div>
+      <section className="h-[calc(100svh-5.75rem)] w-full overflow-hidden bg-white lg:h-[calc(100svh-10.25rem)]">
+        <img
+          src={heroImage}
+          alt="Bawari Banno saree collection"
+          className="block h-full w-full object-cover"
+        />
       </section>
 
       {/* Categories — compact editorial grid */}
