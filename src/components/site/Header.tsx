@@ -72,7 +72,7 @@ export function Header() {
 
   return (
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
-      <div className="h-9 border-b border-black/15 bg-white">
+      <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
           className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
           style={{ fontFamily: "'Poppins', sans-serif" }}
@@ -83,9 +83,9 @@ export function Header() {
                 key={label}
                 href="#"
                 aria-label={`${label}: @bawaribanno`}
-                className="flex items-center gap-2 rounded-full px-2 py-1 text-black transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <img src={icon} alt="" className="size-6 object-contain brightness-0" />
+                <img src={icon} alt="" className="size-6 object-contain brightness-0 invert" />
                 <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
                   @bawaribanno
                 </span>
@@ -94,9 +94,9 @@ export function Header() {
             <a
               href="https://wa.me/911111111111"
               aria-label="WhatsApp Bawari Banno at plus 91 11111 11111"
-              className="flex items-center gap-2 rounded-full px-2 py-1 text-black transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+              className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <img src={whatsappIcon} alt="" className="size-6 object-contain brightness-0" />
+              <img src={whatsappIcon} alt="" className="size-6 object-contain brightness-0 invert" />
               <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
                 +91 11111 11111
               </span>
@@ -190,16 +190,16 @@ export function Header() {
 
        <nav
          aria-label="Primary navigation"
-          className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-white/20 px-8 sm:px-12 lg:flex lg:px-20 xl:px-28"
+          className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-black/15 bg-white px-8 text-black sm:px-12 lg:flex lg:px-20 xl:px-28"
          style={{ fontFamily: "'Poppins', sans-serif" }}
        >
           {nav.map((item) => (
             item.label === "Categories" ? (
               <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
-                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]">
+                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className="group flex cursor-pointer items-center gap-1 whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-black transition-colors hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 focus-visible:ring-offset-white">
                    Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
                 </button>
-                   {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-white/20 bg-[#ED145B] p-2 shadow-xl">
+                   {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-black/15 bg-white p-2 shadow-xl">
                   {[
                     { label: "Silk Sarees", href: "/categories/silk-sarees" },
                     { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
@@ -209,7 +209,7 @@ export function Header() {
                     <Link
                       key={category.label}
                       to={category.href}
-                        className="block px-3 py-2.5 text-sm text-white transition-colors hover:bg-white/15 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        className="block px-3 py-2.5 text-sm text-black transition-colors hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                       onClick={() => setCategoriesOpen(false)}
                     >
                       {category.label}
@@ -222,10 +222,10 @@ export function Header() {
                 key={`${item.label}-${item.to}`}
                 to={item.to}
                 activeOptions={{ exact: item.to === "/" }}
-                   className="relative whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-white transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-[#ED145B]"
+                   className="relative whitespace-nowrap py-2 text-sm font-medium uppercase tracking-[0.1em] text-black transition-colors hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-4 focus-visible:ring-offset-white"
                 activeProps={{
                   className:
-                        "text-white after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-white",
+                        "text-black after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-black",
                 }}
               >
                 {item.label}
