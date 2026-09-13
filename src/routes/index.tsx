@@ -109,7 +109,7 @@ function Home() {
                   className="aspect-[3/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                 />
               </div>
-              <span className="flex min-h-12 items-start justify-center px-2 pt-3 text-center font-sans text-base font-medium leading-tight text-primary sm:text-lg">
+              <span className="flex min-h-12 items-start justify-center px-2 pt-3 text-center font-sans text-base font-light leading-tight tracking-tight text-primary sm:text-lg">
                 {category.title}
               </span>
             </Link>

@@ -73,7 +73,7 @@ export function ProductCard({
             aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
           >
             <span>5.0</span>
-            <span className="text-base leading-none text-[#D4AF37]" aria-hidden="true">★</span>
+            <span className="text-base leading-none text-[#FFD700]" aria-hidden="true">★</span>
             <span className="text-slate-400" aria-hidden="true">|</span>
             <span className="text-xs text-slate-700">
               {formatReviewCount(editorialReviewCount(saree.id))}
@@ -121,9 +121,9 @@ export function ProductCard({
         </button>
       </div>
       <div className="pt-4">
-        <h3 className={editorial
-          ? "font-sans text-xl font-medium leading-tight text-foreground transition-colors group-hover:text-primary"
-          : "min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl"}
+        <h3
+          className="product-card-name text-foreground transition-colors group-hover:text-primary"
+          title={saree.name}
         >
           {saree.name}
         </h3>
