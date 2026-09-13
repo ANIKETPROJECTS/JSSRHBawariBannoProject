@@ -19,25 +19,25 @@ const customerLinks = [
 export function Footer() {
   return (
     <footer
-      className="mt-12 bg-[#ED145B] text-white"
+      className="mt-8 bg-[#ED145B] font-sans text-white"
     >
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
-        <div className="flex flex-col gap-5 border-b border-white/20 py-7 sm:py-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 border-b border-white/20 py-5 sm:py-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-md">
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="h-16 w-56 object-contain object-left sm:h-20 sm:w-64"
+              className="h-24 w-80 object-contain object-left sm:h-28 sm:w-[22rem]"
             />
-            <p className="mt-2 max-w-sm text-xs leading-relaxed text-white sm:text-sm">
+            <p className="mt-1 max-w-sm text-sm font-medium leading-snug text-white sm:text-base">
               Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
           </div>
-          <div className="flex flex-col gap-2 lg:items-end">
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">
+          <div className="flex flex-col gap-1.5 lg:items-end">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">
               Follow the house
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               {[
                 { label: "Instagram", Icon: Instagram },
                 { label: "Facebook", Icon: Facebook },
@@ -56,10 +56,10 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="grid gap-7 border-b border-white/20 py-7 sm:grid-cols-2 sm:gap-8 sm:py-8 lg:grid-cols-[1.1fr_1fr_1.35fr_1.35fr]">
+        <div className="grid gap-5 border-b border-white/20 py-5 sm:grid-cols-2 sm:gap-6 sm:py-6 lg:grid-cols-[1.1fr_1fr_1.35fr_1.35fr]">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Explore</p>
-            <ul className="mt-3 space-y-2 text-sm">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Explore</p>
+            <ul className="mt-2 space-y-1 text-base font-medium leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -75,8 +75,8 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
-            <ul className="mt-3 space-y-2 text-sm">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
+            <ul className="mt-2 space-y-1 text-base font-medium leading-snug">
               {customerLinks.map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
@@ -88,8 +88,8 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
-            <address className="mt-3 space-y-2 text-xs not-italic leading-relaxed text-white sm:text-sm">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
+            <address className="mt-2 space-y-1.5 text-sm font-medium not-italic leading-snug text-white sm:text-base">
               <p className="flex items-start gap-2">
                 <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.7} />
                 <span>
@@ -110,12 +110,12 @@ export function Footer() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-white">The Loom Letter</p>
-            <p className="mt-3 text-xs leading-relaxed text-white sm:text-sm">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-white">The Loom Letter</p>
+            <p className="mt-2 text-sm font-medium leading-snug text-white sm:text-base">
               New weaves, revival drops and atelier notes, delivered once a month.
             </p>
             <form
-              className="mt-3 flex border-b border-white pb-2 focus-within:border-white"
+              className="mt-2 flex border-b border-white pb-1.5 focus-within:border-white"
               onSubmit={(event) => event.preventDefault()}
             >
               <label className="sr-only" htmlFor="newsletter">
@@ -125,11 +125,11 @@ export function Footer() {
                 id="newsletter"
                 type="email"
                 placeholder="your@email.com"
-                className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white"
+                className="min-w-0 flex-1 bg-transparent text-base font-medium text-white outline-none placeholder:text-white"
               />
               <button
                 type="submit"
-                className="flex items-center gap-1 text-xs font-medium uppercase tracking-[0.16em] text-white hover:opacity-70"
+                className="flex items-center gap-1 text-sm font-medium uppercase tracking-[0.16em] text-white hover:opacity-70"
               >
                 Join
                 <ArrowUpRight className="size-3" strokeWidth={1.7} />
@@ -138,7 +138,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 py-3 text-[0.68rem] text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1.5 py-2 text-xs font-medium text-white sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
           <p>Crafted in India · Website owned by Sejal Sheshmani Yadav</p>
         </div>
