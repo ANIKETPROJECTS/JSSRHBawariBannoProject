@@ -11,11 +11,12 @@ export function ProductCard({
   saree,
   tall = false,
   showAddToCart = false,
+  editorial = false,
 }: {
   saree: Saree;
   tall?: boolean;
   showAddToCart?: boolean;
-    editorial?: boolean;
+  editorial?: boolean;
 }) {
   const { ids, toggle } = useWishlist();
   const { addItem } = useCart();
