@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Menu, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
-import wishlistIcon from "../../../attached_assets/love_1787337671571.png";
+import wishlistIcon from "../../../attached_assets/favorite_1787336225274.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
@@ -122,7 +122,7 @@ export function Header() {
             />
         </Link>
 
-          <div className="hidden items-center gap-2 lg:mr-auto lg:flex">
+          <div className="hidden items-center gap-2 lg:mr-auto lg:flex lg:w-[19rem] xl:w-[22rem]">
            <button
              type="button"
              aria-label="Focus search"
@@ -138,18 +138,19 @@ export function Header() {
              value={query}
              onChange={(event) => setQuery(event.target.value)}
              placeholder={`${typedPlaceholder}…`}
-              className="w-36 border-b border-white bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white xl:w-48"
+              className="min-w-0 flex-1 border-b border-white bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white"
            />
          </div>
 
-          <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:ml-auto lg:translate-y-0">
+           <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:ml-auto lg:translate-y-0">
           <button
             type="button"
             aria-label="Shopping bag"
             onClick={openCart}
-              className="relative rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+               className="relative flex flex-col items-center gap-0.5 rounded-full px-2 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
               <img src={cartIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+               <span className="text-[0.6rem] font-medium leading-none sm:text-[0.68rem]">Cart</span>
             {itemCount > 0 && (
                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
                 {itemCount}
@@ -159,9 +160,10 @@ export function Header() {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-              className="relative rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+               className="relative flex flex-col items-center gap-0.5 rounded-full px-2 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
               <img src={wishlistIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+               <span className="text-[0.6rem] font-medium leading-none sm:text-[0.68rem]">Wishlist</span>
             {wishlistCount > 0 && (
                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
                 {wishlistCount}
@@ -171,9 +173,10 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-              className="hidden rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:block"
+               className="hidden flex-col items-center gap-0.5 rounded-full px-2 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
           >
               <img src={profileIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+               <span className="text-[0.6rem] font-medium leading-none sm:text-[0.68rem]">Profile</span>
           </Link>
           <button
             type="button"

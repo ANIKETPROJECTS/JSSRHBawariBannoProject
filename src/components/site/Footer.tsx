@@ -128,9 +128,6 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-            <p className="mt-5 max-w-[16rem] text-base font-medium leading-snug text-white">
-              Website owned by Sejal Sheshmani Yadav
-            </p>
             </div>
           </div>
         </div>

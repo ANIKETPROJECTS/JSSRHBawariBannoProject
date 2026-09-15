@@ -1,16 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { categories, type CategoryNode, type Saree } from "@/data/sarees";
 import { productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
+import {
+  defaultFilters,
+  getProductFilterValue,
+  type Filters,
+  type ProductFilterKey,
+} from "./productFilters";
 
 export type Selection = { category: string | null; subcategory: string | null };
-export type Filters = {
-  price: string;
-  colors: string[];
-  fabrics: string[];
-  inStock: boolean;
-};
 
 type Props = {
   selection: Selection;
@@ -18,9 +17,47 @@ type Props = {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
   categoryData?: CategoryNode[];
-  productsForCategories?: ReadonlyArray<Pick<Saree, "category" | "subcategory">>;
+  productsForCategories?: ReadonlyArray<Saree>;
   availableColors?: ReadonlyArray<{ key: string; label: string; hex: string }>;
 };
+
+const filterOptions: Array<{ key: ProductFilterKey; label: string; options: string[] }> = [
+  { key: "size", label: "Size", options: ["Free Size"] },
+  { key: "occasion", label: "Occasion", options: ["Everyday", "Festive", "Wedding", "Party"] },
+  { key: "technique", label: "Technique", options: ["Handloom", "Woven", "Block Print", "Embroidered"] },
+  { key: "pattern", label: "Pattern", options: ["Floral", "Printed", "Buti & Paisley", "Woven Motif"] },
+  { key: "borderType", label: "Border Type", options: ["Zari", "Contrast", "Scalloped", "Woven"] },
+];
+
+function toggleValue(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+}
+
+function CheckboxGroup({
+  options,
+  values,
+  onChange,
+}: {
+  options: string[];
+  values: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2 pt-3">
+      {options.map((option) => (
+        <label key={option} className="flex cursor-pointer items-center gap-2 text-sm text-foreground/75 hover:text-primary">
+          <input
+            type="checkbox"
+            checked={values.includes(option)}
+            onChange={() => onChange(option)}
+            className="size-4 accent-primary"
+          />
+          {option}
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export function CategorySidebar({
   selection,
@@ -31,142 +68,55 @@ export function CategorySidebar({
   productsForCategories,
   availableColors,
 }: Props) {
-  const [open, setOpen] = useState<string[]>(["silk"]);
   const categoryItems = categoryData ?? categories;
   const colorOptions = availableColors ?? productColors;
-  const visibleCategoryItems = useMemo(() => {
-    if (!productsForCategories) return categoryItems;
-
-    return categoryItems
-      .map((category) => {
-        const visibleChildren = category.children?.filter((subcategory) =>
-          productsForCategories.some(
-            (product) =>
-              product.category === category.id && product.subcategory === subcategory.id,
-          ),
-        );
-        return visibleChildren?.length
-          ? { ...category, children: visibleChildren }
-          : { ...category, children: undefined };
-      })
-      .filter((category) =>
-        productsForCategories.some((product) => product.category === category.id),
-      );
-  }, [categoryItems, productsForCategories]);
-
-  useEffect(() => {
-    if (!selection.category) return;
-    const selected = visibleCategoryItems.find((category) => category.id === selection.category);
-    if (selected?.children?.length) {
-      setOpen((current) => current.includes(selected.id) ? current : [...current, selected.id]);
-    }
-  }, [selection.category, visibleCategoryItems]);
-
-  const toggle = (id: string) =>
-    setOpen((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const fabrics = Array.from(new Set((productsForCategories ?? []).map((product) => product.fabric).filter(Boolean)));
 
   return (
-    <aside className="lg:w-60 lg:shrink-0">
-      <div className="border border-border bg-sidebar/60 p-5">
-        <p className="text-eyebrow text-muted-foreground">Browse</p>
-        <h2 className="mt-2 font-display text-2xl text-primary">Categories</h2>
-        <div className="mt-4 h-px bg-gold/40" />
-
-        <ul className="mt-4 space-y-1 text-sm">
-          <li>
-            <button
-              type="button"
-              onClick={() => onSelect({ category: null, subcategory: null })}
-              className={cn(
-                "w-full py-1.5 text-left transition-colors hover:text-primary",
-                !selection.category ? "text-primary" : "text-foreground/75",
-              )}
-            >
-              All Sarees
-            </button>
-          </li>
-
-           {visibleCategoryItems.map((cat) => {
-            const isOpen = open.includes(cat.id);
-            const active = selection.category === cat.id;
-            return (
-              <li key={cat.id}>
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    onClick={() => onSelect({ category: cat.id, subcategory: null })}
-                    className={cn(
-                      "flex-1 py-1.5 text-left transition-colors hover:text-primary",
-                      active && !selection.subcategory
-                        ? "text-primary"
-                        : "text-foreground/75",
-                    )}
-                  >
-                    {cat.label}
-                  </button>
-                  {cat.children && (
-                    <button
-                      type="button"
-                      aria-label={`Toggle ${cat.label}`}
-                      aria-expanded={isOpen}
-                      onClick={() => toggle(cat.id)}
-                      className="p-1 text-muted-foreground hover:text-primary"
-                    >
-                      <ChevronRight
-                        className={cn(
-                          "size-3.5 transition-transform",
-                          isOpen && "rotate-90",
-                        )}
-                        strokeWidth={1.5}
-                      />
-                    </button>
-                  )}
-                </div>
-
-                {cat.children && isOpen && (
-                  <ul className="ml-1 space-y-1 border-l border-border pl-4 pb-1">
-                    {cat.children.map((sub) => (
-                      <li key={sub.id}>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onSelect({ category: cat.id, subcategory: sub.id })
-                          }
-                          className={cn(
-                            "w-full py-1 text-left text-[0.82rem] transition-colors hover:text-primary",
-                            selection.subcategory === sub.id
-                              ? "text-primary"
-                              : "text-muted-foreground",
-                          )}
-                        >
-                          {sub.label}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className="mt-5 border border-border bg-sidebar/60 p-5">
-        <div className="flex items-center justify-between">
-          <p className="text-eyebrow text-muted-foreground">Refine</p>
+    <aside className="lg:w-64 lg:shrink-0">
+      <div className="border-y border-border py-4 lg:border-y-0 lg:border-r lg:pr-7">
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div>
+            <p className="text-eyebrow text-muted-foreground">Refine</p>
+            <h2 className="mt-1 whitespace-nowrap font-display text-3xl text-primary">Filter by</h2>
+          </div>
           <button
             type="button"
-            onClick={() => onFiltersChange({ price: "all", colors: [], fabrics: [], inStock: false })}
-            className="inline-flex items-center gap-1 text-[0.65rem] text-muted-foreground hover:text-primary"
+            onClick={() => {
+              onFiltersChange({ ...defaultFilters });
+              onSelect({ category: null, subcategory: null });
+            }}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
           >
             <RotateCcw className="size-3" strokeWidth={1.5} /> Clear
           </button>
         </div>
 
-        <div className="mt-4 h-px bg-gold/40" />
-        <fieldset className="mt-5">
-          <legend className="text-sm text-primary">Price range</legend>
-          <div className="mt-3 space-y-1.5">
+        <details open className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Availability</summary>
+          <div className="space-y-2 pt-3 text-sm text-foreground/75">
+            {[
+              ["all", "All products"],
+              ["in-stock", "In stock"],
+              ["out-of-stock", "Out of stock"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="availability"
+                  checked={filters.availability === value}
+                  onChange={() => onFiltersChange({ ...filters, availability: value as Filters["availability"] })}
+                  className="accent-primary"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </details>
+
+        <details open className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Price</summary>
+          <div className="space-y-2 pt-3 text-sm text-foreground/75">
             {[
               ["all", "All prices"],
               ["under-5000", "Under ₹5,000"],
@@ -174,79 +124,138 @@ export function CategorySidebar({
               ["15000-30000", "₹15,000 – ₹30,000"],
               ["over-30000", "Above ₹30,000"],
             ].map(([value, label]) => (
-              <label key={value} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/75 hover:text-primary">
+              <label key={value} className="flex cursor-pointer items-center gap-2">
                 <input
                   type="radio"
-                  name="price-range"
+                  name="price"
                   checked={filters.price === value}
-                  onChange={() => onFiltersChange({ ...filters, price: value })}
+                  onChange={() => onFiltersChange({ ...filters, price: value as Filters["price"] })}
                   className="accent-primary"
                 />
                 {label}
               </label>
             ))}
           </div>
-        </fieldset>
+        </details>
 
-        <fieldset className="mt-6">
-          <legend className="text-sm text-primary">Colour</legend>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {colorOptions.map(({ key: color, hex, label }) => {
-              const checked = filters.colors.includes(color);
-              return (
-                <label key={color} title={label} className={cn("flex size-7 cursor-pointer items-center justify-center rounded-full border", checked ? "border-primary p-0.5" : "border-transparent")}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => onFiltersChange({ ...filters, colors: checked ? filters.colors.filter((item) => item !== color) : [...filters.colors, color] })}
-                    className="sr-only"
-                  />
-                  <span className="size-full rounded-full border border-black/10" style={{ backgroundColor: hex }} />
-                </label>
-              );
-            })}
+        <details className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Discount</summary>
+          <div className="space-y-2 pt-3 text-sm text-foreground/75">
+            {[
+              ["all", "All products"],
+              ["on-sale", "On sale"],
+              ["full-price", "Full price"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="discount"
+                  checked={filters.discount === value}
+                  onChange={() => onFiltersChange({ ...filters, discount: value as Filters["discount"] })}
+                  className="accent-primary"
+                />
+                {label}
+              </label>
+            ))}
           </div>
-          <p className="mt-2 text-[0.65rem] capitalize text-muted-foreground">
-            {filters.colors.length ? filters.colors.join(", ") : "All colours"}
-          </p>
-        </fieldset>
+        </details>
 
-        <fieldset className="mt-6">
-          <legend className="text-sm text-primary">Fabric</legend>
-          <div className="mt-3 space-y-1.5">
-            {["Silk", "Cotton", "Georgette", "Organza"].map((fabric) => {
-              const checked = filters.fabrics.includes(fabric);
-              return (
-                <label key={fabric} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/75 hover:text-primary">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => onFiltersChange({ ...filters, fabrics: checked ? filters.fabrics.filter((item) => item !== fabric) : [...filters.fabrics, fabric] })}
-                    className="accent-primary"
-                  />
-                  {fabric}
-                </label>
-              );
-            })}
+        <details open className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Category</summary>
+          <div className="space-y-1 pt-3 text-sm">
+            <button type="button" onClick={() => onSelect({ category: null, subcategory: null })} className={cn("block py-1 text-left hover:text-primary", !selection.category && "font-medium text-primary")}>
+              All Sarees
+            </button>
+            {categoryItems.map((category) => (
+              <div key={category.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect({ category: category.id, subcategory: null })}
+                  className={cn("block py-1 text-left hover:text-primary", selection.category === category.id && !selection.subcategory && "font-medium text-primary")}
+                >
+                  {category.label}
+                </button>
+                {category.children?.map((child) => (
+                  <button
+                    key={child.id}
+                    type="button"
+                    onClick={() => onSelect({ category: category.id, subcategory: child.id })}
+                    className={cn("ml-3 block py-1 text-left text-muted-foreground hover:text-primary", selection.subcategory === child.id && "font-medium text-primary")}
+                  >
+                    {child.label}
+                  </button>
+                ))}
+              </div>
+            ))}
           </div>
-        </fieldset>
+        </details>
 
-        <label className="mt-6 flex cursor-pointer items-center gap-2 border-t border-border pt-4 text-xs text-foreground/75 hover:text-primary">
-          <input
-            type="checkbox"
-            checked={filters.inStock}
-            onChange={(event) => onFiltersChange({ ...filters, inStock: event.target.checked })}
-            className="accent-primary"
+        <details className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Blouse Piece</summary>
+          <div className="space-y-2 pt-3 text-sm text-foreground/75">
+            {[
+              ["all", "All products"],
+              ["with", "Included"],
+              ["without", "Not included"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="blouse-piece"
+                  checked={filters.blousePiece === value}
+                  onChange={() => onFiltersChange({ ...filters, blousePiece: value as Filters["blousePiece"] })}
+                  className="accent-primary"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </details>
+
+        {filterOptions.filter(({ key }) => key === "size").map(({ key, label, options }) => (
+          <details key={key} className="border-b border-border py-4">
+            <summary className="cursor-pointer list-none text-base font-medium text-primary">{label}</summary>
+            <CheckboxGroup
+              options={options}
+              values={filters[key]}
+              onChange={(value) => onFiltersChange({ ...filters, [key]: toggleValue(filters[key], value) })}
+            />
+          </details>
+        ))}
+
+        <details className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Colour</summary>
+          <CheckboxGroup
+            options={colorOptions.map((color) => color.key)}
+            values={filters.colors}
+            onChange={(value) => onFiltersChange({ ...filters, colors: toggleValue(filters.colors, value) })}
           />
-          Show available pieces only
-        </label>
-      </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {colorOptions.map((color) => (
+              <span key={color.key} title={color.label} className="size-5 rounded-full border border-black/10" style={{ backgroundColor: color.hex }} />
+            ))}
+          </div>
+        </details>
 
-      <div className="mt-5 hidden border border-border fabric-texture p-5 lg:block">
-        <p className="text-eyebrow text-muted-foreground">Atelier note</p>
-        <p className="mt-3 font-display text-xl leading-snug text-primary">
-          Every drape is loom-traced to its weaver family.
-        </p>
+        <details className="border-b border-border py-4">
+          <summary className="cursor-pointer list-none text-base font-medium text-primary">Fabric</summary>
+          <CheckboxGroup
+            options={fabrics}
+            values={filters.fabrics}
+            onChange={(value) => onFiltersChange({ ...filters, fabrics: toggleValue(filters.fabrics, value) })}
+          />
+        </details>
+
+        {filterOptions.filter(({ key }) => key !== "size").map(({ key, label, options }) => (
+          <details key={key} className="border-b border-border py-4">
+            <summary className="cursor-pointer list-none text-base font-medium text-primary">{label}</summary>
+            <CheckboxGroup
+              options={options}
+              values={filters[key]}
+              onChange={(value) => onFiltersChange({ ...filters, [key]: toggleValue(filters[key], value) })}
+            />
+          </details>
+        ))}
       </div>
     </aside>
   );

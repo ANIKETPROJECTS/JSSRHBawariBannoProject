@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { CategorySidebar, type Filters, type Selection } from "@/components/site/CategorySidebar";
+import { CategorySidebar, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
 import { getColorFilterKey, productColors, type ProductColorOption } from "@/data/colors";
+import { defaultFilters, productMatchesFilterOptions, type Filters } from "@/components/site/productFilters";
 
 type Sort = "featured" | "price-asc" | "price-desc" | "newest";
 
@@ -100,6 +101,11 @@ function sareesFromRecords(records: unknown[]): Saree[] {
             ? { colors: [item.color.trim()] }
             : {}),
         blouse: String(item.blouse ?? ""),
+        size: item.size == null ? undefined : String(item.size),
+        occasion: item.occasion == null ? undefined : String(item.occasion),
+        technique: item.technique == null ? undefined : String(item.technique),
+        pattern: item.pattern == null ? undefined : String(item.pattern),
+        borderType: item.borderType == null ? undefined : String(item.borderType),
         length: String(item.length ?? ""),
         care: String(item.care ?? ""),
         weight: String(item.weight ?? ""),
@@ -144,12 +150,7 @@ export function CollectionPage({
 }: CollectionPageProps) {
   const [selection, setSelection] = useState<Selection>(initialSelection);
   const [sort, setSort] = useState<Sort>("featured");
-  const [filters, setFilters] = useState<Filters>({
-    price: "all",
-    colors: [],
-    fabrics: [],
-    inStock: false,
-  });
+  const [filters, setFilters] = useState<Filters>({ ...defaultFilters });
   const [liveCategories, setLiveCategories] = useState<CategoryNode[] | null>(null);
   const [liveProducts, setLiveProducts] = useState<Saree[] | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">(products ? "ready" : "loading");
@@ -202,21 +203,20 @@ export function CollectionPage({
       if (selection.subcategory) return s.subcategory === selection.subcategory;
       if (selection.category) return s.category === selection.category;
       return true;
-    }).filter((s) => {
-      const priceMatch =
-        filters.price === "all" ||
-        (filters.price === "under-5000" && s.price < 5000) ||
-        (filters.price === "5000-15000" && s.price >= 5000 && s.price <= 15000) ||
-        (filters.price === "15000-30000" && s.price > 15000 && s.price <= 30000) ||
-        (filters.price === "over-30000" && s.price > 30000);
+     }).filter((s) => {
        const savedColors = [
          ...(s.colors ?? []),
          ...(s.variants?.map((variant) => variant.color).filter(Boolean) ?? []),
-       ];
-       const colorMatch = filters.colors.length === 0 || (savedColors.length ? savedColors.some((color) => filters.colors.includes(getColorFilterKey(color))) : filters.colors.includes(getSareeColor(s.id)));
-      const fabricMatch = filters.fabrics.length === 0 || filters.fabrics.some((fabric) => s.fabric.toLowerCase().includes(fabric.toLowerCase()));
-      return priceMatch && colorMatch && fabricMatch;
-    });
+       ].map(getColorFilterKey);
+       const normalizedFilters = {
+         ...filters,
+         colors: filters.colors.map(getColorFilterKey),
+       };
+       const colorProduct = savedColors.length
+         ? { ...s, colors: savedColors }
+         : { ...s, colors: [getSareeColor(s.id)] };
+       return productMatchesFilterOptions(colorProduct, normalizedFilters);
+     });
     const sorted = [...filtered];
     if (sort === "price-asc") sorted.sort((a, b) => a.price - b.price);
     if (sort === "price-desc") sorted.sort((a, b) => b.price - a.price);
@@ -227,8 +227,8 @@ export function CollectionPage({
 
   return (
     <>
-      <div className="section-frame mx-2 fabric-texture sm:mx-3">
-        <div className="mx-auto max-w-7xl px-5 py-10 md:py-11">
+      <div className="fabric-texture border-b border-border">
+        <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-12">
           <p className="text-eyebrow text-muted-foreground">{eyebrow}</p>
           <h1 className="mt-2 font-display text-5xl font-light leading-none tracking-tight text-primary md:text-6xl">
             {title}
@@ -237,7 +237,7 @@ export function CollectionPage({
         </div>
       </div>
 
-      <section className="section-frame mx-2 mt-8 max-w-7xl px-4 pb-12 pt-8 sm:mx-3 sm:mt-10 sm:px-5 sm:pb-16 sm:pt-10">
+      <section className="mx-auto max-w-[1440px] px-5 pb-16 pt-8 md:px-8 lg:pt-10">
         <div className="flex flex-col gap-7 sm:gap-10 lg:flex-row">
           <CategorySidebar
             selection={selection}
@@ -277,8 +277,8 @@ export function CollectionPage({
                 {[0, 1, 2].map((item) => <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />)}
               </div>
             ) : (
-              <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3">
-                {list.map((saree) => <ProductCard key={saree.id} saree={saree} showAddToCart />)}
+               <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
+                 {list.map((saree) => <ProductCard key={saree.id} saree={saree} tall editorial showAddToCart />)}
               </div>
             )}
             {catalogState !== "loading" && list.length === 0 && (

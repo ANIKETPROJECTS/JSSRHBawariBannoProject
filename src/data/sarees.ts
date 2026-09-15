@@ -31,6 +31,11 @@ export type Saree = {
   selectedVariantId?: string;
   selectedVariantColor?: string;
   blouse: string;
+  size?: string;
+  occasion?: string;
+  technique?: string;
+  pattern?: string;
+  borderType?: string;
   length: string;
   care: string;
   weight?: string;
