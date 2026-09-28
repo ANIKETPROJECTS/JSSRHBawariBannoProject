@@ -5,6 +5,7 @@ import { normalizeProductColor, otherColorKey, productColors } from "@/data/colo
 import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-assets";
 import { auditCreateFields, auditUpdateFields, businessSettingsDefaults, ensureBusinessIndexes } from "@/lib/business-types";
 import { purchaseInvoiceDeletionPolicy } from "@/lib/purchase-invoice-policy";
+import { phonePeShaWebhookAuthorized } from "@/lib/phonepe-webhook-auth";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -602,16 +603,70 @@ async function reorder(resource: "heroes" | "categories", input: JsonRecord) {
 
 function phonePeConfiguration() {
   const environment = String(process.env.PHONEPE_ENV ?? "sandbox").toLowerCase();
-  const baseUrl = String(
+  const isProduction = environment === "production";
+  const clientId = String(process.env.PHONEPE_CLIENT_ID ?? "").trim();
+  const clientSecret = String(process.env.PHONEPE_CLIENT_SECRET ?? "").trim();
+  const merchantId = String(process.env.PHONEPE_MERCHANT_ID ?? "").trim();
+  const saltKey = String(process.env.PHONEPE_SALT_KEY ?? "").trim();
+  if (Boolean(clientId) !== Boolean(clientSecret)) {
+    throw new Error("PHONEPE_CLIENT_ID and PHONEPE_CLIENT_SECRET must both be configured.");
+  }
+  const mode = clientId && clientSecret ? "oauth" : "legacy";
+  const apiBaseUrl = String(
     process.env.PHONEPE_API_BASE_URL
-      ?? (environment === "production" ? "https://api.phonepe.com/apis/hermes" : "https://api-preprod.phonepe.com/apis/pg-sandbox"),
+      ?? (mode === "oauth"
+        ? (isProduction ? "https://api.phonepe.com/apis/pg" : "https://api-preprod.phonepe.com/apis/pg-sandbox")
+        : (isProduction ? "https://api.phonepe.com/apis/hermes" : "https://api-preprod.phonepe.com/apis/pg-sandbox")),
   ).replace(/\/+$/, "");
   return {
-    merchantId: secret("PHONEPE_MERCHANT_ID"),
-    saltKey: secret("PHONEPE_SALT_KEY"),
+    mode,
+    environment,
+    merchantId,
+    saltKey,
     saltIndex: String(process.env.PHONEPE_SALT_INDEX ?? "1"),
-    baseUrl,
+    clientId,
+    clientSecret,
+    clientVersion: String(process.env.PHONEPE_CLIENT_VERSION ?? "1").trim(),
+    apiBaseUrl,
+    authBaseUrl: String(
+      process.env.PHONEPE_AUTH_BASE_URL
+        ?? (isProduction ? "https://api.phonepe.com/apis/identity-manager" : "https://api-preprod.phonepe.com/apis/pg-sandbox"),
+    ).replace(/\/+$/, ""),
   };
+}
+
+let phonePeTokenCache: { accessToken: string; expiresAt: number } | undefined;
+
+async function phonePeAccessToken(phonePe: ReturnType<typeof phonePeConfiguration>) {
+  if (phonePe.mode !== "oauth" || !phonePe.clientId || !phonePe.clientSecret || !phonePe.clientVersion) {
+    throw new Error("PhonePe Client ID, Client Secret, and Client Version are required.");
+  }
+  if (phonePeTokenCache && phonePeTokenCache.expiresAt > Date.now() + 60_000) {
+    return phonePeTokenCache.accessToken;
+  }
+  const form = new URLSearchParams({
+    client_id: phonePe.clientId,
+    client_version: phonePe.clientVersion,
+    client_secret: phonePe.clientSecret,
+    grant_type: "client_credentials",
+  });
+  const response = await fetch(`${phonePe.authBaseUrl}/v1/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form,
+  });
+  const result = await response.json().catch(() => ({})) as JsonRecord;
+  const accessToken = String(result.access_token ?? "");
+  if (!response.ok || !accessToken) {
+    throw new Error(`PhonePe authorization failed (${response.status}).`);
+  }
+  const expiresAtSeconds = Number(result.expires_at);
+  if (Number.isFinite(expiresAtSeconds) && expiresAtSeconds > 0) {
+    phonePeTokenCache = { accessToken, expiresAt: expiresAtSeconds * 1000 };
+  } else {
+    phonePeTokenCache = undefined;
+  }
+  return accessToken;
 }
 
 function phonePeChecksum(encodedPayload: string, path: string, saltKey: string, saltIndex: string) {
@@ -704,36 +759,66 @@ async function createPhonePeCheckout(request: Request) {
 
   try {
     const phonePe = phonePeConfiguration();
-    const paymentPath = "/pg/v1/pay";
     const redirectUrl = new URL(`/payment-return?transactionId=${encodeURIComponent(orderId)}`, request.url).toString();
-    const callbackUrl = new URL("/api/phonepe/callback", request.url).toString();
-    const paymentPayload = {
-      merchantId: phonePe.merchantId,
-      merchantTransactionId: orderId,
-      merchantUserId: String(customer?._id),
-      amount: Math.round(total * 100),
-      redirectUrl,
-      redirectMode: "REDIRECT",
-      callbackUrl,
-      mobileNumber: String(customer?.phone ?? ""),
-      paymentInstrument: { type: "PAY_PAGE" },
-    };
-    const encodedPayload = Buffer.from(JSON.stringify(paymentPayload)).toString("base64");
-    const response = await fetch(`${phonePe.baseUrl}${paymentPath}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-VERIFY": phonePeChecksum(encodedPayload, paymentPath, phonePe.saltKey, phonePe.saltIndex),
-      },
-      body: JSON.stringify({ request: encodedPayload }),
-    });
+    let response: Response;
+    if (phonePe.mode === "oauth") {
+      const accessToken = await phonePeAccessToken(phonePe);
+      response = await fetch(`${phonePe.apiBaseUrl}/checkout/v2/pay`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `O-Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          merchantOrderId: orderId,
+          amount: Math.round(total * 100),
+          expireAfter: 1200,
+          paymentFlow: {
+            type: "PG_CHECKOUT",
+            merchantUrls: { redirectUrl },
+          },
+          metaInfo: { udf1: String(customer._id) },
+        }),
+      });
+    } else {
+      if (!phonePe.merchantId || !phonePe.saltKey) {
+        throw new Error("PHONEPE_CLIENT_ID and PHONEPE_CLIENT_SECRET (or legacy PHONEPE_MERCHANT_ID and PHONEPE_SALT_KEY) are required.");
+      }
+      const paymentPath = "/pg/v1/pay";
+      const callbackUrl = new URL("/api/phonepe/callback", request.url).toString();
+      const paymentPayload = {
+        merchantId: phonePe.merchantId,
+        merchantTransactionId: orderId,
+        merchantUserId: String(customer._id),
+        amount: Math.round(total * 100),
+        redirectUrl,
+        redirectMode: "REDIRECT",
+        callbackUrl,
+        mobileNumber: String(customer.phone ?? ""),
+        paymentInstrument: { type: "PAY_PAGE" },
+      };
+      const encodedPayload = Buffer.from(JSON.stringify(paymentPayload)).toString("base64");
+      response = await fetch(`${phonePe.apiBaseUrl}${paymentPath}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-VERIFY": phonePeChecksum(encodedPayload, paymentPath, phonePe.saltKey, phonePe.saltIndex),
+        },
+        body: JSON.stringify({ request: encodedPayload }),
+      });
+    }
     const result = await response.json().catch(() => ({})) as JsonRecord;
-    const redirectInfo = result.data && typeof result.data === "object" ? (result.data as JsonRecord).instrumentResponse : undefined;
-    const redirectInfoRecord = redirectInfo && typeof redirectInfo === "object" ? redirectInfo as JsonRecord : {};
-    const redirect = String(redirectInfoRecord.redirectInfo && typeof redirectInfoRecord.redirectInfo === "object"
-      ? (redirectInfoRecord.redirectInfo as JsonRecord).url ?? ""
-      : "");
-    if (!response.ok || result.success !== true || !redirect) {
+    const legacyData = result.data && typeof result.data === "object" ? result.data as JsonRecord : {};
+    const redirectInfo = legacyData.instrumentResponse && typeof legacyData.instrumentResponse === "object"
+      ? legacyData.instrumentResponse as JsonRecord
+      : {};
+    const legacyRedirectInfo = redirectInfo.redirectInfo && typeof redirectInfo.redirectInfo === "object"
+      ? redirectInfo.redirectInfo as JsonRecord
+      : {};
+    const redirect = phonePe.mode === "oauth"
+      ? String(result.redirectUrl ?? "")
+      : String(legacyRedirectInfo.url ?? "");
+    if (!response.ok || !redirect || (phonePe.mode === "legacy" && result.success !== true)) {
       await database.collection("orders").updateOne(
         { orderId },
         { $set: { paymentStatus: "failed", paymentDetails: JSON.stringify({ code: result.code, message: result.message }).slice(0, 200), updatedAt: new Date() } },
@@ -742,7 +827,7 @@ async function createPhonePeCheckout(request: Request) {
     }
     await database.collection("orders").updateOne(
       { orderId },
-      { $set: { transactionId: orderId, phonePeMerchantTransactionId: orderId, updatedAt: new Date() } },
+      { $set: { transactionId: orderId, phonePeMerchantTransactionId: orderId, phonePeApiVersion: phonePe.mode === "oauth" ? "standard-checkout-v2" : "legacy", updatedAt: new Date() } },
     );
     return json({ ok: true, orderId, redirectUrl: redirect });
   } catch (error) {
@@ -750,8 +835,8 @@ async function createPhonePeCheckout(request: Request) {
       { orderId },
       { $set: { paymentStatus: "failed", paymentDetails: error instanceof Error ? error.message.slice(0, 200) : "PhonePe configuration error", updatedAt: new Date() } },
     );
-    if (error instanceof Error && /PHONEPE_(MERCHANT_ID|SALT_KEY)/.test(error.message)) {
-      return fail("PhonePe is not configured yet. Add the merchant credentials before accepting payments.", 503);
+    if (error instanceof Error && /PHONEPE_/.test(error.message)) {
+      return fail("PhonePe is not fully configured. Check the required credentials and client version.", 503);
     }
     console.error("PhonePe checkout error:", error);
     return fail("PhonePe could not start the payment. Please try again.", 502);
@@ -855,6 +940,7 @@ async function handlePhonePeCallback(request: Request) {
   const encodedResponse = String(input.response ?? "");
   if (!encodedResponse) return fail("Invalid PhonePe callback.", 400);
   const phonePe = phonePeConfiguration();
+  if (!phonePe.saltKey) return fail("Legacy PhonePe callback verification is not configured.", 503);
   const expected = phonePeCallbackChecksum(encodedResponse, phonePe.saltKey, phonePe.saltIndex);
   if (!signaturesMatch(expected, request.headers.get("X-VERIFY"))) return fail("Invalid PhonePe callback signature.", 401);
   let response: JsonRecord;
@@ -884,6 +970,79 @@ async function handlePhonePeCallback(request: Request) {
   return json({ ok: true });
 }
 
+async function handlePhonePeWebhook(request: Request) {
+  const username = String(process.env.PHONEPE_WEBHOOK_USERNAME ?? "");
+  const password = String(process.env.PHONEPE_WEBHOOK_PASSWORD ?? "");
+  if (!username || !password) return fail("PhonePe webhook authentication is not configured.", 503);
+  if (!phonePeShaWebhookAuthorized(request.headers.get("Authorization"), username, password)) {
+    return fail("Invalid PhonePe webhook authorization.", 401);
+  }
+
+  let input: JsonRecord;
+  try {
+    const parsed = JSON.parse(await request.text()) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return fail("Invalid PhonePe webhook payload.", 400);
+    }
+    input = parsed as JsonRecord;
+  } catch {
+    return fail("Invalid PhonePe webhook payload.", 400);
+  }
+  const event = String(input.event ?? "");
+  if (event !== "checkout.order.completed" && event !== "checkout.order.failed") {
+    return json({ ok: true, ignored: true });
+  }
+
+  const payload = input.payload && typeof input.payload === "object" ? input.payload as JsonRecord : {};
+  const orderId = String(payload.merchantOrderId ?? "").trim();
+  if (!orderId) return fail("PhonePe webhook is missing the merchant order ID.", 400);
+  const state = String(payload.state ?? "").toUpperCase();
+  const expectedState = event === "checkout.order.completed" ? "COMPLETED" : "FAILED";
+  if (state !== expectedState) return json({ ok: true, ignored: true });
+
+  const expectedMerchantId = String(process.env.PHONEPE_MERCHANT_ID ?? "").trim();
+  const receivedMerchantId = String(payload.merchantId ?? "").trim();
+  if (expectedMerchantId && receivedMerchantId && receivedMerchantId !== expectedMerchantId) {
+    console.error("PhonePe webhook merchant ID did not match the configured merchant.");
+    return fail("PhonePe webhook merchant verification failed.", 401);
+  }
+
+  const database = await db();
+  const order = await database.collection("orders").findOne({ orderId });
+  if (!order) return json({ ok: true, ignored: true });
+
+  if (event === "checkout.order.completed") {
+    const expectedAmount = Math.round(Number(order.total ?? 0) * 100);
+    const receivedAmount = Number(payload.amount);
+    if (!Number.isFinite(receivedAmount) || receivedAmount !== expectedAmount) {
+      console.error("PhonePe webhook amount did not match the stored order.");
+      return fail("PhonePe webhook amount verification failed.", 409);
+    }
+    const details = Array.isArray(payload.paymentDetails) ? payload.paymentDetails as JsonRecord[] : [];
+    const completedPayment = details.find((detail) => String(detail.state ?? "").toUpperCase() === "COMPLETED");
+    await finalizePhonePePayment(orderId, {
+      transactionId: completedPayment?.transactionId ?? orderId,
+      code: "PAYMENT_SUCCESS",
+    });
+  } else if (String(order.paymentStatus).toLowerCase() !== "paid") {
+    const details = Array.isArray(payload.paymentDetails) ? payload.paymentDetails as JsonRecord[] : [];
+    const latestPayment = details[details.length - 1];
+    await database.collection("orders").updateOne(
+      { orderId, paymentStatus: { $ne: "paid" } },
+      {
+        $set: {
+          paymentStatus: "failed",
+          paymentMethod: "PhonePe",
+          transactionId: String(latestPayment?.transactionId ?? orderId),
+          phonePeCode: String(latestPayment?.errorCode ?? "PAYMENT_FAILED"),
+          updatedAt: new Date(),
+        },
+      },
+    );
+  }
+  return json({ ok: true });
+}
+
 async function phonePePaymentStatus(request: Request) {
   const customer = await customerFromRequest(request);
   if (!customer) return fail("Customer login required.", 401);
@@ -895,13 +1054,65 @@ async function phonePePaymentStatus(request: Request) {
     $or: [{ customerId: customer._id }, { customerId: String(customer._id) }],
   });
   if (!order) return fail("Order not found.", 404);
+  if (String(order.paymentStatus).toLowerCase() === "pending") {
+    try {
+      const phonePe = phonePeConfiguration();
+      if (phonePe.mode === "oauth") {
+        const accessToken = await phonePeAccessToken(phonePe);
+        const response = await fetch(
+          `${phonePe.apiBaseUrl}/checkout/v2/order/${encodeURIComponent(transactionId)}/status?details=false`,
+          { headers: { Authorization: `O-Bearer ${accessToken}`, "Content-Type": "application/json" } },
+        );
+        const result = await response.json().catch(() => ({})) as JsonRecord;
+        if (!response.ok) {
+          console.error(`PhonePe status check failed (${response.status}).`);
+          return fail("PhonePe could not confirm the payment status right now. Please refresh shortly.", 502);
+        }
+        const state = String(result.state ?? "").toUpperCase();
+        const expectedAmount = Math.round(Number(order.total ?? 0) * 100);
+        const receivedAmount = Number(result.amount);
+        if (state === "COMPLETED") {
+          if (!Number.isFinite(receivedAmount) || receivedAmount !== expectedAmount) {
+            console.error("PhonePe reported a completed payment with an amount mismatch.");
+            return fail("PhonePe returned a payment amount that does not match this order.", 409);
+          }
+          const details = Array.isArray(result.paymentDetails) ? result.paymentDetails as JsonRecord[] : [];
+          const completedPayment = details.find((detail) => String(detail.state ?? "").toUpperCase() === "COMPLETED");
+          await finalizePhonePePayment(transactionId, {
+            transactionId: completedPayment?.transactionId ?? transactionId,
+            code: "PAYMENT_SUCCESS",
+          });
+        } else if (state === "FAILED") {
+          const details = Array.isArray(result.paymentDetails) ? result.paymentDetails as JsonRecord[] : [];
+          const latestPayment = details[details.length - 1];
+          await database.collection("orders").updateOne(
+            { orderId: transactionId, paymentStatus: { $ne: "paid" } },
+            {
+              $set: {
+                paymentStatus: "failed",
+                paymentMethod: "PhonePe",
+                transactionId: String(latestPayment?.transactionId ?? transactionId),
+                phonePeCode: String(latestPayment?.errorCode ?? "PAYMENT_FAILED"),
+                updatedAt: new Date(),
+              },
+            },
+          );
+        }
+      }
+    } catch (error) {
+      console.error("PhonePe status check error:", error instanceof Error ? error.message : error);
+      return fail("PhonePe could not confirm the payment status right now. Please refresh shortly.", 502);
+    }
+  }
+  const refreshedOrder = await database.collection("orders").findOne({ orderId: transactionId });
+  if (!refreshedOrder) return fail("Order not found.", 404);
   return json({
-    orderId: order.orderId,
-    status: order.status,
-    paymentStatus: order.paymentStatus,
-    paymentMethod: order.paymentMethod,
-    total: order.total,
-    inventoryAdjusted: order.inventoryAdjusted === true,
+    orderId: refreshedOrder.orderId,
+    status: refreshedOrder.status,
+    paymentStatus: refreshedOrder.paymentStatus,
+    paymentMethod: refreshedOrder.paymentMethod,
+    total: refreshedOrder.total,
+    inventoryAdjusted: refreshedOrder.inventoryAdjusted === true,
   });
 }
 
@@ -2733,13 +2944,13 @@ async function storeSettings(request: Request) {
 }
 
 async function handleAuth(request: Request, path: string) {
-  const database = await db();
   if (path === "/api/auth/send-otp" && request.method === "POST") {
     const input = await body(request);
     const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
     if (phone.length !== 10) return fail("Enter a valid 10-digit mobile number.");
     return json({ ok: true, demoOtp: "123456" });
   }
+  const database = await db();
   if (path === "/api/auth/verify" && request.method === "POST") {
     const input = await body(request);
     const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
@@ -3371,6 +3582,7 @@ export async function handleAdminApi(request: Request) {
   try {
     if (url.pathname.startsWith("/api/auth/")) return await handleAuth(request, url.pathname);
     if (url.pathname === "/api/phonepe/callback" && request.method === "POST") return await handlePhonePeCallback(request);
+    if (url.pathname === "/api/phonepe/webhook" && request.method === "POST") return await handlePhonePeWebhook(request);
     if (url.pathname === "/api/phonepe/status" && request.method === "GET") return await phonePePaymentStatus(request);
     if (url.pathname.startsWith("/api/product-media/")) return await productMedia(url.pathname.split("/").pop() ?? "");
     if (url.pathname.startsWith("/api/review-media/")) return await reviewMedia(request, url.pathname.split("/").pop() ?? "");
