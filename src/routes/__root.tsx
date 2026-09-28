@@ -16,6 +16,7 @@ import { CartProvider } from "@/components/site/CartDrawer";
 import { CustomerAuthProvider } from "@/components/site/CustomerAuthContext";
 import { ReviewsProvider } from "@/components/site/ReviewsContext";
 import { WishlistProvider } from "@/components/site/WishlistContext";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -134,6 +135,7 @@ function RootComponent() {
           </WishlistProvider>
         </ReviewsProvider>
       </CustomerAuthProvider>
+      <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );
 }

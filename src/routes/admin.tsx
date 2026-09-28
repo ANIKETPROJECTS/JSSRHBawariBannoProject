@@ -2115,7 +2115,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         {variants.length === 0 && <section className="border-t border-border pt-5">
           <div>
             <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT COLOUR</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">Choose the colour used by the storefront filter. Add colour variants above when each colour needs its own image or stock.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Select at least one product colour when no colour variants are added. This colour appears in the storefront filter.</p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             {productColors.map((option) => {
