@@ -1,0 +1,74 @@
+root@srv1232657:/var/www/BawariBanno# cd /var/www/BawariBanno
+node -v
+test -f .env || { echo ".env not found here"; exit 1; }
+chmod 600 .env
+
+node --env-file=.env -e 'for (const k of ["MONGODB_URI","SESSION_SECRET","ADMIN_EMAIL","ADMIN_PASSWORD","CLOUDINARY_URL","PHONEPE_CLIENT_ID","PHONEPE_CLIENT_SECRET","PHONEPE_MERCHANT_ID","PHONEPE_SALT_INDEX","PHONEPE_SALT_KEY"]) console.log(`${k}: ${process.env[k] ? "loaded" : "MISSING"}`)'
+
+node --env-file=.env "$(command -v pm2)" startOrRestart ecosystem.config.cjs --update-env
+pm2 save
+chmod 600 /root/.pm2/dump.pm2
+pm2 logs bawari-banno --lines 40
+v20.20.2
+MONGODB_URI: loaded
+SESSION_SECRET: loaded
+ADMIN_EMAIL: loaded
+ADMIN_PASSWORD: loaded
+CLOUDINARY_URL: loaded
+PHONEPE_CLIENT_ID: loaded
+PHONEPE_CLIENT_SECRET: loaded
+PHONEPE_MERCHANT_ID: loaded
+PHONEPE_SALT_INDEX: loaded
+PHONEPE_SALT_KEY: loaded
+[PM2] Applying action restartProcessId on app [bawari-banno](ids: [ 57 ])
+[PM2] [bawari-banno](57) ✓
+┌────┬───────────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                          │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 47 │ Bung-le-pos                   │ default     │ 1.0.0   │ cluster │ 677126   │ 21D    │ 22   │ online    │ 8.5%     │ 223.0mb  │ root     │ disabled │
+│ 40 │ BungleDigitalMenu             │ default     │ 1.0.0   │ cluster │ 844346   │ 4D     │ 7    │ online    │ 0%       │ 128.2mb  │ root     │ disabled │
+│ 11 │ Tarangdigitalmenu             │ default     │ 1.0.0   │ cluster │ 0        │ 0      │ 1    │ stopped   │ 0%       │ 0b       │ root     │ disabled │
+│ 32 │ aes-vault                     │ default     │ 0.0.0   │ cluster │ 408984   │ 48D    │ 1    │ online    │ 0.6%     │ 83.1mb   │ root     │ disabled │
+│ 15 │ airavata-app                  │ default     │ 1.0.0   │ fork    │ 408905   │ 48D    │ 2    │ online    │ 0%       │ 135.9mb  │ root     │ disabled │
+│ 53 │ airavata-whatsapp-api         │ default     │ 0.0.0   │ cluster │ 882431   │ 112m   │ 2    │ online    │ 0.6%     │ 172.9mb  │ root     │ disabled │
+│ 1  │ airavatatechnologies-web      │ default     │ 1.0.0   │ fork    │ 408754   │ 48D    │ 1    │ online    │ 0.6%     │ 121.3mb  │ root     │ disabled │
+│ 10 │ at-digital-menu               │ default     │ 1.0.0   │ fork    │ 411800   │ 47D    │ 6    │ online    │ 0.6%     │ 166.0mb  │ root     │ disabled │
+│ 37 │ at-smart-salon                │ default     │ N/A     │ fork    │ 621730   │ 26D    │ 2    │ online    │ 0.6%     │ 172.0mb  │ root     │ disabled │
+│ 9  │ atdigitalmenu                 │ default     │ 1.0.0   │ cluster │ 408824   │ 48D    │ 1    │ online    │ 0%       │ 119.8mb  │ root     │ disabled │
+│ 8  │ barrelborn                    │ default     │ 1.0.0   │ fork    │ 0        │ 0      │ 0    │ stopped   │ 0%       │ 0b       │ root     │ disabled │
+│ 57 │ bawari-banno                  │ default     │ N/A     │ fork    │ 883650   │ 0s     │ 1    │ online    │ 0%       │ 35.7mb   │ root     │ disabled │
+│ 48 │ csv-profiler                  │ default     │ 0.0.0   │ cluster │ 611234   │ 27D    │ 1    │ online    │ 0%       │ 82.0mb   │ root     │ disabled │
+│ 7  │ eva-jewels                    │ default     │ 1.0.0   │ cluster │ 408821   │ 48D    │ 1    │ online    │ 0%       │ 131.2mb  │ root     │ disabled │
+│ 52 │ krushisuvidha-api             │ default     │ N/A     │ fork    │ 734384   │ 15D    │ 0    │ online    │ 0%       │ 189.4mb  │ root     │ disabled │
+│ 31 │ labourcodes                   │ default     │ 0.0.0   │ fork    │ 853244   │ 3D     │ 8    │ online    │ 0.6%     │ 116.4mb  │ root     │ disabled │
+│ 12 │ mings-chinese-cuisine         │ default     │ 1.0.0   │ cluster │ 408876   │ 48D    │ 1    │ online    │ 0.6%     │ 110.9mb  │ root     │ disabled │
+│ 4  │ portfolio-app                 │ default     │ N/A     │ fork    │ 408789   │ 48D    │ 1    │ online    │ 0%       │ 82.2mb   │ root     │ disabled │
+│ 55 │ railsops-workforce-tracker    │ default     │ N/A     │ fork    │ 798970   │ 9D     │ 0    │ online    │ 0%       │ 77.8mb   │ root     │ disabled │
+│ 6  │ rest-express                  │ default     │ 1.0.0   │ fork    │ 0        │ 0      │ 1    │ stopped   │ 0%       │ 0b       │ root     │ disabled │
+│ 0  │ restaurant-management-app     │ default     │ N/A     │ fork    │ 408763   │ 48D    │ 1    │ online    │ 0%       │ 81.3mb   │ root     │ disabled │
+│ 56 │ v-tryon                       │ default     │ 1.0.0   │ fork    │ 843835   │ 4D     │ 0    │ online    │ 0.6%     │ 78.7mb   │ root     │ disabled │
+│ 30 │ vip-networkscatalogue         │ default     │ 1.0.0   │ cluster │ 679599   │ 20D    │ 2    │ online    │ 0%       │ 92.3mb   │ root     │ disabled │
+│ 29 │ vip-networkswebsite           │ default     │ 1.0.0   │ cluster │ 790021   │ 9D     │ 4    │ online    │ 0.6%     │ 102.7mb  │ root     │ disabled │
+│ 17 │ whamo-app                     │ default     │ 1.0.0   │ fork    │ 408912   │ 48D    │ 13   │ online    │ 0.6%     │ 117.3mb  │ root     │ disabled │
+└────┴───────────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+[TAILING] Tailing last 40 lines for [bawari-banno] process (change the value with --lines option)
+/root/.pm2/logs/bawari-banno-error-57.log last 40 lines:
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+57|bawari- | Admin API error: MONGODB_URI is not configured.
+Server closed successfully.
+
+/root/.pm2/logs/bawari-banno-out-57.log last 40 lines:
+57|bawari- | ➜ Listening on: http://localhost:3020/ (all interfaces)
+57|bawari- | ➜ Listening on: http://localhost:3020/ (all interfaces)
+
+^C
+root@srv1232657:/var/www/BawariBanno#
