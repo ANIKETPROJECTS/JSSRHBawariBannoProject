@@ -6,6 +6,7 @@ import { normalizeCatalogAsset, normalizeCatalogRecord } from "@/lib/catalog-ass
 import { auditCreateFields, auditUpdateFields, businessSettingsDefaults, ensureBusinessIndexes } from "@/lib/business-types";
 import { purchaseInvoiceDeletionPolicy } from "@/lib/purchase-invoice-policy";
 import { phonePeShaWebhookAuthorized } from "@/lib/phonepe-webhook-auth";
+import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -469,7 +470,9 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     document.image = coverImage || variants[0]?.image || "";
     document.images = coverImage ? images : (variants[0]?.images ?? []);
     if (variants.length) document.stock = variants.reduce((total, variant) => total + variant.stock, 0);
-    const originalPrice = Number(document.originalPrice ?? document.price);
+    const suppliedOriginalPrice = Number(document.originalPrice ?? 0);
+    const enteredPrice = Number(document.price ?? 0);
+    const originalPrice = !id && suppliedOriginalPrice === 0 ? enteredPrice : suppliedOriginalPrice;
     const discountType = String(document.discountType ?? "percentage") === "fixed" ? "fixed" : "percentage";
     const discountValue = document.discountValue === "" || document.discountValue == null ? 0 : Number(document.discountValue);
     if (!Number.isFinite(originalPrice) || originalPrice < 0) throw new Error("Enter a valid product price.");
@@ -736,7 +739,7 @@ async function createPhonePeCheckout(request: Request) {
   const settings = await database.collection("settings").findOne({ _id: "store" });
   const shippingCharge = Math.max(0, Number(settings?.shippingCharges ?? 250));
   const freeShippingThreshold = Math.max(0, Number(settings?.freeShippingThreshold ?? 15000));
-  const shipping = subtotal === 0 || subtotal >= freeShippingThreshold ? 0 : shippingCharge;
+  const shipping = calculateShippingCharge(selectedProducts, subtotal, shippingCharge, freeShippingThreshold);
   const discount = couponResult.discount;
   const total = Math.max(0, subtotal + shipping - discount);
   if (total <= 0) return fail("PhonePe checkout requires a payable total above ₹0.");

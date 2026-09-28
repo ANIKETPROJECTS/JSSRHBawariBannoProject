@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { cn } from "@/lib/utils";
+import { calculateShippingCharge, isSinglePhonePeTestItem } from "@/lib/phonepe-test-shipping";
 import { useCustomerAuth } from "./CustomerAuthContext";
 
 type CartItem = {
@@ -164,7 +165,8 @@ function CartDrawer() {
   }, []);
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-  const shipping = subtotal === 0 || subtotal >= 15000 ? 0 : 250;
+  const phonePeTestOnlyCart = isSinglePhonePeTestItem(items);
+  const shipping = calculateShippingCharge(items, subtotal);
   const total = Math.max(0, subtotal + shipping - discount);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const freeShippingProgress = Math.min(100, (subtotal / 15000) * 100);
@@ -326,7 +328,7 @@ function CartDrawer() {
 
               <div className="space-y-3 py-5 text-sm">
                 <div className="flex justify-between text-muted-foreground"><span>Subtotal ({itemCount} items)</span><span>{formatPrice(subtotal)}</span></div>
-                <div className="flex justify-between text-muted-foreground"><span>Shipping</span><span>{shipping ? formatPrice(shipping) : "Free"}</span></div>
+                <div className="flex justify-between text-muted-foreground"><span>Shipping</span><span>{shipping ? formatPrice(shipping) : phonePeTestOnlyCart ? "Free (test item)" : "Free"}</span></div>
                 {discount > 0 && <div className="flex justify-between text-emerald-deep"><span>Coupon discount</span><span>− {formatPrice(discount)}</span></div>}
                 <div className="flex justify-between border-t border-border pt-4 text-base text-primary"><span>Total</span><span>{formatPrice(total)}</span></div>
                 <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
