@@ -20,6 +20,7 @@ module.exports = {
         SESSION_SECRET: process.env.SESSION_SECRET,
         ADMIN_EMAIL: process.env.ADMIN_EMAIL,
         ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
+        CLOUDINARY_URL: process.env.CLOUDINARY_URL,
         PHONEPE_ENV: process.env.PHONEPE_ENV || "production",
         PHONEPE_API_BASE_URL: process.env.PHONEPE_API_BASE_URL,
         PHONEPE_AUTH_BASE_URL: process.env.PHONEPE_AUTH_BASE_URL,
