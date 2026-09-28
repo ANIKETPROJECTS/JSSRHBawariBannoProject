@@ -12,6 +12,10 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import logoImage from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+import { CartProvider } from "@/components/site/CartDrawer";
+import { CustomerAuthProvider } from "@/components/site/CustomerAuthContext";
+import { ReviewsProvider } from "@/components/site/ReviewsContext";
+import { WishlistProvider } from "@/components/site/WishlistContext";
 
 function NotFoundComponent() {
   return (
@@ -120,8 +124,16 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <CustomerAuthProvider>
+        <ReviewsProvider>
+          <WishlistProvider>
+            <CartProvider>
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <Outlet />
+            </CartProvider>
+          </WishlistProvider>
+        </ReviewsProvider>
+      </CustomerAuthProvider>
     </QueryClientProvider>
   );
 }

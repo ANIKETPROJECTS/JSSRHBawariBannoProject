@@ -321,6 +321,12 @@ function customerToken(userId: string) {
   return `${payload}.${signature}`;
 }
 
+function customerCookieAttributes(request: Request) {
+  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0].trim();
+  const secure = new URL(request.url).protocol === "https:" || forwardedProtocol === "https";
+  return `HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000${secure ? "; Secure" : ""}`;
+}
+
 async function customerFromRequest(request: Request) {
   const cookie = request.headers.get("cookie")?.match(/bb_customer=([^;]+)/)?.[1];
   if (!cookie) return null;
@@ -2960,7 +2966,7 @@ async function handleAuth(request: Request, path: string) {
       const result = await database.collection("customers").insertOne({ phone, name: "", email: "", createdAt: new Date(), updatedAt: new Date(), wishlist: [], addresses: [] });
       customer = await database.collection("customers").findOne({ _id: result.insertedId });
     }
-    return json({ ok: true, customer }, { headers: { "set-cookie": `bb_customer=${customerToken(String(customer?._id))}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000` } });
+    return json({ ok: true, customer }, { headers: { "set-cookie": `bb_customer=${customerToken(String(customer?._id))}; ${customerCookieAttributes(request)}` } });
   }
   if (path === "/api/auth/profile" && request.method === "PUT") {
     const customer = await customerFromRequest(request);

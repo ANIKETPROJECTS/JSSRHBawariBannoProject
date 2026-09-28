@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import { useWishlist } from "./WishlistContext";
 import { useReviewSummary } from "./ReviewsContext";
 import { Link } from "@tanstack/react-router";
@@ -43,9 +42,7 @@ export function ProductCard({
   const originalPrice = Number(saree.originalPrice ?? 0);
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
 
-  const addProductToCart = (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const addProductToCart = () => {
     if (saree.variants?.length) {
       toast.info("Choose a color on the product page before adding it to your bag.");
       return;
@@ -54,33 +51,31 @@ export function ProductCard({
   };
 
   return (
-    <Link
-      to="/products/$productId"
-      params={{ productId: saree.id }}
-      className="group block"
-    >
+    <article className="group block">
       <div className="relative overflow-hidden border border-border bg-card">
-        {videoSrc ? (
-          <video
-            src={videoSrc}
-            poster={saree.image}
-            autoPlay
-            loop
-            muted
-            playsInline
-            aria-label={`Video of ${saree.name}`}
-            className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
-          />
-        ) : (
-          <img
-            src={saree.image}
-            alt={saree.name}
-            loading="lazy"
-            width={900}
-            height={1200}
-            className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
-          />
-        )}
+        <Link to="/products/$productId" params={{ productId: saree.id }} className="block">
+          {videoSrc ? (
+            <video
+              src={videoSrc}
+              poster={saree.image}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-label={`Video of ${saree.name}`}
+              className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
+            />
+          ) : (
+            <img
+              src={saree.image}
+              alt={saree.name}
+              loading="lazy"
+              width={900}
+              height={1200}
+              className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
+            />
+          )}
+        </Link>
         {showCardActions && (
           <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-0 flex-col transition-transform duration-300 sm:translate-y-full sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0">
             <button
@@ -120,11 +115,7 @@ export function ProductCard({
           type="button"
           aria-label={isWishlisted ? `Remove ${saree.name} from wishlist` : `Add ${saree.name} to wishlist`}
           aria-pressed={isWishlisted}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            void toggle(saree.id);
-          }}
+          onClick={() => void toggle(saree.id)}
           className={`product-card-wishlist-button absolute right-2 top-2 flex size-9 cursor-pointer items-center justify-center rounded-full bg-transparent transition-colors sm:right-3 sm:top-3 ${
             isWishlisted ? "text-[#ED145B]" : "text-foreground/75 hover:text-[#ED145B]"
           }`}
@@ -154,14 +145,16 @@ export function ProductCard({
         </button>
       </div>
       <div className="pt-4">
-        <h3
-          className={`product-card-name ${editorial
-            ? "font-sans text-xl font-medium leading-tight text-foreground transition-colors group-hover:text-primary"
-            : "min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl"}`}
-          title={saree.name}
-        >
-          {saree.name}
-        </h3>
+        <Link to="/products/$productId" params={{ productId: saree.id }}>
+          <h3
+            className={`product-card-name ${editorial
+              ? "font-sans text-xl font-medium leading-tight text-foreground transition-colors group-hover:text-primary"
+              : "min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl"}`}
+            title={saree.name}
+          >
+            {saree.name}
+          </h3>
+        </Link>
         {!editorial && (
           <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {reviewSummary.count > 0 ? (
@@ -177,19 +170,21 @@ export function ProductCard({
           </div>
         )}
         <div className={`${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}>
-          <p className="text-lg font-medium tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
-          {hasDiscount && (
-            <>
-              <p className="text-sm tracking-wide text-black line-through decoration-black sm:text-base">
-                {formatPrice(originalPrice)}
-              </p>
-              <span className="text-[0.65rem] font-medium text-green-600 sm:text-xs">
-                {saree.discountType === "fixed"
-                  ? `${formatPrice(Number(saree.discountValue))} OFF`
-                  : `${Number(saree.discountValue)}% OFF`}
-              </span>
-            </>
-          )}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="text-lg font-medium tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
+            {hasDiscount && (
+              <>
+                <p className="text-sm tracking-wide text-black line-through decoration-black sm:text-base">
+                  {formatPrice(originalPrice)}
+                </p>
+                <span className="text-[0.65rem] font-medium text-green-600 sm:text-xs">
+                  {saree.discountType === "fixed"
+                    ? `${formatPrice(Number(saree.discountValue))} OFF`
+                    : `${Number(saree.discountValue)}% OFF`}
+                </span>
+              </>
+            )}
+          </div>
           {showCardActions && (
             <button
               type="button"
@@ -202,6 +197,6 @@ export function ProductCard({
           )}
         </div>
       </div>
-    </Link>
+    </article>
   );
 }

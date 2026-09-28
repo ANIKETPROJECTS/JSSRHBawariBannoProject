@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronRight, Minus, Plus, ShoppingBag, Tag, Trash2, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { cn } from "@/lib/utils";
@@ -211,9 +212,9 @@ function CartDrawer() {
               <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
                 Add a saree from our collection and it will appear here.
               </p>
-              <button type="button" onClick={closeCart} className="mt-7 bg-primary px-7 py-3 text-eyebrow text-primary-foreground hover:bg-ink">
+              <Link to="/products" onClick={closeCart} className="mt-7 bg-primary px-7 py-3 text-eyebrow text-primary-foreground hover:bg-ink">
                 Continue shopping
-              </button>
+              </Link>
             </div>
           ) : (
             <>

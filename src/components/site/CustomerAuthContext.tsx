@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, Check, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,15 +30,17 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [afterLogin, setAfterLogin] = useState<(() => void) | null>(null);
+  const refreshSequence = useRef(0);
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
     try {
       const result = await authApi("/api/auth/me");
-      setCustomer(result.customer ?? null);
+      if (sequence === refreshSequence.current) setCustomer(result.customer ?? null);
     } catch {
-      setCustomer(null);
+      if (sequence === refreshSequence.current) setCustomer(null);
     } finally {
-      setChecking(false);
+      if (sequence === refreshSequence.current) setChecking(false);
     }
   }, []);
 
@@ -46,7 +48,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     void refresh();
     const onLogin = () => void refresh();
     const onLogout = () => {
+      refreshSequence.current += 1;
       setCustomer(null);
+      setChecking(false);
       setIsOpen(false);
       setAfterLogin(null);
     };

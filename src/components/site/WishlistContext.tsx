@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useCustomerAuth } from "./CustomerAuthContext";
 
@@ -17,23 +17,31 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [ids, setIds] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
+  const refreshSequence = useRef(0);
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current;
     try {
       const response = await fetch("/api/auth/wishlist", { credentials: "same-origin" });
       if (!response.ok) {
-        setIds([]);
-        setAuthenticated(false);
+        if (sequence === refreshSequence.current) {
+          setIds([]);
+          setAuthenticated(false);
+        }
         return;
       }
       const result = await response.json();
-      setIds((result.wishlist ?? []).map(String));
-      setAuthenticated(true);
+      if (sequence === refreshSequence.current) {
+        setIds((result.wishlist ?? []).map(String));
+        setAuthenticated(true);
+      }
     } catch {
-      setIds([]);
-      setAuthenticated(false);
+      if (sequence === refreshSequence.current) {
+        setIds([]);
+        setAuthenticated(false);
+      }
     } finally {
-      setLoaded(true);
+      if (sequence === refreshSequence.current) setLoaded(true);
     }
   }, []);
 
@@ -41,6 +49,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     void refresh();
     const onLogin = () => void refresh();
     const onLogout = () => {
+      refreshSequence.current += 1;
       setIds([]);
       setAuthenticated(false);
       setLoaded(true);
