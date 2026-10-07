@@ -1,0 +1,35 @@
+Restyle ONLY the visual design of the category listing page (Silk Sarees, Cotton Sarees, etc.). Do not touch backend, database, API, auth, cart, wishlist, filter logic, sorting logic, routes, or any other page. Tell me which files you plan to change before editing. Keep the same theme: maroon, gold, ivory, Playfair Display for titles, Inter for everything else.
+
+1. Header banner
+- Ivory background (#FFF8F0) with a subtle maroon-to-ivory gradient, and the same 6px CSS-only saree border strip (gold and maroon repeating pattern) along the bottom edge as the Testimonials section.
+- Small label "THE COLLECTION" in gold, uppercase, wide letter-spacing. Category title in Playfair Display, about 40px (not huge). Description in Inter 14px, grey, max-width 600px.
+- Add breadcrumbs above the label: Home / Sarees / Silk Sarees, small grey Inter 12px.
+- Reduce the vertical padding so the banner is about 180px high.
+
+2. Filter sidebar
+- Title "Filter by": reduce to Playfair Display 22px. Move "Clear" to the right end of the same line as small maroon text with an underline, vertically aligned. Remove the "REFINE" label.
+- Put the sidebar in a white card with a thin gold border, 12px radius, 20px padding, sticky on desktop (top: 90px).
+- Section titles (Availability, Price, Discount, Category) in Inter 600, 14px, with a thin divider below. Make Discount and Category collapsible with a small chevron, like the others.
+- Radio buttons and checkboxes: maroon accent color. Selected option text in maroon, weight 500. Option text 13px.
+- Category links: maroon on hover, the active one bold with a small gold dot before it.
+- Mobile: the sidebar becomes a "Filter" button that opens a slide-in drawer from the left, with an "Apply" button in maroon at the bottom.
+
+3. Top bar (count and sort)
+- "3 sarees" in Inter 13px grey. Sort dropdown with a thin gold border, 8px radius, 36px height, maroon text on focus.
+- Thin gold line below the bar.
+
+4. Product grid and cards
+- Grid: 4 columns on desktop, 3 on tablet, 2 on mobile, with a 20px gap (14px on mobile). Never fixed widths, so the cards stretch.
+- Card: white background, thin light-gold border (#EADBC0), 10px radius, overflow hidden. Hover: lifts 4px, soft shadow, border turns gold. On hover, the image zooms 1.05 slowly.
+- Image: aspect-ratio 4/5, object-fit: cover, object-position: top center. A cream background behind it while loading, and a soft ivory placeholder with a small saree icon if the image fails to load.
+- Wishlist heart: a white circle (32px) with a soft shadow at the top right. Rating badge: small white pill at the bottom left of the image.
+- Optional tag at the top left of the image: a "NEW" or "-10%" pill in maroon with white text, only when the data exists.
+- Below the image, padding 12px: product name in Inter 500, 14px, max 2 lines (line-clamp) in dark grey. Price in Inter 600, 16px, maroon. Struck-through price in grey 12px, discount in green 12px, all on one line.
+- Add a small cart icon button at the bottom right, and keep the existing add-to-cart behavior.
+
+5. Spacing and extras
+- Page background white. Content in the same shared container as the homepage (max-width 1360px, side padding 16px mobile, 24px tablet, 40px desktop).
+- Add a "Load more" or the existing pagination restyled as small maroon-outline buttons, centered, with a 40px gap above.
+- When there are no results, show a centered message in Playfair: "No sarees found", with a maroon "Clear filters" button.
+
+Do not change data, filter or sort behavior, or any other page. Do not rename any components.

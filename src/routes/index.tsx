@@ -369,17 +369,19 @@ function ClientTestimonials({
                 />
                 <span className="home-testimonial-photo-note">Photo placeholder</span>
               </div>
-              <span className="home-testimonial-quote-mark" aria-hidden="true">“</span>
-              <p className="home-testimonial-review">
-                Review text placeholder — add the customer&apos;s quote.
-              </p>
-              <div className="home-testimonial-rating">
-                <span className="home-testimonial-stars" aria-label="Five-star rating placeholder">☆☆☆☆☆</span>
-                <span>Rating not provided (placeholder)</span>
+              <div className="home-testimonial-copy">
+                <span className="home-testimonial-quote-mark" aria-hidden="true">“</span>
+                <p className="home-testimonial-review">
+                  Review text placeholder — add the customer&apos;s quote.
+                </p>
+                <div className="home-testimonial-rating">
+                  <span className="home-testimonial-stars" aria-label="Five-star rating placeholder">☆☆☆☆☆</span>
+                  <span>Rating not provided (placeholder)</span>
+                </div>
+                <p className="home-testimonial-name">Customer name (placeholder)</p>
+                <p className="home-testimonial-city">City (placeholder)</p>
+                <p className="home-testimonial-product">Bought: {saree.name}</p>
               </div>
-              <p className="home-testimonial-name">Customer name (placeholder)</p>
-              <p className="home-testimonial-city">City (placeholder)</p>
-              <p className="home-testimonial-product">Bought: {saree.name}</p>
             </article>
           ))}
         </div>

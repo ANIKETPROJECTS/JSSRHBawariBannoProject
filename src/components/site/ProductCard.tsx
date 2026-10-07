@@ -76,19 +76,6 @@ export function ProductCard({
             </Link>
           </div>
         )}
-        {editorial && (
-          <span
-            className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-white/95 px-2.5 py-1.5 text-sm font-medium text-slate-900 shadow-sm backdrop-blur-sm"
-            aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
-          >
-            <span>5.0</span>
-            <span className="text-base leading-none text-[#FFD700]" aria-hidden="true">★</span>
-            <span className="text-slate-400" aria-hidden="true">|</span>
-            <span className="text-xs text-slate-700">
-              {formatReviewCount(editorialReviewCount(saree.id))}
-            </span>
-          </span>
-        )}
         <button
           type="button"
           aria-label={isWishlisted ? `Remove ${saree.name} from wishlist` : `Add ${saree.name} to wishlist`}
@@ -133,6 +120,19 @@ export function ProductCard({
             {saree.name}
           </h3>
         </Link>
+        {editorial && (
+          <div
+            className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-sm"
+            aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
+          >
+            <span>5.0</span>
+            <span className="text-sm leading-none text-[#FFD700]" aria-hidden="true">★</span>
+            <span className="text-slate-400" aria-hidden="true">|</span>
+            <span className="text-[0.68rem] text-slate-700">
+              {formatReviewCount(editorialReviewCount(saree.id))}
+            </span>
+          </div>
+        )}
         {!editorial && (
           <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {reviewSummary.count > 0 ? (
