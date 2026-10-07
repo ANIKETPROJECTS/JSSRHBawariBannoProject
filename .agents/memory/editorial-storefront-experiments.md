@@ -13,4 +13,4 @@ On mobile, align the header logo farther left like the footer logo; keep the des
 
 **Why:** The user has repeatedly requested a more left-aligned header logo on mobile, matching its footer placement.
 
-**How to apply:** Make this adjustment at the mobile breakpoint only and preserve the desktop logo alignment.
+**How to apply:** Judge the visible logo mark against the footer, accounting for transparent space in the image; adjust only the mobile offset and preserve desktop alignment.

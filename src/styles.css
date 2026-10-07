@@ -1173,7 +1173,7 @@ form[class*="max-h-"] {
 
 @media (max-width: 639px) {
   .site-header-logo {
-    left: 0;
+    left: -1rem;
   }
 
   .home-section-heading {
