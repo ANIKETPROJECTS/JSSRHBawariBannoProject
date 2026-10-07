@@ -1172,6 +1172,10 @@ form[class*="max-h-"] {
 }
 
 @media (max-width: 639px) {
+  .site-header-logo {
+    left: 0;
+  }
+
   .home-section-heading {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
