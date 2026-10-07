@@ -30,7 +30,7 @@ export function Footer() {
     <footer
       className="mt-8 bg-[#ED145B] font-sans text-white"
     >
-      <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
+      <div className="home-content-container">
         <div className="grid gap-7 border-b border-white/20 py-5 sm:py-6 lg:grid-cols-[minmax(240px,0.75fr)_minmax(0,2.25fr)] lg:gap-10">
           <div className="flex flex-col gap-4 lg:pt-1">
             <img
@@ -38,11 +38,11 @@ export function Footer() {
               alt="Bawari Banno"
               className="h-32 w-[24rem] object-contain object-left sm:h-36 sm:w-[28rem]"
             />
-            <p className="mt-1 max-w-sm text-base font-medium leading-snug text-white sm:text-lg">
+            <p className="mt-1 max-w-sm text-base font-normal leading-snug text-white sm:text-lg">
               Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
             <div className="mt-3 flex flex-col gap-2">
-              <p className="text-base font-medium uppercase tracking-[0.2em] text-white">
+            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">
                 Follow the house
               </p>
               <div className="flex gap-3">
@@ -66,8 +66,8 @@ export function Footer() {
 
           <div className="grid gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:items-start">
             <div>
-            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Explore</p>
-            <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
+            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Explore</p>
+            <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -83,8 +83,8 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
-            <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
+            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
+            <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
               {customerLinks.map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
@@ -96,8 +96,8 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
-            <address className="mt-3 space-y-2 text-base font-medium not-italic leading-snug text-white sm:text-lg">
+            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
+            <address className="mt-3 space-y-2 text-sm font-normal not-italic leading-snug text-white sm:text-base">
               <p className="flex items-start gap-2">
                 <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.7} />
                 <span>
@@ -118,8 +118,8 @@ export function Footer() {
             </div>
 
             <div>
-            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">Policies</p>
-            <ul className="mt-3 space-y-2 text-lg font-medium leading-snug">
+            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Policies</p>
+            <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -132,7 +132,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 py-4 text-sm font-medium text-white">
+        <div className="flex flex-col gap-1.5 py-4 text-sm font-normal text-white">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
         </div>
       </div>

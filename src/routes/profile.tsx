@@ -196,7 +196,7 @@ function RegistrationFlow({
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-7xl items-center gap-12 px-5 py-12 lg:grid-cols-[1fr_440px] lg:py-16">
         <div className="max-w-xl">
           <p className="text-eyebrow text-muted-foreground">A private space for your edit</p>
-          <h1 className="mt-4 font-display text-5xl font-light leading-[1.05] text-primary md:text-7xl">
+          <h1 className="page-title-light mt-4 font-display text-5xl font-light leading-[1.05] text-primary md:text-7xl">
             Your heirlooms, all in one place.
           </h1>
           <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">
@@ -221,7 +221,7 @@ function RegistrationFlow({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-eyebrow text-muted-foreground">Welcome to Bawari Banno</p>
-              <h2 className="mt-2 font-display text-3xl font-light text-primary">
+              <h2 className="page-title-light mt-2 font-display text-3xl font-light text-primary">
                 {step === "complete" ? "Your account is ready" : "Create your account"}
               </h2>
             </div>
@@ -384,7 +384,7 @@ function ProfileDashboard({
       <section className="fabric-texture border-b border-border">
         <div className="mx-auto max-w-7xl px-5 py-14 sm:py-16">
           <p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p>
-          <h1 className="mt-3 font-display text-5xl font-light text-primary md:text-6xl">Welcome back, Ananya</h1>
+          <h1 className="page-title-light mt-3 font-display text-5xl font-light text-primary md:text-6xl">Welcome back, Ananya</h1>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
             Your personal space for heirlooms, orders and the little details that make every drape feel yours.
           </p>
@@ -436,7 +436,7 @@ function ProfileDashboard({
 
           <section className="mt-10 border border-border bg-card p-6 sm:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div>
+              <div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="page-title-light mt-2 font-display text-3xl font-light text-primary">Account details</h2></div>
               <button type="button" onClick={() => onEditingChange(!editing)} className="inline-flex items-center gap-2 text-sm text-primary hover:text-ink"><Pencil className="size-3.5" strokeWidth={1.5} />{editing ? "Cancel" : "Edit details"}</button>
             </div>
             <div className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
@@ -448,7 +448,7 @@ function ProfileDashboard({
           </section>
 
           <section className="mt-10">
-            <div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Most recent</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Your orders</h2></div><button type="button" onClick={() => onActiveLinkChange("My orders")} className="text-sm text-primary hover:text-ink">View all</button></div>
+            <div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Most recent</p><h2 className="page-title-light mt-2 font-display text-3xl font-light text-primary">Your orders</h2></div><button type="button" onClick={() => onActiveLinkChange("My orders")} className="text-sm text-primary hover:text-ink">View all</button></div>
             <div className="mt-5 divide-y divide-border border-y border-border">
               {orders.map((order) => (
                 <div key={order.id} className="flex items-center gap-4 py-4">

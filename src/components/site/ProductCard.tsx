@@ -1,9 +1,8 @@
 import { useWishlist } from "./WishlistContext";
 import { useReviewSummary } from "./ReviewsContext";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { useCart } from "./CartDrawer";
-import { toast } from "sonner";
 import addToCartIcon from "../../../attached_assets/shopping-cart_1789324905451.png";
 import productCartIcon from "../../../attached_assets/shopping-bag_(3)_1787336793109.png";
 import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
@@ -36,6 +35,7 @@ export function ProductCard({
 }) {
   const { ids, toggle } = useWishlist();
   const { addItem } = useCart();
+  const navigate = useNavigate();
   const reviewSummary = useReviewSummary(saree.id);
   const isWishlisted = ids.includes(saree.id);
   const showCardActions = !videoSrc && (showAddToCart || !editorial);
@@ -44,7 +44,10 @@ export function ProductCard({
 
   const addProductToCart = () => {
     if (saree.variants?.length) {
-      toast.info("Choose a color on the product page before adding it to your bag.");
+      void navigate({
+        to: "/products/$productId",
+        params: { productId: saree.id },
+      });
       return;
     }
     addItem(saree);
@@ -171,13 +174,13 @@ export function ProductCard({
         )}
           <div className={`${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="product-card-price text-lg font-medium tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
+            <p className="product-card-price text-lg font-semibold tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
             {hasDiscount && (
               <>
-                <p className="product-card-original-price text-sm tracking-wide text-black line-through decoration-black sm:text-base">
+                <p className="product-card-original-price text-sm font-normal tracking-wide text-black line-through decoration-black sm:text-base">
                   {formatPrice(originalPrice)}
                 </p>
-                <span className="text-[0.65rem] font-medium text-green-600 sm:text-xs">
+                <span className="text-[0.65rem] font-normal text-green-600 sm:text-xs">
                   {saree.discountType === "fixed"
                     ? `${formatPrice(Number(saree.discountValue))} OFF`
                     : `${Number(saree.discountValue)}% OFF`}

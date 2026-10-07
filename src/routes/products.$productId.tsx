@@ -274,7 +274,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
         <div>
           <p className="text-eyebrow text-muted-foreground">{saree.fabric}</p>
-          <h1 className="mt-3 font-display text-3xl text-primary sm:text-4xl md:text-5xl">{saree.name}</h1>
+          <h1 className="page-title-light mt-3 font-display text-3xl text-primary sm:text-4xl md:text-5xl">{saree.name}</h1>
           <div className="mt-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{saree.description || "Product description will be added soon."}</p>

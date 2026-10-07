@@ -1,15 +1,7 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-
-@font-face {
-  font-family: "TAN Headline";
-  src: url("../attached_assets/0_TANHEADLINE-Regular_1789309780352.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -19,9 +11,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-tan-headline: "TAN Headline", Georgia, serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-playfair: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -157,18 +149,40 @@
   }
 
   h1,
-  h2,
+  h2 {
+    font-family: var(--font-sans) !important;
+    letter-spacing: -0.022em !important;
+    font-weight: 400 !important;
+    line-height: 1.2 !important;
+  }
+
   h3,
   h4 {
     font-family: var(--font-sans) !important;
     letter-spacing: -0.022em !important;
-    font-weight: 300 !important;
+    font-weight: 400 !important;
     line-height: 1.2 !important;
+  }
+
+  .page-title-light {
+    font-weight: 400 !important;
+  }
+
+  .home-section-title,
+  .home-testimonials-title,
+  .footer-column-heading {
+    font-family: var(--font-playfair) !important;
+    font-weight: 500 !important;
+  }
+
+  .home-collection-banner-title {
+    font-family: var(--font-playfair) !important;
+    font-weight: 600 !important;
   }
 }
 
 /*
- * Reference typography: Inter, 300 weight, compact tracking, and a 1.2
+ * Reference typography: Inter, 400 weight, compact tracking, and a 1.2
  * heading rhythm. Keep the scale restrained so every page has the same
  * editorial hierarchy instead of relying on route-specific display fonts.
  */
@@ -510,10 +524,17 @@ form[class*="max-h-"] {
 }
 
 /* Homepage-only collection treatments */
+.home-content-container {
+  width: 100%;
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
 .home-section-title {
   position: relative;
   margin: 0;
-  font-family: var(--font-sans) !important;
+  font-family: var(--font-playfair) !important;
   font-size: clamp(1.55rem, 2.6vw, 2.15rem) !important;
   font-weight: 500 !important;
   letter-spacing: -0.035em !important;
@@ -524,7 +545,7 @@ form[class*="max-h-"] {
   padding-bottom: 0.65rem;
   color: #33221f;
   font-size: clamp(1.2rem, 2vw, 1.55rem) !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   letter-spacing: 0.13em !important;
   text-transform: uppercase;
 }
@@ -540,12 +561,6 @@ form[class*="max-h-"] {
   transform: translateX(-50%);
 }
 
-.home-category-list {
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.home-category-list::-webkit-scrollbar,
 .home-trends-track::-webkit-scrollbar {
   display: none;
 }
@@ -591,7 +606,9 @@ form[class*="max-h-"] {
 }
 
 .home-trends-track {
-  display: flex;
+  display: grid;
+  grid-auto-columns: calc((100% - 0.875rem) / 2);
+  grid-auto-flow: column;
   gap: 0.875rem;
   overflow-x: auto;
   padding: 0.25rem 0 0.75rem;
@@ -601,7 +618,6 @@ form[class*="max-h-"] {
 }
 
 .home-trends-card {
-  flex: 0 0 72%;
   min-width: 0;
   scroll-snap-align: start;
 }
@@ -739,35 +755,48 @@ form[class*="max-h-"] {
 }
 
 .home-trending-layout {
+  display: grid;
+  grid-auto-columns: calc((100% - 0.75rem) / 2);
+  grid-auto-flow: column;
+  grid-template-rows: auto;
   align-items: stretch;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+.home-trending-layout::-webkit-scrollbar {
+  display: none;
+}
+
+.home-collection-banner,
+.home-trending-product {
+  scroll-snap-align: start;
 }
 
 .home-collection-banner {
   min-width: 0;
-  min-height: 0;
   background: #451421;
 }
 
 .home-collection-banner > img {
-  object-position: 74% center;
+  object-position: top center;
 }
 
 .home-collection-banner-shade {
+  top: auto;
+  height: 40%;
   background: linear-gradient(
     to top,
-    rgb(69 20 33 / 98%) 0%,
-    rgb(69 20 33 / 82%) 32%,
-    rgb(69 20 33 / 24%) 68%,
+    rgb(69 20 33 / 96%) 0%,
+    rgb(69 20 33 / 68%) 48%,
     transparent 100%
   );
 }
 
 .home-collection-banner-content {
   padding: 1.25rem;
-}
-
-.home-trending-grid {
-  grid-auto-rows: 1fr;
 }
 
 .home-trending-product article > div:first-child > a > img {
@@ -784,12 +813,29 @@ form[class*="max-h-"] {
 }
 
 @media (min-width: 640px) {
-  .home-trends-card {
-    flex-basis: 42%;
+  .home-content-container {
+    padding-inline: 24px;
+  }
+
+  .home-trending-layout {
+    grid-auto-columns: auto;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .home-trends-track {
+    grid-auto-columns: calc((100% - 1.75rem) / 3);
   }
 }
 
 @media (min-width: 1024px) {
+  .home-content-container {
+    padding-inline: 40px;
+  }
+
   .home-product-section {
     padding-top: 2.5rem;
   }
@@ -803,15 +849,12 @@ form[class*="max-h-"] {
     margin-top: 2.5rem;
   }
 
-  .home-trends-card {
-    flex-basis: calc((100% - 2.625rem) / 4);
+  .home-trending-layout {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
-}
 
-@media (max-width: 1023px) {
-  .home-collection-banner {
-    aspect-ratio: 4 / 3;
-    min-height: 17rem;
+  .home-trends-track {
+    grid-auto-columns: calc((100% - 3.5rem) / 5);
   }
 }
 

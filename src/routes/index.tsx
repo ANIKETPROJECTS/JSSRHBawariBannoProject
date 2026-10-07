@@ -81,41 +81,43 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="home-categories-section bg-white px-4 pb-0 pt-10 sm:pt-12">
-        <div className="home-section-heading home-category-heading relative mx-auto mb-4 max-w-[1600px] sm:mb-5">
-          <h2 className="home-section-title home-category-title text-center font-sans font-light leading-tight tracking-tight text-primary/90">
-            Our Categories
-          </h2>
-          <Link
-            to="/products"
-            className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
-          >
-            View all
-          </Link>
-        </div>
-        <div className="home-category-list mx-auto flex max-w-[1600px] gap-3 overflow-x-auto pb-2 sm:gap-4 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
-          {homepageCategoryEdits.slice(0, 5).map((category) => (
+      <section className="home-categories-section bg-white pb-0 pt-10 sm:pt-12">
+        <div className="home-content-container">
+          <div className="home-section-heading home-category-heading relative mx-auto mb-4 sm:mb-5">
+            <h2 className="home-section-title home-category-title text-center leading-tight tracking-tight text-primary/90">
+              Our Categories
+            </h2>
             <Link
-              key={category.id}
-              to="/categories/$category"
-              params={{ category: category.id }}
-              className="home-category-card group block w-[42vw] max-w-[260px] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 lg:w-full lg:max-w-none"
+              to="/products"
+              className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
             >
-              <div className="home-category-image overflow-hidden rounded-t-full border border-[#eadfd5] bg-[#f8f4ef]">
-                <img
-                  src={category.image}
-                  alt={category.title}
-                  loading="lazy"
-                  width={640}
-                  height={800}
-                  className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                />
-              </div>
-              <span className="category-card-name flex min-h-10 items-start justify-center px-2 pt-3 text-center text-xs text-primary sm:text-sm">
-                {category.title}
-              </span>
+              View all
             </Link>
-          ))}
+          </div>
+          <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:pb-0">
+            {homepageCategoryEdits.slice(0, 5).map((category) => (
+              <Link
+                key={category.id}
+                to="/categories/$category"
+                params={{ category: category.id }}
+                className="home-category-card group block min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2"
+              >
+                <div className="home-category-image overflow-hidden rounded-t-full border border-[#eadfd5] bg-[#f8f4ef]">
+                  <img
+                    src={category.image}
+                    alt={category.title}
+                    loading="lazy"
+                    width={640}
+                    height={800}
+                    className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  />
+                </div>
+                <span className="category-card-name flex min-h-10 items-start justify-center px-2 pt-3 text-center text-xs text-primary sm:text-sm">
+                  {category.title}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -193,12 +195,12 @@ function ProductRail({
     <section
       className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "bg-white"}`}
     >
-      <div className="mx-auto max-w-[1600px] px-4 pb-0 pt-8 sm:pt-10">
+      <div className="home-content-container pb-0 pt-8 sm:pt-10">
         <div
-          className={`home-section-heading home-${variant}-heading relative mx-auto mb-4 max-w-[1600px] sm:mb-5`}
+          className={`home-section-heading home-${variant}-heading relative mx-auto mb-4 sm:mb-5`}
         >
           <h2
-            className={`home-section-title home-${variant}-title text-center font-sans leading-tight`}
+            className={`home-section-title home-${variant}-title text-center leading-tight`}
           >
             {title}
           </h2>
@@ -270,10 +272,10 @@ function TrendingCollection({
   const [featured, ...collectionProducts] = products;
 
   return (
-    <section className="home-trending-section w-full bg-[#451421] px-4 py-8 sm:py-10">
-      <div className="home-trending-inner mx-auto w-full max-w-[1280px]">
+    <section className="home-trending-section w-full bg-[#451421] py-6 lg:py-8">
+      <div className="home-content-container home-trending-inner">
         <div className="home-section-heading home-trending-heading relative mb-5 sm:mb-7">
-          <h2 className="home-section-title home-trending-title text-center font-sans">{title}</h2>
+          <h2 className="home-section-title home-trending-title text-center">{title}</h2>
           <Link
             to={viewAllTo}
             className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
@@ -282,22 +284,20 @@ function TrendingCollection({
           </Link>
         </div>
         {featured && (
-          <div className="home-trending-layout grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-5">
+          <div className="home-trending-layout">
             <CollectionBanner
               title={title}
               to={viewAllTo}
               image={maroonCollectionImage}
             />
-            <div className="home-trending-grid grid grid-cols-2 gap-3 sm:gap-4">
-              {collectionProducts.slice(0, 4).map((saree) => (
-                <div
-                  key={saree.id}
-                  className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
-                >
-                  <ProductCard saree={saree} tall editorial showAddToCart />
-                </div>
-              ))}
-            </div>
+            {collectionProducts.slice(0, 4).map((saree) => (
+              <div
+                key={saree.id}
+                className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
+              >
+                <ProductCard saree={saree} tall editorial showAddToCart />
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -319,7 +319,7 @@ function CollectionBanner({
       <img
         src={image}
         alt="Model wearing a maroon saree in a heritage setting"
-        loading="lazy"
+        loading="eager"
         className="absolute inset-0 h-full w-full object-cover"
       />
       <div className="home-collection-banner-shade absolute inset-0" aria-hidden="true" />
@@ -327,7 +327,7 @@ function CollectionBanner({
         <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#e6c777]">
           The Festive Edit
         </p>
-        <h3 className="font-sans text-2xl font-medium leading-tight text-white sm:text-3xl">
+        <h3 className="home-collection-banner-title text-2xl leading-tight text-white sm:text-3xl">
           {title}
         </h3>
         <Link
@@ -352,31 +352,33 @@ function ClientTestimonials({
   }>;
 }) {
   return (
-    <section className="mx-auto max-w-[1600px] bg-white px-4 pb-0 pt-8 sm:pt-10">
-      <div className="mb-4 text-center sm:mb-5">
-        <div className="relative mx-auto max-w-[1600px]">
-          <h2 className="font-sans leading-tight text-primary">Client Testimonials</h2>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {videos.map((video) => (
-          <div
-            key={video.id}
-            className="group relative overflow-hidden border border-border bg-card"
-          >
-            <video
-              src={video.src}
-              poster={video.poster}
-              autoPlay
-              loop
-              muted
-              playsInline
-              aria-label={video.label}
-              className="aspect-[3/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-            />
+    <section className="w-full bg-white">
+      <div className="home-content-container pb-0 pt-8 sm:pt-10">
+        <div className="mb-4 text-center sm:mb-5">
+          <div className="relative mx-auto">
+            <h2 className="home-testimonials-title leading-tight text-primary">Client Testimonials</h2>
           </div>
-        ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+          {videos.map((video) => (
+            <div
+              key={video.id}
+              className="group relative overflow-hidden border border-border bg-card"
+            >
+              <video
+                src={video.src}
+                poster={video.poster}
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label={video.label}
+                className="aspect-[3/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
