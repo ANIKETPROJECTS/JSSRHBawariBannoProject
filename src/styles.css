@@ -622,11 +622,11 @@ form[class*="max-h-"] {
   top: 3rem;
 }
 
-.home-new-trends .product-card-price {
+.home-new-trends .home-trends-card article > div:last-child > div:last-child > div:first-child > p:first-child {
   color: #76223a !important;
 }
 
-.home-new-trends .product-card-original-price {
+.home-new-trends .home-trends-card article p.line-through {
   color: #89817f !important;
   text-decoration-color: #89817f !important;
 }
@@ -641,6 +641,8 @@ form[class*="max-h-"] {
 }
 
 .home-bestsellers-title {
+  width: fit-content;
+  margin-inline: auto;
   color: #3d2528;
   font-weight: 500 !important;
 }
@@ -736,25 +738,42 @@ form[class*="max-h-"] {
   background: #c9a45d;
 }
 
-.home-trending-feature > article > div:first-child {
-  border: 0;
+.home-trending-layout {
+  align-items: stretch;
 }
 
-.home-trending-feature > article > div:first-child > a,
-.home-trending-feature > article > div:first-child > a > img {
-  display: block;
-  width: 100%;
+.home-collection-banner {
+  min-width: 0;
+  min-height: 0;
+  background: #451421;
 }
 
-.home-trending-feature > article > div:first-child > a > img {
-  aspect-ratio: 16 / 10;
+.home-collection-banner > img {
+  object-position: 74% center;
 }
 
-.home-trending-overlay {
-  background: linear-gradient(90deg, rgb(42 10 19 / 52%), rgb(50 12 22 / 34%));
+.home-collection-banner-shade {
+  background: linear-gradient(
+    to top,
+    rgb(69 20 33 / 98%) 0%,
+    rgb(69 20 33 / 82%) 32%,
+    rgb(69 20 33 / 24%) 68%,
+    transparent 100%
+  );
 }
 
-.home-trending-feature > article > div:last-child,
+.home-collection-banner-content {
+  padding: 1.25rem;
+}
+
+.home-trending-grid {
+  grid-auto-rows: 1fr;
+}
+
+.home-trending-product article > div:first-child > a > img {
+  aspect-ratio: 3 / 4;
+}
+
 .home-trending-product article > div:last-child {
   padding-inline: 0.35rem;
 }
@@ -787,9 +806,12 @@ form[class*="max-h-"] {
   .home-trends-card {
     flex-basis: calc((100% - 2.625rem) / 4);
   }
+}
 
-  .home-trending-feature > article > div:first-child > a > img {
-    aspect-ratio: 1.02 / 1;
+@media (max-width: 1023px) {
+  .home-collection-banner {
+    aspect-ratio: 4 / 3;
+    min-height: 17rem;
   }
 }
 

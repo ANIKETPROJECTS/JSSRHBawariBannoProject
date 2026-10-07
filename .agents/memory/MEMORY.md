@@ -5,3 +5,4 @@
 - [Admin access control](admin-access-control.md) — owner sessions have full access; staff sessions use explicit database-backed permission sets.
 - [Private invoice upload flow](private-invoice-upload-flow.md) — preserve multipart boundaries and allow missing-document recovery without changing posted financial data.
 - [Cloudinary media structure](cloudinary-media-structure.md) — store catalog and Admin attachments in predictable Cloudinary folders while keeping invoice/expense access behind Admin routes.
+- [Git push ownership](git-push-ownership.md) — leave remote pushes to the user; make and verify local changes without pushing.

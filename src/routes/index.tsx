@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import drapeFilm from "@/assets/drape-film.mp4";
+import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import heroImage from "../../attached_assets/Gemini_Generated_Image_h64dhbh64dhbh64d_1789288153200.png";
 
 export const Route = createFileRoute("/")({
@@ -154,7 +155,6 @@ function Home() {
           />
         </>
       )}
-
     </SiteShell>
   );
 }
@@ -190,56 +190,69 @@ function ProductRail({
   };
 
   return (
-    <section className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "bg-white"}`}>
+    <section
+      className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "bg-white"}`}
+    >
       <div className="mx-auto max-w-[1600px] px-4 pb-0 pt-8 sm:pt-10">
-      <div className={`home-section-heading home-${variant}-heading relative mx-auto mb-4 max-w-[1600px] sm:mb-5`}>
-        <h2 className={`home-section-title home-${variant}-title text-center font-sans leading-tight`}>{title}</h2>
-        <Link
-          to={viewAllTo}
-          className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
+        <div
+          className={`home-section-heading home-${variant}-heading relative mx-auto mb-4 max-w-[1600px] sm:mb-5`}
         >
-          View all
-        </Link>
-      </div>
-
-      {variant === "new-trends" ? (
-        <div className="home-trends-carousel relative">
-          <button
-            type="button"
-            aria-label="Show previous new trends"
-            onClick={() => scrollRail(-1)}
-            className="home-carousel-arrow absolute left-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-left-3"
+          <h2
+            className={`home-section-title home-${variant}-title text-center font-sans leading-tight`}
           >
-            <ChevronLeft className="size-5" aria-hidden="true" />
-          </button>
-          <div ref={railRef} className="home-trends-track">
-            {products.map((saree) => (
-              <div key={saree.id} className="home-trends-card relative">
+            {title}
+          </h2>
+          <Link
+            to={viewAllTo}
+            className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
+          >
+            View all
+          </Link>
+        </div>
+
+        {variant === "new-trends" ? (
+          <div className="home-trends-carousel relative">
+            <button
+              type="button"
+              aria-label="Show previous new trends"
+              onClick={() => scrollRail(-1)}
+              className="home-carousel-arrow absolute left-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-left-3"
+            >
+              <ChevronLeft className="size-5" aria-hidden="true" />
+            </button>
+            <div ref={railRef} className="home-trends-track">
+              {products.map((saree) => (
+                <div key={saree.id} className="home-trends-card relative">
+                  <ProductCard saree={saree} tall editorial showAddToCart />
+                  <span className="home-new-tag absolute left-2 top-2 z-10">New</span>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="Show more new trends"
+              onClick={() => scrollRail(1)}
+              className="home-carousel-arrow absolute right-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-right-3"
+            >
+              <ChevronRight className="size-5" aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          <div className="home-bestseller-grid grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+            {products.map((saree, index) => (
+              <div
+                key={saree.id}
+                className="home-bestseller-card relative rounded-2xl border border-[#eadbd2] bg-white p-2 shadow-[0_8px_22px_rgba(83,42,48,0.08)] sm:p-3"
+              >
+                <span className="home-rank-badge absolute left-3 top-3 z-20">#{index + 1}</span>
+                <span className="home-bestseller-ribbon absolute left-2 top-12 z-20">
+                  Bestseller
+                </span>
                 <ProductCard saree={saree} tall editorial showAddToCart />
-                <span className="home-new-tag absolute left-2 top-2 z-10">New</span>
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            aria-label="Show more new trends"
-            onClick={() => scrollRail(1)}
-            className="home-carousel-arrow absolute right-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-right-3"
-          >
-            <ChevronRight className="size-5" aria-hidden="true" />
-          </button>
-        </div>
-      ) : (
-        <div className="home-bestseller-grid grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-          {products.map((saree, index) => (
-            <div key={saree.id} className="home-bestseller-card relative rounded-2xl border border-[#eadbd2] bg-white p-2 shadow-[0_8px_22px_rgba(83,42,48,0.08)] sm:p-3">
-              <span className="home-rank-badge absolute left-3 top-3 z-20">#{index + 1}</span>
-              <span className="home-bestseller-ribbon absolute left-2 top-12 z-20">Bestseller</span>
-              <ProductCard saree={saree} tall editorial showAddToCart />
-            </div>
-          ))}
-        </div>
-      )}
+        )}
       </div>
     </section>
   );
@@ -258,7 +271,7 @@ function TrendingCollection({
 
   return (
     <section className="home-trending-section w-full bg-[#451421] px-4 py-8 sm:py-10">
-      <div className="mx-auto max-w-[1600px]">
+      <div className="home-trending-inner mx-auto w-full max-w-[1280px]">
         <div className="home-section-heading home-trending-heading relative mb-5 sm:mb-7">
           <h2 className="home-section-title home-trending-title text-center font-sans">{title}</h2>
           <Link
@@ -270,24 +283,17 @@ function TrendingCollection({
         </div>
         {featured && (
           <div className="home-trending-layout grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-5">
-            <div className="home-trending-feature relative min-w-0 overflow-hidden border border-[#c9a45d] bg-[#f8f1e9]">
-              <ProductCard saree={featured} tall editorial showAddToCart />
-              <div className="home-trending-overlay pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-5 sm:p-8">
-                <div className="max-w-sm text-center text-white">
-                  <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[#e6c777]">The Bawari edit</p>
-                  <h3 className="font-sans text-2xl font-medium leading-tight text-white sm:text-3xl">{title}</h3>
-                  <Link
-                    to={viewAllTo}
-                    className="pointer-events-auto mt-4 inline-flex items-center gap-2 border border-[#d3b366] bg-[#451421]/80 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#f2d68c] transition hover:bg-[#d3b366] hover:text-[#451421] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    Shop the Collection <ArrowRight className="size-4" aria-hidden="true" />
-                  </Link>
-                </div>
-              </div>
-            </div>
+            <CollectionBanner
+              title={title}
+              to={viewAllTo}
+              image={maroonCollectionImage}
+            />
             <div className="home-trending-grid grid grid-cols-2 gap-3 sm:gap-4">
               {collectionProducts.slice(0, 4).map((saree) => (
-                <div key={saree.id} className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3">
+                <div
+                  key={saree.id}
+                  className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
+                >
                   <ProductCard saree={saree} tall editorial showAddToCart />
                 </div>
               ))}
@@ -296,6 +302,42 @@ function TrendingCollection({
         )}
       </div>
     </section>
+  );
+}
+
+function CollectionBanner({
+  title,
+  to,
+  image,
+}: {
+  title: string;
+  to: string;
+  image: string;
+}) {
+  return (
+    <div className="home-collection-banner relative min-w-0 overflow-hidden border border-[#c9a45d]">
+      <img
+        src={image}
+        alt="Model wearing a maroon saree in a heritage setting"
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="home-collection-banner-shade absolute inset-0" aria-hidden="true" />
+      <div className="home-collection-banner-content absolute inset-x-0 bottom-0 z-10">
+        <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#e6c777]">
+          The Festive Edit
+        </p>
+        <h3 className="font-sans text-2xl font-medium leading-tight text-white sm:text-3xl">
+          {title}
+        </h3>
+        <Link
+          to={to}
+          className="mt-4 inline-flex items-center gap-2 border border-[#d3b366] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#f2d68c] transition hover:bg-[#d3b366] hover:text-[#451421] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          Shop the Collection <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -319,7 +361,10 @@ function ClientTestimonials({
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {videos.map((video) => (
-          <div key={video.id} className="group relative overflow-hidden border border-border bg-card">
+          <div
+            key={video.id}
+            className="group relative overflow-hidden border border-border bg-card"
+          >
             <video
               src={video.src}
               poster={video.poster}
