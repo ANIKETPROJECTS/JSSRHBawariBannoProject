@@ -28,15 +28,15 @@ const policyLinks = [
 export function Footer() {
   return (
     <footer
-      className="mt-8 bg-[#ED145B] font-sans text-white"
+      className="site-footer mt-8 bg-[#ED145B] font-sans text-white"
     >
       <div className="home-content-container">
-        <div className="grid gap-7 border-b border-white/20 py-5 sm:py-6 lg:grid-cols-[minmax(240px,0.75fr)_minmax(0,2.25fr)] lg:gap-10">
+        <div className="site-footer-main grid gap-7 border-b border-white/20 py-5 sm:py-6 lg:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)] lg:gap-10">
           <div className="flex flex-col gap-4 lg:pt-1">
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="-ml-12 h-24 w-[18rem] object-contain object-left sm:ml-0 sm:h-36 sm:w-[28rem]"
+              className="site-footer-brand-logo -ml-12 h-24 w-[18rem] object-contain object-left sm:ml-0 sm:h-36 sm:w-[28rem]"
             />
             <p className="mt-1 max-w-sm text-base font-normal leading-snug text-white sm:text-lg">
               Sarees chosen for their colour, craft and the stories they carry forward.

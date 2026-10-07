@@ -542,6 +542,19 @@ form[class*="max-h-"] {
   padding-inline: 16px;
 }
 
+.site-footer-brand-logo {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .site-footer-brand-logo {
+    width: calc(100% + 3.5rem);
+    max-width: 24rem;
+    margin-left: -3.5rem;
+    height: auto;
+  }
+}
+
 .home-section-title {
   position: relative;
   margin: 0;
