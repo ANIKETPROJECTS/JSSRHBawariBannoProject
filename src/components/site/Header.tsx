@@ -235,7 +235,7 @@ export function Header() {
 
        <nav
          aria-label="Primary navigation"
-          className="site-primary-nav relative hidden h-14 w-full items-center border-t border-black/15 bg-white px-4 text-black sm:px-8 lg:grid lg:px-10 xl:px-16"
+           className="site-primary-nav relative hidden h-14 w-full items-center bg-white px-4 text-black sm:px-8 lg:grid lg:px-10 xl:px-16"
        >
           <div className="site-primary-nav-group site-primary-nav-start">
             {nav.slice(0, 2).map(renderDesktopNavItem)}

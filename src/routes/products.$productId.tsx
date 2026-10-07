@@ -240,9 +240,13 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const gallery = (selectedProduct.images?.length ? selectedProduct.images : [selectedProduct.image]).filter(Boolean).slice(0, 5);
   const originalPrice = Number(saree.originalPrice ?? 0);
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
-  const related = sarees
-    .filter((s) => s.id !== saree.id && s.category === saree.category)
-    .slice(0, 4);
+  const sameCategoryRelated = sarees.filter(
+    (s) => s.id !== saree.id && s.category === saree.category,
+  );
+  const otherCategoryRelated = sarees.filter(
+    (s) => s.id !== saree.id && s.category !== saree.category,
+  );
+  const related = [...sameCategoryRelated, ...otherCategoryRelated].slice(0, 4);
 
   return (
     <>
