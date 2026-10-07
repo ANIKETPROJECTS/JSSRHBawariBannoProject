@@ -84,7 +84,7 @@ function WishlistContent() {
             <Link to="/products" className="mt-6 inline-flex bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white">Explore sarees</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-x-4 gap-y-10 sm:grid-cols-2 sm:gap-x-5 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-2 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-4">
             {saved.map((saree) => (
               <article key={saree.id} className="group relative">
                 <div className="relative overflow-hidden">
