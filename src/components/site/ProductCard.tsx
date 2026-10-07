@@ -169,12 +169,12 @@ export function ProductCard({
             )}
           </div>
         )}
-        <div className={`${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}>
+          <div className={`${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="text-lg font-medium tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
+            <p className="product-card-price text-lg font-medium tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
             {hasDiscount && (
               <>
-                <p className="text-sm tracking-wide text-black line-through decoration-black sm:text-base">
+                <p className="product-card-original-price text-sm tracking-wide text-black line-through decoration-black sm:text-base">
                   {formatPrice(originalPrice)}
                 </p>
                 <span className="text-[0.65rem] font-medium text-green-600 sm:text-xs">
