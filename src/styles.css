@@ -2225,7 +2225,7 @@ form[class*="max-h-"] {
 .site-primary-nav {
   grid-template-columns: auto auto auto;
   justify-content: center;
-  column-gap: clamp(16px, 2vw, 28px);
+  column-gap: clamp(30px, 3vw, 40px);
   border-bottom: 1px solid #eadbc0;
 }
 
@@ -2233,7 +2233,7 @@ form[class*="max-h-"] {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
 }
 
 .site-primary-nav-end {
@@ -2244,7 +2244,7 @@ form[class*="max-h-"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(18px, 2vw, 30px);
+  gap: clamp(34px, 3vw, 42px);
 }
 
 .site-primary-nav-tabs .site-collection-tab {

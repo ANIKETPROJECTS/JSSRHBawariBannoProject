@@ -36,7 +36,7 @@ export function Footer() {
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="-ml-4 h-24 w-[18rem] object-contain object-left sm:ml-0 sm:h-36 sm:w-[28rem]"
+              className="-ml-12 h-24 w-[18rem] object-contain object-left sm:ml-0 sm:h-36 sm:w-[28rem]"
             />
             <p className="mt-1 max-w-sm text-base font-normal leading-snug text-white sm:text-lg">
               Sarees chosen for their colour, craft and the stories they carry forward.
