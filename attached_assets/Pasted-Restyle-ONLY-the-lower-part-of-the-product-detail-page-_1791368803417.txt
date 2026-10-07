@@ -1,0 +1,28 @@
+Restyle ONLY the lower part of the product detail page (everything below the "Add to wishlist / Share product" buttons) and the page frame. Do NOT change anything above that line: gallery, title, price, colors, quantity, add to cart, wishlist and share buttons stay exactly as they are. Do not touch backend, database, API, auth, cart, wishlist logic, or any other page. Tell me which files you plan to change before editing.
+
+1. One accordion style for all sections
+- Merge Product Details, Product Description, Product Specification, Shipping & Delivery, Return & Refund, Cancellations and Disclaimer into ONE accordion list using one shared component and style.
+- Title: Inter 600, 13px, uppercase, letter-spacing 0.08em, dark grey. Same size for all. Remove the Playfair or normal-case variant used for Shipping and the others.
+- Right side icon: the same small chevron icon for all (16px, grey), rotating 180 degrees when open. Replace the tiny "^" and "v" characters.
+- Row: 18px vertical padding, thin divider in light gold (#EADBC0). A maroon title color and a 2px gold left bar on the open row.
+- Smooth open and close animation (about 200ms). Only one section open at a time, Product Details open by default.
+- Content text: Inter 14px, line-height 1.7, grey. The Shipping bullets use the same 14px size, with small gold dot bullets.
+- Product Details rows (Fabric, Category, Length): label in dark grey weight 500, value in grey, as a clean two-column list with a thin divider between rows.
+
+2. Remove the empty space on the left
+- On desktop, make the image gallery column sticky (position: sticky, top: 90px) so it stays in view while the right column scrolls.
+- Keep the two columns top-aligned with a 48px gap.
+
+3. Trust strip
+- Below the accordion, add a row of 3 small items with simple line icons: "Authentic handloom", "Easy returns", "Secure payment". Inter 12px, maroon icons, light ivory background (#FFF8F0), thin gold border, 12px radius, 16px padding. On mobile, stack them in a horizontal scroll row.
+
+4. Page frame
+- Remove the orange border box around the whole product section. Use the shared container (max-width 1360px, side padding 16px mobile, 24px tablet, 40px desktop), centered, so the page isn't pushed to the left. Breadcrumbs align to the same left edge.
+- Section bottom padding 48px.
+
+5. "You may also like"
+- Below the product section, add a full-width ivory band with a centered Playfair Display title "You May Also Like", the small gold diamond ornament between two thin gold lines under it, and one row of 4 product cards on desktop (2 on mobile, horizontally scrollable) using the existing shared product card component. Use products from the same category, excluding the current product. If the data isn't available, tell me and skip this part.
+
+Mobile: single column, accordion full width, gallery not sticky.
+
+Do not change data, colors elsewhere, fonts elsewhere, or functionality.

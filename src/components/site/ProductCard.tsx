@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useWishlist } from "./WishlistContext";
 import { useReviewSummary } from "./ReviewsContext";
 import { Link } from "@tanstack/react-router";
+import { ShoppingCart } from "lucide-react";
 import { formatPrice, type Saree } from "@/data/sarees";
+import { useCart } from "./CartDrawer";
 import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
@@ -17,29 +20,73 @@ function editorialReviewCount(productId: string) {
   return 10 + (seed % 6);
 }
 
+function CategoryListingCartAction({ saree }: { saree: Saree }) {
+  const { addItem } = useCart();
+  const className = "category-listing-cart-action";
+
+  if (saree.variants?.length) {
+    return (
+      <Link
+        to="/products/$productId"
+        params={{ productId: saree.id }}
+        aria-label={`Choose a color for ${saree.name}`}
+        className={className}
+      >
+        <ShoppingCart aria-hidden="true" />
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={`Add ${saree.name} to your bag`}
+      className={className}
+      onClick={() => addItem(saree)}
+    >
+      <ShoppingCart aria-hidden="true" />
+    </button>
+  );
+}
+
 export function ProductCard({
   saree,
   tall = false,
   showBuyNow = false,
   editorial = false,
   videoSrc,
+  categoryListingStyle = false,
+  listingVisualStyle = false,
+  listingBadge,
+  listingRank,
 }: {
   saree: Saree;
   tall?: boolean;
   showBuyNow?: boolean;
   editorial?: boolean;
   videoSrc?: string;
+  categoryListingStyle?: boolean;
+  listingVisualStyle?: boolean;
+  listingBadge?: "new" | "rank";
+  listingRank?: number;
 }) {
   const { ids, toggle } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
+  const [imageFailed, setImageFailed] = useState(false);
   const isWishlisted = ids.includes(saree.id);
+  const useCategoryListingVisuals = categoryListingStyle || listingVisualStyle;
   const showCardActions = !videoSrc && (showBuyNow || !editorial);
   const originalPrice = Number(saree.originalPrice ?? 0);
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
+  const categoryBadge = saree.newArrival
+    ? "NEW"
+    : hasDiscount
+      ? `${Math.round(((originalPrice - saree.price) / originalPrice) * 100)}% OFF`
+      : null;
 
   return (
-    <article className="group block">
-      <div className="relative overflow-hidden border border-border bg-card">
+    <article className={`group block${useCategoryListingVisuals ? " category-listing-product-card" : ""}`}>
+      <div className={`relative overflow-hidden border border-border bg-card${useCategoryListingVisuals ? " category-listing-product-media" : ""}`}>
         <Link to="/products/$productId" params={{ productId: saree.id }} className="block">
           {videoSrc ? (
             <video
@@ -52,17 +99,34 @@ export function ProductCard({
               aria-label={`Video of ${saree.name}`}
               className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
             />
+          ) : useCategoryListingVisuals && imageFailed ? (
+            <div className="category-listing-image-fallback" role="img" aria-label={`${saree.name} image unavailable`}>
+              Image unavailable
+            </div>
           ) : (
             <img
               src={saree.image}
               alt={saree.name}
               loading="lazy"
+              decoding="async"
               width={900}
               height={1200}
-              className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
+              onError={useCategoryListingVisuals ? () => setImageFailed(true) : undefined}
+              className={useCategoryListingVisuals
+                ? "category-listing-product-image"
+                : `${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
             />
           )}
         </Link>
+        {useCategoryListingVisuals && listingBadge === "new" && (
+          <span className="category-listing-product-badge category-listing-new-badge">NEW</span>
+        )}
+        {useCategoryListingVisuals && listingBadge === "rank" && (
+          <span className="category-listing-rank-badge">#{listingRank ?? 1}</span>
+        )}
+        {useCategoryListingVisuals && !listingBadge && categoryBadge && (
+          <span className="category-listing-product-badge">{categoryBadge}</span>
+        )}
         {showCardActions && (
           <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-0 flex-col transition-transform duration-300 sm:translate-y-full sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0">
             <Link
@@ -81,7 +145,9 @@ export function ProductCard({
           aria-label={isWishlisted ? `Remove ${saree.name} from wishlist` : `Add ${saree.name} to wishlist`}
           aria-pressed={isWishlisted}
           onClick={() => void toggle(saree.id)}
-          className={`product-card-wishlist-button absolute right-2 top-2 flex size-9 cursor-pointer items-center justify-center rounded-full bg-transparent transition-colors sm:right-3 sm:top-3 ${
+          className={`product-card-wishlist-button absolute right-2 top-2 flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors sm:right-3 sm:top-3 ${
+            useCategoryListingVisuals ? "category-listing-wishlist-button" : "bg-transparent"
+          } ${
             isWishlisted ? "text-[#ED145B]" : "text-foreground/75 hover:text-[#ED145B]"
           }`}
         >
@@ -108,11 +174,24 @@ export function ProductCard({
             />
           </span>
         </button>
+        {useCategoryListingVisuals && editorial && (
+          <div
+            className="category-listing-rating"
+            aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
+          >
+            <span>5.0</span>
+            <span aria-hidden="true">★</span>
+            <span aria-hidden="true">|</span>
+            <span>{formatReviewCount(editorialReviewCount(saree.id))}</span>
+          </div>
+        )}
       </div>
-      <div className="pt-4">
+      <div className={useCategoryListingVisuals ? "category-listing-product-copy" : "pt-4"}>
         <Link to="/products/$productId" params={{ productId: saree.id }}>
           <h3
-            className={`product-card-name ${editorial
+            className={`product-card-name ${useCategoryListingVisuals
+              ? "category-listing-product-name"
+              : editorial
               ? "font-sans text-xl font-medium leading-tight text-foreground transition-colors group-hover:text-primary"
               : "min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl"}`}
             title={saree.name}
@@ -120,7 +199,7 @@ export function ProductCard({
             {saree.name}
           </h3>
         </Link>
-        {editorial && (
+        {editorial && !useCategoryListingVisuals && (
           <div
             className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-sm"
             aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
@@ -133,7 +212,7 @@ export function ProductCard({
             </span>
           </div>
         )}
-        {!editorial && (
+        {!editorial && !useCategoryListingVisuals && (
           <div className="mt-2 flex min-h-4 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {reviewSummary.count > 0 ? (
               <>
@@ -147,15 +226,15 @@ export function ProductCard({
             )}
           </div>
         )}
-          <div className={`${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}>
+          <div className={`${useCategoryListingVisuals ? "category-listing-price-row" : `${editorial ? "mt-1" : "mt-2"} flex flex-wrap items-center gap-x-2 gap-y-1`}`}>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="product-card-price text-lg font-semibold tracking-wide text-[#ed145b] sm:text-xl">{formatPrice(saree.price)}</p>
+            <p className={`product-card-price text-lg font-semibold tracking-wide text-[#ed145b] sm:text-xl${useCategoryListingVisuals ? " category-listing-product-price" : ""}`}>{formatPrice(saree.price)}</p>
             {hasDiscount && (
               <>
-                <p className="product-card-original-price text-sm font-normal tracking-wide text-black line-through decoration-black sm:text-base">
+                <p className={`product-card-original-price text-sm font-normal tracking-wide text-black line-through decoration-black sm:text-base${useCategoryListingVisuals ? " category-listing-original-price" : ""}`}>
                   {formatPrice(originalPrice)}
                 </p>
-                <span className="text-[0.65rem] font-normal text-green-600 sm:text-xs">
+                <span className={`${useCategoryListingVisuals ? "category-listing-discount" : "text-[0.65rem] font-normal text-green-600 sm:text-xs"}`}>
                   {saree.discountType === "fixed"
                     ? `${formatPrice(Number(saree.discountValue))} OFF`
                     : `${Number(saree.discountValue)}% OFF`}
@@ -163,6 +242,7 @@ export function ProductCard({
               </>
             )}
           </div>
+          {categoryListingStyle && <CategoryListingCartAction saree={saree} />}
         </div>
       </div>
     </article>

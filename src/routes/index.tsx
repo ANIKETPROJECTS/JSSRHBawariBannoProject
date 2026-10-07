@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
-import heroImage from "../../attached_assets/Gemini_Generated_Image_h64dhbh64dhbh64d_1789288153200.png";
+import heroImage from "@/assets/homepage-hero.webp";
+import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -30,7 +31,6 @@ export const Route = createFileRoute("/")({
 function Home() {
   const [liveProducts, setLiveProducts] = useState<typeof sarees | null>(null);
   const [liveCategoryEdits, setLiveCategoryEdits] = useState<typeof categoryEdits | null>(null);
-  const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">("loading");
   const homepageProducts = liveProducts ?? sarees;
   const homepageCategoryEdits = liveCategoryEdits ?? categoryEdits;
   const curatedBestsellers = homepageProducts.filter((saree) => saree.featured || saree.bestseller);
@@ -40,20 +40,19 @@ function Home() {
     ...homepageProducts.filter((saree) => !curatedBestsellerIds.has(saree.id)),
   ].slice(0, 5);
   useEffect(() => {
-    fetch("/api/catalog")
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
-      .then((catalog: {
-        products?: typeof sarees;
-        categories?: Array<{ id?: string; slug?: string; label?: string; image?: string }>;
-      }) => {
-        if (catalog.products?.length) setLiveProducts(catalog.products);
+    let active = true;
+    void loadStorefrontCatalog()
+      .then((catalog) => {
+        if (!active) return;
+        const products = catalog.products as unknown as typeof sarees;
+        if (products.length) {
+          startTransition(() => setLiveProducts(products));
+        }
 
-        const liveCategoryBySlug = new Map(
-          (catalog.categories ?? []).map((category) => [
-            String(category.slug ?? category.id ?? ""),
-            category,
-          ]),
-        );
+        const liveCategoryBySlug = new Map(catalog.categories.map((category) => [
+          String(category.slug ?? category.id ?? ""),
+          category,
+        ]));
         const nextCategoryEdits = categoryEdits.map((fallback) => {
           const category = liveCategoryBySlug.get(fallback.id);
           return {
@@ -62,10 +61,15 @@ function Home() {
             image: String(category?.image || fallback.image),
           };
         });
-        if (nextCategoryEdits.length) setLiveCategoryEdits(nextCategoryEdits);
-        setCatalogState("ready");
+        if (nextCategoryEdits.length) {
+          startTransition(() => setLiveCategoryEdits(nextCategoryEdits));
+        }
       })
-      .catch(() => setCatalogState("fallback"));
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -75,6 +79,9 @@ function Home() {
         <img
           src={heroImage}
           alt="Bawari Banno saree collection"
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
           className="block h-full w-full object-cover"
         />
       </section>
@@ -106,6 +113,7 @@ function Home() {
                     src={category.image}
                     alt={category.title}
                     loading="lazy"
+                    decoding="async"
                     width={640}
                     height={800}
                     className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
@@ -120,51 +128,32 @@ function Home() {
         </div>
       </section>
 
-      {catalogState === "loading" ? (
-        <HomepageCatalogLoader />
-      ) : (
-        <>
-          <ProductRail
-            title="New Trends"
-            viewAllTo="/new-arrival"
-            variant="new-trends"
-            products={[...homepageProducts]
-              .sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")))
-              .slice(0, 5)}
-          />
+      <ProductRail
+        title="New Trends"
+        viewAllTo="/new-arrival"
+        variant="new-trends"
+        products={[...homepageProducts]
+          .sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")))
+          .slice(0, 5)}
+      />
 
-          <ProductRail
-            title="Best Sellers"
-            viewAllTo="/bestseller"
-            variant="best-sellers"
-            products={homepageBestsellers}
-          />
+      <ProductRail
+        title="Best Sellers"
+        viewAllTo="/bestseller"
+        variant="best-sellers"
+        products={homepageBestsellers}
+      />
 
-          <TrendingCollection
-            title="Trending Collection"
-            viewAllTo="/trending"
-            products={homepageProducts.slice(0, 5)}
-          />
+      <TrendingCollection
+        title="Trending Collection"
+        viewAllTo="/trending"
+        products={homepageProducts.slice(0, 5)}
+      />
 
-          <ClientTestimonials
-            products={homepageProducts.slice(0, 3)}
-          />
-        </>
-      )}
+      <ClientTestimonials
+        products={homepageProducts.slice(0, 3)}
+      />
     </SiteShell>
-  );
-}
-
-function HomepageCatalogLoader() {
-  return (
-    <section className="site-container section-frame pb-10 pt-10 sm:pb-12 sm:pt-14" aria-busy="true" aria-label="Loading the collection">
-      <div className="mx-auto h-10 w-48 animate-pulse bg-primary/5" />
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
-        {[0, 1, 2, 3].map((item) => (
-          <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -313,7 +302,8 @@ function CollectionBanner({
       <img
         src={image}
         alt="Model wearing a maroon saree in a heritage setting"
-        loading="eager"
+        loading="lazy"
+        decoding="async"
         className="absolute inset-0 h-full w-full object-cover"
       />
       <div className="home-collection-banner-shade absolute inset-0" aria-hidden="true" />
@@ -342,7 +332,6 @@ function ClientTestimonials({
 }) {
   return (
     <section className="home-testimonials-section w-full">
-      <div className="home-testimonials-border" aria-hidden="true" />
       <div className="home-testimonials-inner">
         <header className="home-testimonials-heading">
           <h2 className="home-testimonials-title leading-tight text-primary">Client Testimonials</h2>
@@ -364,6 +353,7 @@ function ClientTestimonials({
                   src={saree.image}
                   alt="Product image placeholder; customer photo not provided"
                   loading="lazy"
+                  decoding="async"
                   width={180}
                   height={180}
                 />
@@ -386,7 +376,6 @@ function ClientTestimonials({
           ))}
         </div>
       </div>
-      <div className="home-testimonials-border" aria-hidden="true" />
     </section>
   );
 }

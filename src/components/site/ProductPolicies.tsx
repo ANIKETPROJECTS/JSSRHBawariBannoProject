@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { BadgeCheck, ChevronDown, LockKeyhole, RefreshCw } from "lucide-react";
+import { categories, type Saree } from "@/data/sarees";
 
 const policies = [
   {
+    id: "shipping",
     title: "Shipping & Delivery",
     points: [
       "Orders are dispatched within 1–2 business days.",
@@ -13,6 +15,7 @@ const policies = [
     ],
   },
   {
+    id: "returns",
     title: "Return & Refund",
     points: [
       "If you receive a defective or incorrect product, we will arrange a return or replacement.",
@@ -25,6 +28,7 @@ const policies = [
     ],
   },
   {
+    id: "cancellations",
     title: "Cancellations",
     points: [
       "Orders can be cancelled within 24 hours of placing the order.",
@@ -34,6 +38,7 @@ const policies = [
     ],
   },
   {
+    id: "disclaimer",
     title: "Disclaimer",
     points: [
       "Product images are captured in natural daylight; actual colours may vary slightly depending on screen settings and brightness.",
@@ -44,34 +49,116 @@ const policies = [
   },
 ];
 
-export function ProductPolicies() {
-  const [openPolicy, setOpenPolicy] = useState(policies[0].title);
+type ProductAccordionSection =
+  | { id: string; title: string; kind: "rows"; rows: Array<[string, string]> }
+  | { id: string; title: string; kind: "text"; text: string }
+  | { id: string; title: string; kind: "points"; points: string[] };
+
+export function ProductPolicies({ saree }: { saree: Saree }) {
+  const [openSection, setOpenSection] = useState("details");
+  const categoryLabel = categories.find((category) => category.id === saree.category)?.label
+    ?? saree.category.replaceAll("-", " ").replace(/\b\w/g, (character) => character.toUpperCase());
+  const sections: ProductAccordionSection[] = [
+    {
+      id: "details",
+      title: "PRODUCT DETAILS",
+      kind: "rows",
+      rows: [
+        ["Fabric", saree.fabric],
+        ["Category", categoryLabel],
+        ["Length", saree.length],
+      ].filter(([, value]) => Boolean(value)),
+    },
+    {
+      id: "description",
+      title: "PRODUCT DESCRIPTION",
+      kind: "text",
+      text: saree.productDescription?.trim() || saree.description || "Product description will be added soon.",
+    },
+    {
+      id: "specification",
+      title: "PRODUCT SPECIFICATION",
+      kind: "rows",
+      rows: [
+        ["Weight", saree.weight ?? ""],
+        ["Care Instructions", saree.care],
+        ["Country of Origin", saree.countryOfOrigin || "India"],
+        ...(saree.productSpecification?.trim()
+          ? [["Additional Specifications", saree.productSpecification.trim()] as [string, string]]
+          : []),
+      ].filter(([, value]) => Boolean(value)),
+    },
+    ...policies.map((policy) => ({
+      id: policy.id,
+      title: policy.title.toUpperCase(),
+      kind: "points" as const,
+      points: policy.points,
+    })),
+  ];
 
   return (
-    <div id="product-policies" className="mt-8 border-t border-border">
-      {policies.map((policy) => {
-        const isOpen = openPolicy === policy.title;
-        const contentId = `product-policy-${policy.title.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}`;
+    <div id="product-policies" className="product-detail-accordion">
+      {sections.map((section) => {
+        const isOpen = openSection === section.id;
+        const contentId = `product-accordion-${section.id}`;
         return (
-        <div key={policy.title} className="border-b border-border">
-          <button
-            type="button"
-            aria-expanded={isOpen}
-            aria-controls={contentId}
-            onClick={() => setOpenPolicy(isOpen ? "" : policy.title)}
-            className="flex w-full items-center justify-between gap-4 py-4 text-left text-sm font-medium text-primary"
-          >
-            <span>{policy.title}</span>
-            <ChevronDown className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} strokeWidth={1.6} />
-          </button>
-          {isOpen && (
-            <ul id={contentId} className="space-y-2 pb-5 pr-5 text-xs leading-relaxed text-muted-foreground">
-              {policy.points.map((point) => <li key={point} className="relative pl-3 before:absolute before:left-0 before:content-['•']">{point}</li>)}
-            </ul>
-          )}
-        </div>
+          <section key={section.id} className="product-detail-accordion-item">
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              aria-controls={contentId}
+              onClick={() => setOpenSection(isOpen ? "" : section.id)}
+              className={`product-detail-accordion-trigger${isOpen ? " is-open" : ""}`}
+            >
+              <span>{section.title}</span>
+              <ChevronDown className={`product-detail-accordion-chevron${isOpen ? " is-open" : ""}`} aria-hidden="true" />
+            </button>
+            <div
+              id={contentId}
+              className={`product-detail-accordion-panel${isOpen ? " is-open" : ""}`}
+              aria-hidden={!isOpen}
+            >
+              <div className="product-detail-accordion-content">
+                {section.kind === "rows" ? (
+                  <div className="product-detail-info-table">
+                    {section.rows.map(([label, value]) => (
+                      <div key={label} className="product-detail-info-row">
+                        <span>{label}</span>
+                        <span>{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : section.kind === "text" ? (
+                  <p>{section.text}</p>
+                ) : (
+                  <ul className="product-detail-policy-list">
+                    {section.points.map((point) => <li key={point}>{point}</li>)}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </section>
         );
       })}
+    </div>
+  );
+}
+
+export function ProductTrustStrip() {
+  const trustItems = [
+    { label: "Authentic handloom", Icon: BadgeCheck },
+    { label: "Easy returns", Icon: RefreshCw },
+    { label: "Secure payment", Icon: LockKeyhole },
+  ];
+
+  return (
+    <div className="product-trust-strip" aria-label="Shopping assurances">
+      {trustItems.map(({ label, Icon }) => (
+        <div key={label} className="product-trust-item">
+          <Icon aria-hidden="true" />
+          <span>{label}</span>
+        </div>
+      ))}
     </div>
   );
 }

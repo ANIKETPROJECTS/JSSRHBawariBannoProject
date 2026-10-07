@@ -37,6 +37,49 @@ export function Header() {
   const closeTimer = useRef<number | undefined>(undefined);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
+  const collectionTabs = nav.slice(2, 5);
+  const renderDesktopNavItem = (item: (typeof nav)[number]) => {
+    if (item.label === "Categories") {
+      return (
+        <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
+          <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className={`site-nav-trigger py-2 ${categoriesOpen ? "is-active" : ""}`}>
+            Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
+          </button>
+          {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-black/15 bg-white p-2 shadow-xl">
+            {[
+              { label: "Silk Sarees", href: "/categories/silk-sarees" },
+              { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
+              { label: "Designer Sarees", href: "/categories/designer-sarees" },
+              { label: "Wedding Collection", href: "/categories/wedding-collection" },
+            ].map((category) => (
+              <Link
+                key={category.label}
+                to={category.href}
+                className="block px-3 py-2.5 text-sm text-black transition-colors hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                onClick={() => setCategoriesOpen(false)}
+              >
+                {category.label}
+              </Link>
+            ))}
+          </div></div>}
+        </div>
+      );
+    }
+
+    const isCollectionTab = collectionTabs.some((tab) => tab.to === item.to);
+    const tabClass = isCollectionTab ? " site-collection-tab" : "";
+    return (
+      <Link
+        key={`${item.label}-${item.to}`}
+        to={item.to}
+        activeOptions={{ exact: item.to === "/" }}
+        className={`site-nav-link py-2${tabClass}`}
+        activeProps={{ className: `site-nav-link is-active py-2${tabClass}` }}
+      >
+        {item.label}
+      </Link>
+    );
+  };
 
   useEffect(() => {
     const phrases = ["Search a saree", "Search a fabric", "Search a collection"];
@@ -113,7 +156,7 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-            className="group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:-top-9"
+             className="site-header-logo group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:-top-9"
            >
             <img
               src={logoImage}
@@ -192,52 +235,36 @@ export function Header() {
 
        <nav
          aria-label="Primary navigation"
-           className="relative hidden h-14 w-full items-center justify-between gap-4 border-t border-black/15 bg-white px-4 text-black sm:px-8 lg:flex lg:px-10 xl:px-16"
+          className="site-primary-nav relative hidden h-14 w-full items-center border-t border-black/15 bg-white px-4 text-black sm:px-8 lg:grid lg:px-10 xl:px-16"
        >
-          {nav.map((item) => (
-            item.label === "Categories" ? (
-              <div key={`${item.label}-${item.to}`} className="relative" onMouseEnter={openCategories} onMouseLeave={closeCategories}>
-                   <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className={`site-nav-trigger py-2 ${categoriesOpen ? "is-active" : ""}`}>
-                   Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
-                </button>
-                   {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-black/15 bg-white p-2 shadow-xl">
-                  {[
-                    { label: "Silk Sarees", href: "/categories/silk-sarees" },
-                    { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
-                    { label: "Designer Sarees", href: "/categories/designer-sarees" },
-                    { label: "Wedding Collection", href: "/categories/wedding-collection" },
-                  ].map((category) => (
-                    <Link
-                      key={category.label}
-                      to={category.href}
-                        className="block px-3 py-2.5 text-sm text-black transition-colors hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                      onClick={() => setCategoriesOpen(false)}
-                    >
-                      {category.label}
-                    </Link>
-                  ))}
-                </div></div>}
-              </div>
-            ) : (
-              <Link
-                key={`${item.label}-${item.to}`}
-                to={item.to}
-                activeOptions={{ exact: item.to === "/" }}
-                    className="site-nav-link py-2"
-                activeProps={{
-                   className: "site-nav-link is-active py-2",
-                }}
-              >
-                {item.label}
-              </Link>
-            )
-          ))}
+          <div className="site-primary-nav-group site-primary-nav-start">
+            {nav.slice(0, 2).map(renderDesktopNavItem)}
+          </div>
+          <div className="site-primary-nav-tabs">
+            {collectionTabs.map(renderDesktopNavItem)}
+          </div>
+          <div className="site-primary-nav-group site-primary-nav-end">
+            {nav.slice(5).map(renderDesktopNavItem)}
+          </div>
       </nav>
+        <nav className="site-mobile-collection-tabs" aria-label="New arrival, trending, and bestseller">
+          {collectionTabs.map((item) => (
+            <Link
+              key={`${item.label}-${item.to}`}
+              to={item.to}
+              className="site-mobile-collection-tab"
+              activeProps={{ className: "site-mobile-collection-tab is-active" }}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </div>
       {mobileMenuOpen && (
           <div className="border-t border-border bg-[#ED145B] px-4 py-4 text-white shadow-sm lg:hidden">
            <nav aria-label="Mobile navigation" className="grid gap-1 font-sans text-base font-medium tracking-[0.04em]">
-            {nav.map((item) => (
+            {nav.filter((item) => !collectionTabs.some((tab) => tab.to === item.to)).map((item) => (
               item.label === "Categories" ? (
                   <details key={`${item.label}-${item.to}`} className="border-b border-border/70 pb-1">
                         <summary className="cursor-pointer list-none py-2.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">

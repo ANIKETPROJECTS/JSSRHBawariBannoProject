@@ -1,4 +1,5 @@
-import { RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Filter, RotateCcw, X } from "lucide-react";
 import { categories, type CategoryNode, type Saree } from "@/data/sarees";
 import { productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ type Props = {
   categoryData?: CategoryNode[];
   productsForCategories?: ReadonlyArray<Saree>;
   availableColors?: ReadonlyArray<{ key: string; label: string; hex: string }>;
+  categoryListingStyle?: boolean;
 };
 
 const filterOptions: Array<{ key: ProductFilterKey; label: string; options: string[] }> = [
@@ -67,29 +69,70 @@ export function CategorySidebar({
   categoryData,
   productsForCategories,
   availableColors,
+  categoryListingStyle = false,
 }: Props) {
   const categoryItems = categoryData ?? categories;
   const colorOptions = availableColors ?? productColors;
   const fabrics = Array.from(new Set((productsForCategories ?? []).map((product) => product.fabric).filter(Boolean)));
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside className="lg:w-64 lg:shrink-0">
-      <div className="border-y border-border py-4 lg:border-y-0 lg:border-r lg:pr-7">
-        <div className="flex items-center justify-between border-b border-border pb-4">
+    <aside className={cn("lg:w-64 lg:shrink-0", categoryListingStyle && "category-listing-sidebar")}>
+      {categoryListingStyle && (
+        <button
+          type="button"
+          className="category-listing-filter-trigger"
+          aria-haspopup="dialog"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <Filter className="size-4" aria-hidden="true" /> Filter
+        </button>
+      )}
+      {categoryListingStyle && mobileOpen && (
+        <button
+          type="button"
+          className="category-listing-filter-backdrop"
+          aria-label="Close filters"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+      <div
+        className={cn(
+          "border-y border-border py-4 lg:border-y-0 lg:border-r lg:pr-7",
+          categoryListingStyle && "category-listing-sidebar-panel",
+          categoryListingStyle && mobileOpen && "is-open",
+        )}
+        role={categoryListingStyle && mobileOpen ? "dialog" : undefined}
+        aria-label={categoryListingStyle && mobileOpen ? "Product filters" : undefined}
+      >
+        <div className={cn("flex items-center justify-between border-b border-border pb-4", categoryListingStyle && "category-listing-sidebar-heading")}>
           <div>
-            <p className="text-eyebrow text-muted-foreground">Refine</p>
-            <h2 className="mt-1 whitespace-nowrap font-display text-3xl text-primary">Filter by</h2>
+            {!categoryListingStyle && <p className="text-eyebrow text-muted-foreground">Refine</p>}
+            <h2 className={cn("mt-1 whitespace-nowrap font-display text-3xl text-primary", categoryListingStyle && "category-listing-sidebar-title")}>Filter by</h2>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              onFiltersChange({ ...defaultFilters });
-              onSelect({ category: null, subcategory: null });
-            }}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
-          >
-            <RotateCcw className="size-3" strokeWidth={1.5} /> Clear
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                onFiltersChange({ ...defaultFilters });
+                onSelect({ category: null, subcategory: null });
+              }}
+              className={categoryListingStyle ? "category-listing-clear" : "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"}
+            >
+              {!categoryListingStyle && <RotateCcw className="size-3" strokeWidth={1.5} />} Clear
+            </button>
+            {categoryListingStyle && (
+              <button
+                type="button"
+                className="category-listing-close-filters"
+                aria-label="Close filters"
+                onClick={() => setMobileOpen(false)}
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
 
         <details open className="border-b border-border py-4">
@@ -163,7 +206,7 @@ export function CategorySidebar({
         <details open className="border-b border-border py-4">
           <summary className="cursor-pointer list-none text-base font-medium text-primary">Category</summary>
           <div className="space-y-1 pt-3 text-sm">
-            <button type="button" onClick={() => onSelect({ category: null, subcategory: null })} className={cn("block py-1 text-left hover:text-primary", !selection.category && "font-medium text-primary")}>
+            <button type="button" onClick={() => onSelect({ category: null, subcategory: null })} className={cn("block py-1 text-left hover:text-primary", categoryListingStyle && "category-listing-category-choice", !selection.category && "font-medium text-primary", categoryListingStyle && !selection.category && "is-active")}>
               All Sarees
             </button>
             {categoryItems.map((category) => (
@@ -171,7 +214,7 @@ export function CategorySidebar({
                 <button
                   type="button"
                   onClick={() => onSelect({ category: category.id, subcategory: null })}
-                  className={cn("block py-1 text-left hover:text-primary", selection.category === category.id && !selection.subcategory && "font-medium text-primary")}
+                  className={cn("block py-1 text-left hover:text-primary", categoryListingStyle && "category-listing-category-choice", selection.category === category.id && !selection.subcategory && "font-medium text-primary", categoryListingStyle && selection.category === category.id && !selection.subcategory && "is-active")}
                 >
                   {category.label}
                 </button>
@@ -180,7 +223,7 @@ export function CategorySidebar({
                     key={child.id}
                     type="button"
                     onClick={() => onSelect({ category: category.id, subcategory: child.id })}
-                    className={cn("ml-3 block py-1 text-left text-muted-foreground hover:text-primary", selection.subcategory === child.id && "font-medium text-primary")}
+                    className={cn("ml-3 block py-1 text-left text-muted-foreground hover:text-primary", categoryListingStyle && "category-listing-category-choice category-listing-subcategory-choice", selection.subcategory === child.id && "font-medium text-primary", categoryListingStyle && selection.subcategory === child.id && "is-active")}
                   >
                     {child.label}
                   </button>
@@ -256,6 +299,11 @@ export function CategorySidebar({
             />
           </details>
         ))}
+        {categoryListingStyle && (
+          <button type="button" className="category-listing-apply" onClick={() => setMobileOpen(false)}>
+            Apply
+          </button>
+        )}
       </div>
     </aside>
   );

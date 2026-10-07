@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, Copy, CreditCard, Eye, FileText, GripVertical, Heart, History, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
+import { invalidateStorefrontCatalogCache } from "@/lib/storefront-catalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
@@ -48,6 +49,14 @@ async function api(path: string, init?: RequestInit) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(result.error ?? "Something went wrong.");
+  const method = (init?.method ?? "GET").toUpperCase();
+  const catalogPath = path.split("?")[0] ?? path;
+  if (
+    ["POST", "PUT", "PATCH", "DELETE"].includes(method)
+    && /^\/api\/admin\/(?:products|categories|inventory|purchase-invoices|orders|seed)(?:\/|$)/.test(catalogPath)
+  ) {
+    invalidateStorefrontCatalogCache();
+  }
   return result;
 }
 

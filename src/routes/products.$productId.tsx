@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Check, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { ProductRating, ProductReviews } from "@/components/site/ProductReviews";
-import { ProductPolicies } from "@/components/site/ProductPolicies";
+import { ProductPolicies, ProductTrustStrip } from "@/components/site/ProductPolicies";
 import { useCart } from "@/components/site/CartDrawer";
 import { useReviewSummary } from "@/components/site/ReviewsContext";
 import { useWishlist } from "@/components/site/WishlistContext";
-import { formatPrice, sarees, type SareeVariant } from "@/data/sarees";
+import { formatPrice, sarees, type Saree, type SareeVariant } from "@/data/sarees";
 import { getProductColor } from "@/data/colors";
+import { getCachedStorefrontCatalog, loadStorefrontCatalog } from "@/lib/storefront-catalog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/products/$productId")({
@@ -39,23 +40,77 @@ export const Route = createFileRoute("/products/$productId")({
 function ProductDetail() {
   const { saree: initialSaree } = Route.useLoaderData();
   const { productId } = Route.useParams();
-  const [saree, setSaree] = useState(initialSaree);
-  const [loading, setLoading] = useState(!initialSaree);
+  const immediateSaree = useMemo(() => {
+    if (initialSaree) return initialSaree;
+    const cachedProduct = getCachedStorefrontCatalog()?.products.find(
+      (product) => String(product.id ?? "") === productId,
+    );
+    return cachedProduct ? normalizeProduct(cachedProduct, null) : null;
+  }, [initialSaree, productId]);
+  const [productState, setProductState] = useState<{
+    productId: string;
+    saree: Saree | null;
+    loading: boolean;
+  }>(() => ({ productId, saree: immediateSaree, loading: !immediateSaree }));
+  const currentProductState = productState.productId === productId
+    ? productState
+    : { productId, saree: immediateSaree, loading: !immediateSaree };
+  const { saree, loading } = currentProductState;
+
   useEffect(() => {
-    fetch("/api/catalog")
-      .then((response) => response.ok ? response.json() : Promise.reject(new Error("Catalog unavailable")))
-      .then((catalog: { products?: Array<Record<string, unknown>> }) => {
-        const liveProduct = (catalog.products ?? []).find((product) => String(product.id ?? "") === productId);
-        if (liveProduct) setSaree(normalizeProduct(liveProduct, initialSaree));
+    let active = true;
+    void loadStorefrontCatalog()
+      .then((catalog) => {
+        if (!active) return;
+        const liveProduct = catalog.products.find((product) => String(product.id ?? "") === productId);
+        if (liveProduct) {
+          setProductState({ productId, saree: normalizeProduct(liveProduct, immediateSaree), loading: false });
+        }
       })
       .catch(() => undefined)
-      .finally(() => setLoading(false));
-  }, [initialSaree, productId]);
-  if (!saree) return <SiteShell><div className="mx-auto max-w-7xl px-5 py-24 text-center"><h1 className="font-display text-4xl text-primary">Product unavailable</h1><p className="mt-3 text-sm text-muted-foreground">{loading ? "Loading product details…" : "This product could not be found."}</p><Link to="/products" className="mt-7 inline-flex bg-primary px-5 py-3 text-eyebrow text-white">Back to products</Link></div></SiteShell>;
+      .finally(() => {
+        if (!active) return;
+        setProductState((current) => current.productId === productId
+          ? { ...current, loading: false }
+          : { productId, saree: immediateSaree, loading: false });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [immediateSaree, productId]);
+
+  if (!saree && loading) {
+    return <SiteShell><ProductDetailLoading /></SiteShell>;
+  }
+  if (!saree) {
+    return <SiteShell><div className="mx-auto max-w-7xl px-5 py-24 text-center"><h1 className="font-display text-4xl text-primary">Product unavailable</h1><p className="mt-3 text-sm text-muted-foreground">This product could not be found.</p><Link to="/products" className="mt-7 inline-flex bg-primary px-5 py-3 text-eyebrow text-white">Back to products</Link></div></SiteShell>;
+  }
   return (
     <SiteShell>
       <ProductDetailContent saree={saree} />
     </SiteShell>
+  );
+}
+
+function ProductDetailLoading() {
+  return (
+    <>
+      <div className="product-detail-breadcrumb-wrap">
+        <div className="h-3 w-40 animate-pulse bg-secondary/70" />
+      </div>
+      <section className="product-detail-frame" aria-busy="true" aria-label="Loading product details">
+        <div className="aspect-[3/4] w-full animate-pulse bg-secondary/70" />
+        <div className="product-detail-copy space-y-5">
+          <p role="status" className="text-sm text-muted-foreground">Loading product details…</p>
+          <div className="h-3 w-28 animate-pulse bg-secondary/70" />
+          <div className="h-10 w-4/5 animate-pulse bg-secondary/70" />
+          <div className="h-20 w-full animate-pulse bg-secondary/70" />
+          <div className="h-8 w-32 animate-pulse bg-secondary/70" />
+          <div className="h-12 w-full animate-pulse bg-secondary/70" />
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -110,37 +165,6 @@ function normalizeProduct(raw: Record<string, unknown>, fallback: (typeof sarees
     discountType: raw.discountType === "fixed" ? "fixed" : "percentage",
     discountValue: raw.discountValue == null ? fallback?.discountValue : Number(raw.discountValue),
   };
-}
-
-function ProductInfoSections({ saree }: { saree: (typeof sarees)[number] }) {
-  const [openInfo, setOpenInfo] = useState("details");
-  const details = [
-    ["Fabric", saree.fabric],
-    ["Category", saree.category],
-    ["Length", saree.length],
-  ].filter(([, value]) => value);
-  const specifications = [
-    ["Weight", saree.weight],
-    ["Care Instructions", saree.care],
-    ["Country of Origin", saree.countryOfOrigin || "India"],
-  ].filter(([, value]) => value);
-  const sections = [
-    ["details", "PRODUCT DETAILS", details],
-    ["description", "PRODUCT DESCRIPTION", saree.description ? [["Description", saree.description]] : []],
-    ["specification", "PRODUCT SPECIFICATION", specifications],
-  ] as const;
-  return (
-    <div className="mt-8 border-y border-border">
-      {sections.map(([id, title, rows]) => (
-        <div key={id} className="border-b border-border last:border-b-0">
-          <button type="button" aria-expanded={openInfo === id} onClick={() => setOpenInfo(openInfo === id ? "" : id)} className="flex w-full items-center justify-between gap-4 py-4 text-left text-xs font-medium tracking-[0.08em] text-primary">
-            <span>{title}</span><span className="text-base font-normal">{openInfo === id ? "⌃" : "⌄"}</span>
-          </button>
-          {openInfo === id && <div className="space-y-2 pb-5 text-sm leading-relaxed text-muted-foreground">{rows.length ? rows.map(([label, value]) => <div key={label}><span className="font-medium text-foreground/80">{label}: </span><span className="whitespace-pre-line">{value}</span></div>) : <p>Product information will be added soon.</p>}</div>}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
@@ -218,13 +242,12 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
   const related = sarees
     .filter((s) => s.id !== saree.id && s.category === saree.category)
-    .concat(sarees.filter((s) => s.id !== saree.id && s.category !== saree.category))
     .slice(0, 4);
 
   return (
     <>
-      <div className="mx-auto max-w-7xl overflow-hidden px-4 pt-6 sm:px-5 sm:pt-8">
-        <nav className="overflow-x-auto whitespace-nowrap text-xs text-muted-foreground">
+      <div className="product-detail-breadcrumb-wrap">
+        <nav className="product-detail-breadcrumbs">
           <Link to="/" className="hover:text-primary">
             Home
           </Link>
@@ -237,8 +260,8 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
         </nav>
       </div>
 
-      <section className="section-frame mx-2 mt-6 grid max-w-7xl gap-8 px-4 py-5 sm:mx-3 sm:mt-8 sm:gap-12 sm:px-5 sm:py-8 lg:grid-cols-2">
-        <div className="flex self-start gap-2 sm:gap-4">
+      <section className="product-detail-frame">
+        <div className="product-detail-gallery flex self-start gap-2 sm:gap-4">
           <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-16 sm:gap-3">
             {gallery.map((img, i) => (
               <button
@@ -272,9 +295,9 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
           </div>
         </div>
 
-        <div>
+        <div className="product-detail-copy">
           <p className="text-eyebrow text-muted-foreground">{saree.fabric}</p>
-          <h1 className="page-title-light mt-3 font-display text-3xl text-primary sm:text-4xl md:text-5xl">{saree.name}</h1>
+          <h1 className="product-detail-title page-title-light mt-3 font-display text-primary">{saree.name}</h1>
           <div className="mt-4">
             <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{saree.description || "Product description will be added soon."}</p>
@@ -386,21 +409,28 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
             </button>
           </div>
 
-          <ProductInfoSections saree={saree} />
-          <ProductPolicies />
+          <ProductPolicies saree={saree} />
+          <ProductTrustStrip />
         </div>
       </section>
 
-      <ProductReviews productId={saree.id} />
+      <div className="product-detail-reviews-container">
+        <ProductReviews productId={saree.id} />
+      </div>
 
-      <section className="section-frame mx-2 mt-16 max-w-7xl px-4 py-8 sm:mx-3 sm:mt-24 sm:px-5 sm:py-10">
-        <h2 className="font-display text-3xl text-primary rule-gold">You may also like</h2>
-        <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4">
-          {related.map((item) => (
-            <ProductCard key={item.id} saree={item} />
-          ))}
-        </div>
-      </section>
+      {related.length > 0 && (
+        <section className="product-recommendations-band">
+          <div className="product-recommendations-inner">
+            <h2 className="product-recommendations-title">You May Also Like</h2>
+            <div className="product-recommendations-ornament" aria-hidden="true" />
+            <div className={`product-recommendations-grid${related.length < 4 ? " is-short" : ""}`}>
+              {related.map((item) => (
+                <ProductCard key={item.id} saree={item} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 }

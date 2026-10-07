@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { CategorySidebar, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
@@ -12,6 +13,24 @@ const sortLabels: Record<Sort, string> = {
   "price-asc": "Price: Low to High",
   "price-desc": "Price: High to Low",
   newest: "Newest",
+};
+
+const curatedListingPresentation: Record<string, { eyebrow: string; title: string; description: string }> = {
+  "/new-arrival": {
+    eyebrow: "JUST IN",
+    title: "New Arrival",
+    description: "Fresh drapes, straight from the looms.",
+  },
+  "/trending": {
+    eyebrow: "WHAT'S TRENDING",
+    title: "Trending Sarees",
+    description: "The drapes everyone is choosing right now.",
+  },
+  "/bestseller": {
+    eyebrow: "OUR BEST LOVED",
+    title: "Bestsellers",
+    description: "Customer favourites, loved again and again.",
+  },
 };
 
 const categoryDetails: Record<string, { title: string; description: string }> = {
@@ -148,12 +167,21 @@ export function CollectionPage({
   minimumProducts,
   initialSelection = { category: null, subcategory: null },
 }: CollectionPageProps) {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const categoryListingStyle = pathname.startsWith("/categories/");
+  const curatedPresentation = curatedListingPresentation[pathname];
+  const sharedListingStyle = categoryListingStyle || Boolean(curatedPresentation);
+  const bannerEyebrow = curatedPresentation?.eyebrow ?? eyebrow;
+  const bannerTitle = curatedPresentation?.title ?? title;
+  const bannerDescription = curatedPresentation?.description ?? description;
+  const listingBadge = pathname === "/new-arrival" ? "new" : pathname === "/bestseller" ? "rank" : undefined;
   const [selection, setSelection] = useState<Selection>(initialSelection);
   const [sort, setSort] = useState<Sort>("featured");
   const [filters, setFilters] = useState<Filters>({ ...defaultFilters });
   const [liveCategories, setLiveCategories] = useState<CategoryNode[] | null>(null);
   const [liveProducts, setLiveProducts] = useState<Saree[] | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">(products ? "ready" : "loading");
+  const [visibleCount, setVisibleCount] = useState(16);
 
   useEffect(() => {
     fetch("/api/catalog")
@@ -225,71 +253,125 @@ export function CollectionPage({
     return sorted;
   }, [collectionProducts, filters, selection, sort]);
 
-  return (
-    <>
-      <div className="fabric-texture border-b border-border">
-        <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-12">
-          <p className="text-eyebrow text-muted-foreground">{eyebrow}</p>
-          <h1 className="mt-2 font-display text-5xl font-light leading-none tracking-tight text-primary md:text-6xl">
-            {title}
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
-        </div>
+  const visibleList = list.slice(0, visibleCount);
+  const clearFilters = () => {
+    setFilters({ ...defaultFilters });
+    setSelection({ category: null, subcategory: null });
+  };
+  const header = sharedListingStyle ? (
+    <header className="category-listing-hero">
+      <div className="category-listing-container category-listing-hero-content">
+        <nav className="category-listing-breadcrumbs" aria-label="Breadcrumb">
+          <Link to="/">Home</Link>
+          <span aria-hidden="true">/</span>
+          <Link to="/products">Sarees</Link>
+          <span aria-hidden="true">/</span>
+          <span aria-current="page">{bannerTitle}</span>
+        </nav>
+        <p className="category-listing-eyebrow">{bannerEyebrow}</p>
+        <h1 className="category-listing-title">{bannerTitle}</h1>
+        <p className="category-listing-description">{bannerDescription}</p>
       </div>
+    </header>
+  ) : (
+    <div className="fabric-texture border-b border-border">
+      <div className="mx-auto max-w-[1440px] px-5 py-10 md:px-8 md:py-12">
+        <p className="text-eyebrow text-muted-foreground">{eyebrow}</p>
+        <h1 className="mt-2 font-display text-5xl font-light leading-none tracking-tight text-primary md:text-6xl">
+          {title}
+        </h1>
+        <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
+  const content = (
+    <section className={sharedListingStyle ? "category-listing-content" : "mx-auto max-w-[1440px] px-5 pb-16 pt-8 md:px-8 lg:pt-10"}>
+      <div className={sharedListingStyle ? "category-listing-container category-listing-layout" : "flex flex-col gap-7 sm:gap-10 lg:flex-row"}>
+        <CategorySidebar
+          selection={selection}
+          onSelect={setSelection}
+          filters={filters}
+          onFiltersChange={setFilters}
+          categoryData={activeCategories}
+          productsForCategories={collectionProducts}
+          availableColors={availableColors}
+          categoryListingStyle={sharedListingStyle}
+        />
 
-      <section className="mx-auto max-w-[1440px] px-5 pb-16 pt-8 md:px-8 lg:pt-10">
-        <div className="flex flex-col gap-7 sm:gap-10 lg:flex-row">
-          <CategorySidebar
-            selection={selection}
-            onSelect={setSelection}
-            filters={filters}
-            onFiltersChange={setFilters}
-            categoryData={activeCategories}
-            productsForCategories={collectionProducts}
-            availableColors={availableColors}
-          />
-
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-              {catalogState === "loading" && !products ? (
-                <p className="text-sm text-muted-foreground">Loading the collection…</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {list.length} {list.length === 1 ? "saree" : "sarees"}
-                </p>
-              )}
-              <label className="flex w-full items-center justify-between gap-3 text-sm sm:w-auto sm:justify-start">
-                <span className="text-muted-foreground">Sort by</span>
-                <select
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as Sort)}
-                  className="min-w-0 border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-gold sm:w-auto"
-                >
-                  {(Object.keys(sortLabels) as Sort[]).map((key) => (
-                    <option key={key} value={key}>{sortLabels[key]}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
+        <div className={sharedListingStyle ? "category-listing-results" : "flex-1"}>
+          <div className={sharedListingStyle ? "category-listing-toolbar" : "flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"}>
             {catalogState === "loading" && !products ? (
-              <div className="mt-7 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading the collection">
-                {[0, 1, 2].map((item) => <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />)}
+              <p className="text-sm text-muted-foreground">Loading the collection…</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {list.length} {list.length === 1 ? "saree" : "sarees"}
+              </p>
+            )}
+            <label className={sharedListingStyle ? "category-listing-sort" : "flex w-full items-center justify-between gap-3 text-sm sm:w-auto sm:justify-start"}>
+              <span className="text-muted-foreground">Sort by</span>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as Sort)}
+                className={sharedListingStyle ? "category-listing-sort-select" : "min-w-0 border border-border bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-gold sm:w-auto"}
+              >
+                {(Object.keys(sortLabels) as Sort[]).map((key) => (
+                  <option key={key} value={key}>{sortLabels[key]}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {catalogState === "loading" && !products ? (
+            <div className={sharedListingStyle ? "category-listing-product-grid category-listing-skeleton-grid" : "mt-7 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 lg:grid-cols-3"} aria-busy="true" aria-label="Loading the collection">
+              {[0, 1, 2].map((item) => <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />)}
+            </div>
+          ) : (
+            <div className={sharedListingStyle ? "category-listing-product-grid" : "mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4"}>
+              {(categoryListingStyle ? visibleList : list).map((saree, index) => (
+                <ProductCard
+                  key={saree.id}
+                  saree={saree}
+                  tall
+                  editorial
+                  showBuyNow
+                  categoryListingStyle={categoryListingStyle}
+                  listingVisualStyle={sharedListingStyle}
+                  listingBadge={listingBadge}
+                  listingRank={listingBadge === "rank" ? index + 1 : undefined}
+                />
+              ))}
+            </div>
+          )}
+
+          {categoryListingStyle && list.length > visibleCount && (
+            <div className="category-listing-load-more">
+              <button type="button" onClick={() => setVisibleCount((count) => count + 8)}>
+                Load more
+              </button>
+            </div>
+          )}
+
+          {catalogState !== "loading" && list.length === 0 && (
+            categoryListingStyle ? (
+              <div className="category-listing-empty">
+                <p>No sarees found</p>
+                <button type="button" onClick={clearFilters}>Clear filters</button>
               </div>
             ) : (
-               <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
-                 {list.map((saree) => <ProductCard key={saree.id} saree={saree} tall editorial showBuyNow />)}
-              </div>
-            )}
-            {catalogState !== "loading" && list.length === 0 && (
               <p className="mt-10 text-sm text-muted-foreground">
                 Nothing here yet — try another category or clear a filter.
               </p>
-            )}
-          </div>
+            )
+          )}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
+  );
+
+  return (
+    sharedListingStyle
+      ? <div className="category-listing-page">{header}{content}</div>
+      : <>{header}{content}</>
   );
 }
 

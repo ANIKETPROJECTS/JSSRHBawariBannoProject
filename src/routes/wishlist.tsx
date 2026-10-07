@@ -96,7 +96,7 @@ function WishlistContent() {
                   </button>
                 </div>
                 <Link to="/products/$productId" params={{ productId: saree.id }}>
-                  <h2 className="mt-4 text-lg text-primary">{saree.name}</h2>
+                  <h2 className="wishlist-product-name mt-4 text-primary">{saree.name}</h2>
                   <p className="mt-1 text-sm">{formatPrice(saree.price)}</p>
                 </Link>
               </article>

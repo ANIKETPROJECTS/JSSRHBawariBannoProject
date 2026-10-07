@@ -1,0 +1,21 @@
+Restyle ONLY the New Arrival, Trending and Bestseller listing pages and the top tab menu (NEW ARRIVAL / TRENDING / BESTSELLER). Do not touch backend, database, API, auth, cart, wishlist, filter logic, sorting logic, routes, or any other page. Tell me which files you plan to change before editing.
+
+1. Reuse, don't duplicate: these pages must use the same banner, filter sidebar, top bar, product grid and product card components and styles as the category pages (Silk Sarees etc.). If they use separate components, switch them to the shared ones. Do not copy the code.
+
+2. Banner (same design as category pages: ivory background, gold and maroon saree border strip at the bottom, Playfair Display title, breadcrumbs, about 180px high). Only the label, title and description change:
+- New Arrival: label "JUST IN", title "New Arrival", description "Fresh drapes, straight from the looms."
+- Trending: label "WHAT'S TRENDING", title "Trending Sarees", description "The drapes everyone is choosing right now."
+- Bestseller: label "OUR BEST LOVED", title "Bestsellers", description "Customer favourites, loved again and again."
+Remove the faint diagonal line pattern behind the banner and use the ivory gradient instead.
+
+3. Tab menu: one consistent style for all three tabs.
+- Inter 500, 14px, uppercase, letter-spacing 0.08em, same size for all.
+- Normal: dark grey. Hover: maroon. Active: maroon with a 2px gold underline exactly as wide as the text, 6px below it.
+- Remove the pink color and the different underline lengths. The thin line under the menu becomes a light gold line (#EADBC0).
+- Center the three tabs with equal spacing (about 48px between them), not spread to the far left and right. On mobile they stay in one row, horizontally scrollable if needed.
+
+4. Small extras
+- Bestseller page only: a small maroon rank badge (#1, #2, #3...) at the top left of each card image, on top of the normal card.
+- New Arrival page only: a small "NEW" pill in maroon at the top left of each card image.
+
+Do not change data, filter or sort behavior, or any other page. Do not rename any components.

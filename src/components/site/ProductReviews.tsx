@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { emptyReviewSummary, useReviewSummary, useReviews, type ReviewSummary } from "./ReviewsContext";
 import { useCustomerAuth } from "./CustomerAuthContext";
@@ -50,10 +49,7 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [rating, setRating] = useState(0);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
 
-  const previews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
-  useEffect(() => () => previews.forEach(({ url }) => URL.revokeObjectURL(url)), [previews]);
   useEffect(() => setSummary(contextSummary), [contextSummary]);
   async function loadReviews() {
     setLoading(true);
@@ -74,24 +70,11 @@ export function ProductReviews({ productId }: { productId: string }) {
     void loadReviews();
   }, [productId]);
 
-  function chooseFiles(event: React.ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(event.target.files ?? []);
-    const valid = selected.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
-    if (valid.length !== selected.length) toast.error("Only image and video files can be attached.");
-    if (valid.some((file) => file.size > (file.type.startsWith("video/") ? 20 : 8) * 1024 * 1024)) {
-      toast.error("Images must be under 8 MB and videos must be under 20 MB.");
-      return;
-    }
-    setFiles((current) => [...current, ...valid].slice(0, 5));
-    event.target.value = "";
-  }
-
   function resetForm() {
     setShowForm(false);
     setRating(0);
     setTitle("");
     setBody("");
-    setFiles([]);
   }
 
   function startReview() {
@@ -111,7 +94,6 @@ export function ProductReviews({ productId }: { productId: string }) {
       form.set("rating", String(rating));
       form.set("title", title);
       form.set("body", body);
-      files.forEach((file) => form.append("media", file, file.name));
       const response = await fetch("/api/reviews", { method: "POST", body: form, credentials: "same-origin" });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -192,19 +174,8 @@ export function ProductReviews({ productId }: { productId: string }) {
           </div>
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             <label className="text-eyebrow text-muted-foreground">Review title<input required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="What stood out to you?" className="mt-2 w-full border-b border-border bg-transparent px-0 py-3 text-sm outline-none focus:border-gold" /></label>
-            <label className="text-eyebrow text-muted-foreground md:row-span-2">Review details<textarea required maxLength={5000} value={body} onChange={(event) => setBody(event.target.value)} rows={5} placeholder="Tell other customers about the weave, colour, fit, or occasion…" className="mt-2 w-full resize-y border border-border bg-white px-3 py-3 text-sm leading-relaxed outline-none focus:border-gold" /></label>
-            <label className="text-eyebrow text-muted-foreground">Photos or video <span className="normal-case tracking-normal">(optional)</span><input type="file" accept="image/*,video/*" multiple onChange={chooseFiles} className="mt-2 block w-full text-xs file:mr-3 file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:text-white" /><span className="mt-2 block text-[11px] normal-case tracking-normal">Up to 5 files · images under 8 MB · videos under 20 MB</span></label>
+            <label className="text-eyebrow text-muted-foreground">Review details<textarea required maxLength={5000} value={body} onChange={(event) => setBody(event.target.value)} rows={5} placeholder="Tell other customers about the weave, colour, fit, or occasion…" className="mt-2 w-full resize-y border border-border bg-white px-3 py-3 text-sm leading-relaxed outline-none focus:border-gold" /></label>
           </div>
-          {previews.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-3">
-              {previews.map(({ file, url }, index) => (
-                <div key={`${file.name}-${index}`} className="relative size-20 overflow-hidden border border-border bg-white">
-                  {file.type.startsWith("video/") ? <video src={url} className="h-full w-full object-cover" /> : <img src={url} alt="" className="h-full w-full object-cover" />}
-                  <button type="button" onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-white/90 text-primary" aria-label={`Remove ${file.name}`}><Trash2 className="size-3" /></button>
-                </div>
-              ))}
-            </div>
-          )}
           <button disabled={submitting} className="mt-6 bg-primary px-6 py-3 text-eyebrow text-white disabled:opacity-50">{submitting ? "Submitting review…" : "Submit review"}</button>
         </form>
       )}
