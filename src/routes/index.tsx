@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import drapeFilm from "@/assets/drape-film.mp4";
 import heroImage from "../../attached_assets/Gemini_Generated_Image_h64dhbh64dhbh64d_1789288153200.png";
 
@@ -185,6 +184,10 @@ function ProductRail({
   variant: "new-trends" | "best-sellers";
 }) {
   const railRef = useRef<HTMLDivElement>(null);
+  const scrollRail = (direction: -1 | 1) => {
+    const rail = railRef.current;
+    if (rail) rail.scrollBy({ left: rail.clientWidth * direction * 0.8, behavior: "smooth" });
+  };
 
   return (
     <section className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "bg-white"}`}>
@@ -204,7 +207,7 @@ function ProductRail({
           <button
             type="button"
             aria-label="Show previous new trends"
-            onClick={() => railRef.current?.scrollBy({ left: -(railRef.current.clientWidth * 0.8), behavior: "smooth" })}
+            onClick={() => scrollRail(-1)}
             className="home-carousel-arrow absolute left-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-left-3"
           >
             <ChevronLeft className="size-5" aria-hidden="true" />
@@ -220,7 +223,7 @@ function ProductRail({
           <button
             type="button"
             aria-label="Show more new trends"
-            onClick={() => railRef.current?.scrollBy({ left: railRef.current.clientWidth * 0.8, behavior: "smooth" })}
+            onClick={() => scrollRail(1)}
             className="home-carousel-arrow absolute right-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-right-3"
           >
             <ChevronRight className="size-5" aria-hidden="true" />
