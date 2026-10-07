@@ -253,6 +253,56 @@ function TrendingCollection({
   products: typeof sarees;
 }) {
   const [featured, ...collectionProducts] = products;
+  const productsViewportRef = useRef<HTMLDivElement>(null);
+  const productsTrackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const viewport = productsViewportRef.current;
+    const track = productsTrackRef.current;
+    if (!viewport || !track || collectionProducts.length < 2) return;
+
+    let pausedUntil = 0;
+    const pauseAutoplay = () => {
+      pausedUntil = Date.now() + 8000;
+    };
+    const touchOptions: AddEventListenerOptions = { passive: true };
+    viewport.addEventListener("pointerdown", pauseAutoplay);
+    viewport.addEventListener("touchstart", pauseAutoplay, touchOptions);
+
+    const timer = window.setInterval(() => {
+      if (
+        document.hidden ||
+        !window.matchMedia("(max-width: 639px)").matches ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+        (window.matchMedia("(hover: hover)").matches && viewport.matches(":hover")) ||
+        viewport.contains(document.activeElement) ||
+        Date.now() < pausedUntil
+      ) {
+        return;
+      }
+
+      const cards = Array.from(track.children) as HTMLElement[];
+      if (cards.length < 2) return;
+
+      const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+      const step = viewport.clientWidth + gap;
+      const currentIndex = Math.round(viewport.scrollLeft / step);
+      const nextIndex = currentIndex >= cards.length - 1 ? 0 : currentIndex + 1;
+      const nextCard = cards[nextIndex];
+      const left =
+        nextCard.getBoundingClientRect().left -
+        viewport.getBoundingClientRect().left +
+        viewport.scrollLeft;
+
+      viewport.scrollTo({ left, behavior: "smooth" });
+    }, 5200);
+
+    return () => {
+      window.clearInterval(timer);
+      viewport.removeEventListener("pointerdown", pauseAutoplay);
+      viewport.removeEventListener("touchstart", pauseAutoplay, touchOptions);
+    };
+  }, [collectionProducts.length]);
 
   return (
     <section className="home-trending-section w-full bg-[#451421] py-6 lg:py-8">
@@ -273,14 +323,22 @@ function TrendingCollection({
               to={viewAllTo}
               image={maroonCollectionImage}
             />
-            {collectionProducts.slice(0, 4).map((saree) => (
-              <div
-                key={saree.id}
-                className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
-              >
-                <ProductCard saree={saree} tall editorial showBuyNow />
+            <div
+              ref={productsViewportRef}
+              className="home-trending-products-viewport"
+              aria-label="Trending products"
+            >
+              <div ref={productsTrackRef} className="home-trending-products-track">
+                {collectionProducts.slice(0, 4).map((saree) => (
+                  <div
+                    key={saree.id}
+                    className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
+                  >
+                    <ProductCard saree={saree} tall editorial showBuyNow />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         )}
       </div>

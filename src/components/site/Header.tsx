@@ -156,12 +156,12 @@ export function Header() {
              event.preventDefault();
              window.scrollTo({ top: 0, behavior: "smooth" });
            }}
-             className="site-header-logo group absolute -top-1 left-1/2 z-10 flex -translate-x-1/2 items-baseline gap-2 lg:-top-9"
+              className="site-header-logo group absolute -top-1 z-10 flex items-baseline gap-2 lg:-top-9"
            >
             <img
               src={logoImage}
               alt="Bawari Banno"
-                 className="h-[5rem] w-[13.5rem] object-contain sm:h-[5.25rem] sm:w-[14rem] lg:h-[8rem] lg:w-[25rem]"
+                  className="h-[5rem] w-[min(13.5rem,42vw)] object-contain sm:h-[5.25rem] sm:w-[14rem] lg:h-[8rem] lg:w-[25rem]"
             />
         </Link>
 

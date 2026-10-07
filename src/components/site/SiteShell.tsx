@@ -1,13 +1,37 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowUp } from "lucide-react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import whatsappIcon from "../../../attached_assets/apple_1787301622693.png";
 
 export function SiteShell({ children }: { children: ReactNode }) {
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const updateVisibility = () => setShowBackToTop(window.scrollY > 320);
+    updateVisibility();
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", updateVisibility);
+  }, []);
+
   return (
     <div className="flex min-h-screen min-w-0 w-full flex-col overflow-x-clip bg-background">
       <Header />
       <main className="min-w-0 flex-1">{children}</main>
+      {showBackToTop && (
+        <button
+          type="button"
+          aria-label="Back to top"
+          title="Back to top"
+          onClick={() => {
+            const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+          }}
+          className="fixed bottom-[4.75rem] right-3 z-40 flex size-10 items-center justify-center rounded-full bg-primary text-white shadow-md transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        >
+          <ArrowUp aria-hidden="true" className="size-4" />
+        </button>
+      )}
       <a
         href="https://wa.me/918459769859"
         target="_blank"
