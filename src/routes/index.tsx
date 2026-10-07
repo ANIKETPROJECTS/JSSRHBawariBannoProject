@@ -4,7 +4,6 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import drapeFilm from "@/assets/drape-film.mp4";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import heroImage from "../../attached_assets/Gemini_Generated_Image_h64dhbh64dhbh64d_1789288153200.png";
 
@@ -148,12 +147,7 @@ function Home() {
           />
 
           <ClientTestimonials
-            videos={homepageProducts.slice(0, 5).map((saree, index) => ({
-              id: `testimonial-${saree.id}-${index}`,
-              src: drapeFilm,
-              poster: saree.image,
-              label: `Client testimonial ${index + 1}`,
-            }))}
+            products={homepageProducts.slice(0, 3)}
           />
         </>
       )}
@@ -225,7 +219,7 @@ function ProductRail({
             <div ref={railRef} className="home-trends-track">
               {products.map((saree) => (
                 <div key={saree.id} className="home-trends-card relative">
-                  <ProductCard saree={saree} tall editorial showAddToCart />
+                  <ProductCard saree={saree} tall editorial showBuyNow />
                   <span className="home-new-tag absolute left-2 top-2 z-10">New</span>
                 </div>
               ))}
@@ -250,7 +244,7 @@ function ProductRail({
                 <span className="home-bestseller-ribbon absolute left-2 top-12 z-20">
                   Bestseller
                 </span>
-                <ProductCard saree={saree} tall editorial showAddToCart />
+                <ProductCard saree={saree} tall editorial showBuyNow />
               </div>
             ))}
           </div>
@@ -295,7 +289,7 @@ function TrendingCollection({
                 key={saree.id}
                 className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
               >
-                <ProductCard saree={saree} tall editorial showAddToCart />
+                <ProductCard saree={saree} tall editorial showBuyNow />
               </div>
             ))}
           </div>
@@ -342,44 +336,55 @@ function CollectionBanner({
 }
 
 function ClientTestimonials({
-  videos,
+  products,
 }: {
-  videos: Array<{
-    id: string;
-    src: string;
-    poster: string;
-    label: string;
-  }>;
+  products: typeof sarees;
 }) {
   return (
-    <section className="w-full bg-white">
-      <div className="home-content-container pb-0 pt-8 sm:pt-10">
-        <div className="mb-4 text-center sm:mb-5">
-          <div className="relative mx-auto">
-            <h2 className="home-testimonials-title leading-tight text-primary">Client Testimonials</h2>
-          </div>
-        </div>
+    <section className="home-testimonials-section w-full">
+      <div className="home-testimonials-border" aria-hidden="true" />
+      <div className="home-testimonials-inner">
+        <header className="home-testimonials-heading">
+          <h2 className="home-testimonials-title leading-tight text-primary">Client Testimonials</h2>
+          <div className="home-testimonials-ornament" aria-hidden="true"><span /></div>
+          <p className="home-testimonials-subtitle">Loved by women across India</p>
+        </header>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-          {videos.map((video) => (
-            <div
-              key={video.id}
-              className="group relative overflow-hidden border border-border bg-card"
-            >
-              <video
-                src={video.src}
-                poster={video.poster}
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-label={video.label}
-                className="aspect-[3/5] w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-              />
-            </div>
+        <div className="home-testimonials-track">
+          {products.map((saree) => (
+            <article key={saree.id} className="home-testimonial-card">
+              <span className="home-testimonial-verified">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="m3.2 8.2 3 3 6.6-6.5" />
+                </svg>
+                Verified Buyer <span>(placeholder)</span>
+              </span>
+              <div className="home-testimonial-photo">
+                <img
+                  src={saree.image}
+                  alt="Product image placeholder; customer photo not provided"
+                  loading="lazy"
+                  width={180}
+                  height={180}
+                />
+                <span className="home-testimonial-photo-note">Photo placeholder</span>
+              </div>
+              <span className="home-testimonial-quote-mark" aria-hidden="true">“</span>
+              <p className="home-testimonial-review">
+                Review text placeholder — add the customer&apos;s quote.
+              </p>
+              <div className="home-testimonial-rating">
+                <span className="home-testimonial-stars" aria-label="Five-star rating placeholder">☆☆☆☆☆</span>
+                <span>Rating not provided (placeholder)</span>
+              </div>
+              <p className="home-testimonial-name">Customer name (placeholder)</p>
+              <p className="home-testimonial-city">City (placeholder)</p>
+              <p className="home-testimonial-product">Bought: {saree.name}</p>
+            </article>
           ))}
         </div>
       </div>
+      <div className="home-testimonials-border" aria-hidden="true" />
     </section>
   );
 }

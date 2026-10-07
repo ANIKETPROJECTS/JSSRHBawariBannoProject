@@ -1,10 +1,7 @@
 import { useWishlist } from "./WishlistContext";
 import { useReviewSummary } from "./ReviewsContext";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { formatPrice, type Saree } from "@/data/sarees";
-import { useCart } from "./CartDrawer";
-import addToCartIcon from "../../../attached_assets/shopping-cart_1789324905451.png";
-import productCartIcon from "../../../attached_assets/shopping-bag_(3)_1787336793109.png";
 import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
@@ -23,35 +20,22 @@ function editorialReviewCount(productId: string) {
 export function ProductCard({
   saree,
   tall = false,
-  showAddToCart = false,
+  showBuyNow = false,
   editorial = false,
   videoSrc,
 }: {
   saree: Saree;
   tall?: boolean;
-  showAddToCart?: boolean;
+  showBuyNow?: boolean;
   editorial?: boolean;
   videoSrc?: string;
 }) {
   const { ids, toggle } = useWishlist();
-  const { addItem } = useCart();
-  const navigate = useNavigate();
   const reviewSummary = useReviewSummary(saree.id);
   const isWishlisted = ids.includes(saree.id);
-  const showCardActions = !videoSrc && (showAddToCart || !editorial);
+  const showCardActions = !videoSrc && (showBuyNow || !editorial);
   const originalPrice = Number(saree.originalPrice ?? 0);
   const hasDiscount = originalPrice > saree.price && Number(saree.discountValue ?? 0) > 0;
-
-  const addProductToCart = () => {
-    if (saree.variants?.length) {
-      void navigate({
-        to: "/products/$productId",
-        params: { productId: saree.id },
-      });
-      return;
-    }
-    addItem(saree);
-  };
 
   return (
     <article className="group block">
@@ -81,24 +65,15 @@ export function ProductCard({
         </Link>
         {showCardActions && (
           <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-0 flex-col transition-transform duration-300 sm:translate-y-full sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0">
-            <button
-              type="button"
-              aria-label={`Add ${saree.name} to cart`}
-              onClick={addProductToCart}
-              className="flex min-h-10 w-full flex-none cursor-pointer items-center justify-center gap-1.5 bg-[#FFE300] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-black transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
-            >
-              <img src={addToCartIcon} alt="" aria-hidden="true" className="size-5 object-contain sm:size-6" />
-              <span>Add to Cart</span>
-            </button>
-            <button
-              type="button"
+            <Link
+              to="/products/$productId"
+              params={{ productId: saree.id }}
               aria-label={`Buy ${saree.name} now`}
-              onClick={addProductToCart}
               className="flex min-h-10 w-full flex-none cursor-pointer items-center justify-center gap-1.5 bg-[#ED145B] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-white transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
             >
               <img src={buyNowIcon} alt="" aria-hidden="true" className="size-5 object-contain brightness-0 invert sm:size-6" />
               <span>Buy Now</span>
-            </button>
+            </Link>
           </div>
         )}
         {editorial && (
@@ -188,16 +163,6 @@ export function ProductCard({
               </>
             )}
           </div>
-          {showCardActions && (
-            <button
-              type="button"
-              aria-label={`Add ${saree.name} to cart`}
-              onClick={addProductToCart}
-              className="product-card-cart-button ml-auto flex size-7 shrink-0 cursor-pointer items-center justify-center transition-transform hover:scale-110 active:scale-95"
-            >
-              <img src={productCartIcon} alt="" aria-hidden="true" className="size-6 object-contain" />
-            </button>
-          )}
         </div>
       </div>
     </article>

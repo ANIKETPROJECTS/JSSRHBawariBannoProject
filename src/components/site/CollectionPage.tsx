@@ -278,7 +278,7 @@ export function CollectionPage({
               </div>
             ) : (
                <div className="mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
-                 {list.map((saree) => <ProductCard key={saree.id} saree={saree} tall editorial showAddToCart />)}
+                 {list.map((saree) => <ProductCard key={saree.id} saree={saree} tall editorial showBuyNow />)}
               </div>
             )}
             {catalogState !== "loading" && list.length === 0 && (
