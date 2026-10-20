@@ -39,6 +39,15 @@ function ComingSoonPage() {
       <p className="mt-4 max-w-md text-base leading-relaxed text-white/90 sm:text-lg">
         We’re getting things ready. Please check back soon.
       </p>
+      <a
+        href="https://wa.me/919167599635"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat with us on WhatsApp at 9167599635"
+        className="mt-6 text-sm text-white underline decoration-white/70 underline-offset-4 transition-colors hover:text-white/80 sm:text-base"
+      >
+        Visit us on WhatsApp · 9167599635
+      </a>
     </main>
   );
 }
