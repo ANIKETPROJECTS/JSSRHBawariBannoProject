@@ -18,7 +18,34 @@ import { ReviewsProvider } from "@/components/site/ReviewsContext";
 import { WishlistProvider } from "@/components/site/WishlistContext";
 import { Toaster } from "@/components/ui/sonner";
 
+// Temporary launch switch: set to false to restore the regular storefront and Admin UI.
+const COMING_SOON_MODE = true;
+
+function ComingSoonPage() {
+  return (
+    <main
+      aria-labelledby="coming-soon-title"
+      className="flex min-h-screen w-full flex-col items-center justify-center bg-[#ED145B] px-6 text-center text-white"
+    >
+      <img
+        src={logoImage}
+        alt="Bawari Banno"
+        className="mb-10 h-auto w-[min(18rem,72vw)] object-contain"
+      />
+      <div aria-hidden="true" className="mb-7 h-px w-16 bg-[#D4B16A]" />
+      <h1 id="coming-soon-title" className="font-display text-4xl font-medium sm:text-5xl">
+        Coming Soon
+      </h1>
+      <p className="mt-4 max-w-md text-base leading-relaxed text-white/90 sm:text-lg">
+        We’re getting things ready. Please check back soon.
+      </p>
+    </main>
+  );
+}
+
 function NotFoundComponent() {
+  if (COMING_SOON_MODE) return <ComingSoonPage />;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -46,6 +73,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
+  if (COMING_SOON_MODE) return <ComingSoonPage />;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -102,8 +131,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
-  notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
+  notFoundComponent: COMING_SOON_MODE ? ComingSoonPage : NotFoundComponent,
+  errorComponent: COMING_SOON_MODE ? ComingSoonPage : ErrorComponent,
 });
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -122,6 +151,8 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  if (COMING_SOON_MODE) return <ComingSoonPage />;
 
   return (
     <QueryClientProvider client={queryClient}>
