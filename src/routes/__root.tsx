@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import logoImage from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+import comingSoonLogoImage from "../../attached_assets/Full_Final-01_1792488092202.png";
 import { CartProvider } from "@/components/site/CartDrawer";
 import { CustomerAuthProvider } from "@/components/site/CustomerAuthContext";
 import { ReviewsProvider } from "@/components/site/ReviewsContext";
@@ -28,9 +29,9 @@ function ComingSoonPage() {
       className="flex min-h-screen w-full flex-col items-center justify-center bg-[#ED145B] px-6 text-center text-white"
     >
       <img
-        src={logoImage}
+        src={comingSoonLogoImage}
         alt="Bawari Banno"
-        className="mb-10 h-auto w-[min(18rem,72vw)] object-contain"
+        className="mb-8 size-48 max-w-[72vw] object-contain"
       />
       <div aria-hidden="true" className="mb-7 h-px w-16 bg-[#D4B16A]" />
       <h1 id="coming-soon-title" className="font-display text-4xl font-medium sm:text-5xl">
