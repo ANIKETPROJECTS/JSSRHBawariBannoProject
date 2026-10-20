@@ -38,7 +38,7 @@ function ComingSoonPage() {
             className="size-full rounded-full object-contain"
           />
         </div>
-        <section className="w-full max-w-xl rounded-xl border border-[#ED145B]/25 bg-white px-6 py-8 shadow-sm sm:px-10 sm:py-10">
+        <section className="w-full max-w-xl rounded-[2rem] border border-[#D4B16A]/70 bg-[#FFF8FC]/95 px-6 py-8 shadow-[0_18px_60px_rgba(150,20,70,0.2)] ring-1 ring-inset ring-white/70 backdrop-blur-md sm:px-10 sm:py-10">
           <div aria-hidden="true" className="mx-auto mb-6 h-px w-16 bg-[#D4B16A]" />
           <h1 id="coming-soon-title" className="font-display text-4xl font-medium text-[#ED145B] sm:text-5xl">
             Coming Soon
