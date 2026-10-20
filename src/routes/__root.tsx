@@ -26,29 +26,35 @@ function ComingSoonPage() {
   return (
     <main
       aria-labelledby="coming-soon-title"
-      className="flex min-h-screen w-full flex-col items-center justify-center bg-[#ED145B] px-6 text-center text-white"
+      className="flex min-h-screen w-full flex-col items-center justify-center bg-white px-6 py-12 text-center text-[#171717]"
     >
-      <img
-        src={comingSoonLogoImage}
-        alt="Bawari Banno"
-        className="mb-8 size-48 max-w-[72vw] object-contain"
-      />
-      <div aria-hidden="true" className="mb-7 h-px w-16 bg-[#D4B16A]" />
-      <h1 id="coming-soon-title" className="font-display text-4xl font-medium sm:text-5xl">
-        Coming Soon
-      </h1>
-      <p className="mt-4 max-w-md text-base leading-relaxed text-white/90 sm:text-lg">
-        We’re getting things ready. Please check back soon.
-      </p>
-      <a
-        href="https://wa.me/919167599635"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Chat with us on WhatsApp at 9167599635"
-        className="mt-6 text-sm text-white underline decoration-white/70 underline-offset-4 transition-colors hover:text-white/80 sm:text-base"
-      >
-        Visit us on WhatsApp · 9167599635
-      </a>
+      <div className="flex w-full flex-col items-center">
+        <div className="mb-8 flex size-[min(16rem,72vw)] items-center justify-center rounded-full border border-[#ED145B]/20 bg-white p-3 shadow-[0_12px_36px_rgba(23,23,23,0.10)]">
+          <img
+            src={comingSoonLogoImage}
+            alt="Bawari Banno"
+            className="size-full rounded-full object-contain"
+          />
+        </div>
+        <section className="w-full max-w-xl rounded-xl border border-[#ED145B]/25 bg-white px-6 py-8 shadow-sm sm:px-10 sm:py-10">
+          <div aria-hidden="true" className="mx-auto mb-6 h-px w-16 bg-[#D4B16A]" />
+          <h1 id="coming-soon-title" className="font-display text-4xl font-medium text-[#ED145B] sm:text-5xl">
+            Coming Soon
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-[#5D5960] sm:text-lg">
+            We’re getting things ready. Please check back soon.
+          </p>
+          <a
+            href="https://wa.me/919167599635"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Chat with us on WhatsApp at 9167599635"
+            className="mt-6 inline-block text-sm text-[#ED145B] underline decoration-[#ED145B]/60 underline-offset-4 transition-colors hover:text-[#B90F47] sm:text-base"
+          >
+            Visit us on WhatsApp · 9167599635
+          </a>
+        </section>
+      </div>
     </main>
   );
 }
