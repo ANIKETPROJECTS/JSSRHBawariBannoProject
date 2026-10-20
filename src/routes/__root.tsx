@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import logoImage from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import comingSoonLogoImage from "../../attached_assets/Full_Final-01_1792488092202.png";
+import comingSoonBackgroundImage from "../../attached_assets/pexels-mccutcheon-1450034_1792488431857.jpg";
 import { CartProvider } from "@/components/site/CartDrawer";
 import { CustomerAuthProvider } from "@/components/site/CustomerAuthContext";
 import { ReviewsProvider } from "@/components/site/ReviewsContext";
@@ -26,7 +27,8 @@ function ComingSoonPage() {
   return (
     <main
       aria-labelledby="coming-soon-title"
-      className="flex min-h-screen w-full flex-col items-center justify-center bg-white px-6 py-12 text-center text-[#171717]"
+      className="flex min-h-screen w-full flex-col items-center justify-center bg-cover bg-center bg-no-repeat px-6 py-12 text-center text-[#171717]"
+      style={{ backgroundImage: `url(${comingSoonBackgroundImage})` }}
     >
       <div className="flex w-full flex-col items-center">
         <div className="mb-8 flex size-[min(16rem,72vw)] items-center justify-center rounded-full border border-[#ED145B]/20 bg-white p-3 shadow-[0_12px_36px_rgba(23,23,23,0.10)]">
