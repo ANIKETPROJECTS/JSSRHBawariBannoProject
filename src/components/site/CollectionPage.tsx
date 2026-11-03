@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { CategorySidebar, type Selection } from "@/components/site/CategorySidebar";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categories, sarees, type CategoryNode, type Saree } from "@/data/sarees";
@@ -168,6 +168,10 @@ export function CollectionPage({
   initialSelection = { category: null, subcategory: null },
 }: CollectionPageProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const routeSearch = useRouterState({ select: (state) => state.location.search });
+  const navigate = useNavigate();
+  const searchValue = (routeSearch as Record<string, unknown>).q;
+  const searchTerm = typeof searchValue === "string" ? searchValue.trim() : "";
   const categoryListingStyle = pathname.startsWith("/categories/");
   const curatedPresentation = curatedListingPresentation[pathname];
   const sharedListingStyle = categoryListingStyle || Boolean(curatedPresentation);
@@ -182,6 +186,13 @@ export function CollectionPage({
   const [liveProducts, setLiveProducts] = useState<Saree[] | null>(null);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "fallback">(products ? "ready" : "loading");
   const [visibleCount, setVisibleCount] = useState(16);
+
+  useEffect(() => {
+    if (!searchTerm) return;
+    setFilters({ ...defaultFilters });
+    setSelection({ category: null, subcategory: null });
+    setVisibleCount(16);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetch("/api/catalog")
@@ -227,7 +238,15 @@ export function CollectionPage({
   }, [activeProducts]);
 
   const list = useMemo(() => {
+    const normalizedSearch = searchTerm.toLocaleLowerCase();
     const filtered = collectionProducts.filter((s) => {
+      if (normalizedSearch) {
+        const searchableText = [
+          s.name, s.id, s.fabric, s.category, s.subcategory, s.description,
+          s.occasion, s.technique, s.pattern, s.blouse,
+        ].filter(Boolean).join(" ").toLocaleLowerCase();
+        if (!searchableText.includes(normalizedSearch)) return false;
+      }
       if (selection.subcategory) return s.subcategory === selection.subcategory;
       if (selection.category) return s.category === selection.category;
       return true;
@@ -251,7 +270,7 @@ export function CollectionPage({
     if (sort === "newest") sorted.sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")));
     if (sort === "featured") sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
-  }, [collectionProducts, filters, selection, sort]);
+  }, [collectionProducts, filters, searchTerm, selection, sort]);
 
   const visibleList = list.slice(0, visibleCount);
   const clearFilters = () => {
@@ -359,7 +378,18 @@ export function CollectionPage({
               </div>
             ) : (
               <p className="mt-10 text-sm text-muted-foreground">
-                Nothing here yet — try another category or clear a filter.
+                {searchTerm ? (
+                  <span className="flex flex-wrap items-center gap-3">
+                    No sarees found for “{searchTerm}”.
+                    <button
+                      type="button"
+                      onClick={() => void navigate({ to: "/products", search: { q: undefined } })}
+                      className="text-primary underline underline-offset-4"
+                    >
+                      Clear search
+                    </button>
+                  </span>
+                ) : "Nothing here yet — try another category or clear a filter."}
               </p>
             )
           )}

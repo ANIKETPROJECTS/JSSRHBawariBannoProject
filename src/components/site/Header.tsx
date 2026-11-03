@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { type FormEvent, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Menu, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/favorite_1787336225274.png";
@@ -28,16 +28,34 @@ const socialLinks = [
 export function Header() {
   const { openCart, items } = useCart();
   const { count: wishlistCount } = useWishlist();
+  const navigate = useNavigate();
+  const currentSearch = useRouterState({ select: (state) => state.location.search });
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [typedPlaceholder, setTypedPlaceholder] = useState("Search a saree");
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
   const closeTimer = useRef<number | undefined>(undefined);
   const openCategories = () => { if (closeTimer.current) window.clearTimeout(closeTimer.current); setCategoriesOpen(true); };
   const closeCategories = () => { closeTimer.current = window.setTimeout(() => setCategoriesOpen(false), 140); };
   const collectionTabs = nav.slice(2, 5);
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const term = query.trim();
+    if (!term) {
+      (searchInputRef.current ?? mobileSearchInputRef.current)?.focus();
+      return;
+    }
+    setMobileMenuOpen(false);
+    void navigate({ to: "/products", search: { q: term } });
+  };
+
+  useEffect(() => {
+    const term = (currentSearch as Record<string, unknown>).q;
+    setQuery(typeof term === "string" ? term : "");
+  }, [currentSearch]);
   const renderDesktopNavItem = (item: (typeof nav)[number]) => {
     if (item.label === "Categories") {
       return (
@@ -165,15 +183,14 @@ export function Header() {
             />
         </Link>
 
-          <div className="hidden items-center gap-2 lg:mr-auto lg:flex lg:w-[19rem] xl:w-[22rem]">
-           <button
-             type="button"
-             aria-label="Focus search"
-             onClick={() => searchInputRef.current?.focus()}
+          <form onSubmit={submitSearch} role="search" className="hidden items-center gap-2 lg:mr-auto lg:flex lg:w-[19rem] xl:w-[22rem]">
+            <button
+              type="submit"
+              aria-label="Search"
               className="rounded-full p-2 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-           >
-               <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
-           </button>
+            >
+              <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+            </button>
            <input
              ref={searchInputRef}
              type="search"
@@ -183,7 +200,7 @@ export function Header() {
              placeholder={`${typedPlaceholder}…`}
               className="min-w-0 flex-1 border-b border-white bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white"
            />
-         </div>
+          </form>
 
            <div className="relative z-10 flex shrink-0 translate-y-2 items-center gap-1 sm:translate-y-2 sm:gap-2 lg:ml-auto lg:translate-y-0">
           <button
@@ -231,6 +248,24 @@ export function Header() {
             {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <Menu className="size-5" strokeWidth={1.6} />}
           </button>
         </div>
+        <form onSubmit={submitSearch} role="search" className="flex items-center gap-2 border-t border-white/15 px-4 py-2 lg:hidden">
+          <button
+            type="submit"
+            aria-label="Search"
+            className="rounded-full p-1.5 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert" />
+          </button>
+          <input
+            ref={mobileSearchInputRef}
+            type="search"
+            aria-label="Search the collection"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={`${typedPlaceholder}…`}
+            className="min-w-0 flex-1 border-b border-white/80 bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white/90"
+          />
+        </form>
       </div>
 
        <nav

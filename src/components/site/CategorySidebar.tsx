@@ -5,9 +5,7 @@ import { productColors } from "@/data/colors";
 import { cn } from "@/lib/utils";
 import {
   defaultFilters,
-  getProductFilterValue,
   type Filters,
-  type ProductFilterKey,
 } from "./productFilters";
 
 export type Selection = { category: string | null; subcategory: string | null };
@@ -22,14 +20,6 @@ type Props = {
   availableColors?: ReadonlyArray<{ key: string; label: string; hex: string }>;
   categoryListingStyle?: boolean;
 };
-
-const filterOptions: Array<{ key: ProductFilterKey; label: string; options: string[] }> = [
-  { key: "size", label: "Size", options: ["Free Size"] },
-  { key: "occasion", label: "Occasion", options: ["Everyday", "Festive", "Wedding", "Party"] },
-  { key: "technique", label: "Technique", options: ["Handloom", "Woven", "Block Print", "Embroidered"] },
-  { key: "pattern", label: "Pattern", options: ["Floral", "Printed", "Buti & Paisley", "Woven Motif"] },
-  { key: "borderType", label: "Border Type", options: ["Zari", "Contrast", "Scalloped", "Woven"] },
-];
 
 function toggleValue(values: string[], value: string) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -255,17 +245,6 @@ export function CategorySidebar({
           </div>
         </details>
 
-        {filterOptions.filter(({ key }) => key === "size").map(({ key, label, options }) => (
-          <details key={key} className="border-b border-border py-4">
-            <summary className="cursor-pointer list-none text-base font-medium text-primary">{label}</summary>
-            <CheckboxGroup
-              options={options}
-              values={filters[key]}
-              onChange={(value) => onFiltersChange({ ...filters, [key]: toggleValue(filters[key], value) })}
-            />
-          </details>
-        ))}
-
         <details className="border-b border-border py-4">
           <summary className="cursor-pointer list-none text-base font-medium text-primary">Colour</summary>
           <CheckboxGroup
@@ -289,16 +268,6 @@ export function CategorySidebar({
           />
         </details>
 
-        {filterOptions.filter(({ key }) => key !== "size").map(({ key, label, options }) => (
-          <details key={key} className="border-b border-border py-4">
-            <summary className="cursor-pointer list-none text-base font-medium text-primary">{label}</summary>
-            <CheckboxGroup
-              options={options}
-              values={filters[key]}
-              onChange={(value) => onFiltersChange({ ...filters, [key]: toggleValue(filters[key], value) })}
-            />
-          </details>
-        ))}
         {categoryListingStyle && (
           <button type="button" className="category-listing-apply" onClick={() => setMobileOpen(false)}>
             Apply

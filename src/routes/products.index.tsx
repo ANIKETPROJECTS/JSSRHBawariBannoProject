@@ -3,6 +3,9 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { CollectionPage } from "@/components/site/CollectionPage";
 
 export const Route = createFileRoute("/products/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "All Sarees — Silk, Cotton & Bridal | Bawari Banno" },
