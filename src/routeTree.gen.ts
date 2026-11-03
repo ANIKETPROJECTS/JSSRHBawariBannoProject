@@ -19,6 +19,8 @@ import { Route as NewArrivalRouteImport } from './routes/new-arrival'
 import { Route as PaymentReturnRouteImport } from './routes/payment-return'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as ReturnRefundPolicyRouteImport } from './routes/return-refund-policy'
+import { Route as ShippingPolicyRouteImport } from './routes/shipping-policy'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as WishlistRouteImport } from './routes/wishlist'
@@ -76,6 +78,16 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReturnRefundPolicyRoute = ReturnRefundPolicyRouteImport.update({
+  id: '/return-refund-policy',
+  path: '/return-refund-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShippingPolicyRoute = ShippingPolicyRouteImport.update({
+  id: '/shipping-policy',
+  path: '/shipping-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
   id: '/terms-and-conditions',
   path: '/terms-and-conditions',
@@ -118,6 +130,8 @@ export interface FileRoutesByFullPath {
   '/payment-return': typeof PaymentReturnRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/return-refund-policy': typeof ReturnRefundPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
   '/wishlist': typeof WishlistRoute
@@ -136,6 +150,8 @@ export interface FileRoutesByTo {
   '/payment-return': typeof PaymentReturnRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/return-refund-policy': typeof ReturnRefundPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
   '/wishlist': typeof WishlistRoute
@@ -155,6 +171,8 @@ export interface FileRoutesById {
   '/payment-return': typeof PaymentReturnRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/return-refund-policy': typeof ReturnRefundPolicyRoute
+  '/shipping-policy': typeof ShippingPolicyRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/trending': typeof TrendingRoute
   '/wishlist': typeof WishlistRoute
@@ -175,6 +193,8 @@ export interface FileRouteTypes {
     | '/payment-return'
     | '/privacy-policy'
     | '/profile'
+    | '/return-refund-policy'
+    | '/shipping-policy'
     | '/terms-and-conditions'
     | '/trending'
     | '/wishlist'
@@ -193,6 +213,8 @@ export interface FileRouteTypes {
     | '/payment-return'
     | '/privacy-policy'
     | '/profile'
+    | '/return-refund-policy'
+    | '/shipping-policy'
     | '/terms-and-conditions'
     | '/trending'
     | '/wishlist'
@@ -211,6 +233,8 @@ export interface FileRouteTypes {
     | '/payment-return'
     | '/privacy-policy'
     | '/profile'
+    | '/return-refund-policy'
+    | '/shipping-policy'
     | '/terms-and-conditions'
     | '/trending'
     | '/wishlist'
@@ -230,6 +254,8 @@ export interface RootRouteChildren {
   PaymentReturnRoute: typeof PaymentReturnRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ProfileRoute: typeof ProfileRoute
+  ReturnRefundPolicyRoute: typeof ReturnRefundPolicyRoute
+  ShippingPolicyRoute: typeof ShippingPolicyRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   TrendingRoute: typeof TrendingRoute
   WishlistRoute: typeof WishlistRoute
@@ -310,6 +336,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/return-refund-policy': {
+      id: '/return-refund-policy'
+      path: '/return-refund-policy'
+      fullPath: '/return-refund-policy'
+      preLoaderRoute: typeof ReturnRefundPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shipping-policy': {
+      id: '/shipping-policy'
+      path: '/shipping-policy'
+      fullPath: '/shipping-policy'
+      preLoaderRoute: typeof ShippingPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms-and-conditions': {
       id: '/terms-and-conditions'
       path: '/terms-and-conditions'
@@ -366,6 +406,8 @@ const rootRouteChildren: RootRouteChildren = {
   PaymentReturnRoute: PaymentReturnRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ProfileRoute: ProfileRoute,
+  ReturnRefundPolicyRoute: ReturnRefundPolicyRoute,
+  ShippingPolicyRoute: ShippingPolicyRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
   TrendingRoute: TrendingRoute,
   WishlistRoute: WishlistRoute,

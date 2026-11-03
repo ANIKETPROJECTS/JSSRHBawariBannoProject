@@ -14,7 +14,7 @@ const customerLinks = [
   { label: "Contact Us", to: "/contact" },
   { label: "Wishlist", to: "/wishlist" },
   { label: "My Account", to: "/profile" },
-  { label: "Shipping & Returns", to: "/contact" },
+  { label: "Shipping & Returns", to: "/shipping-policy" },
   { label: "Terms & Conditions", to: "/terms-and-conditions" },
 ];
 
