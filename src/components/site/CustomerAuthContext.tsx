@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Check, ChevronRight, X } from "lucide-react";
+import { ArrowRight, Check, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 
 export type Customer = { _id?: string; phone: string; name?: string; email?: string; wishlist?: string[] };
 
@@ -9,7 +10,6 @@ type CustomerAuthContextValue = {
   checking: boolean;
   authenticated: boolean;
   openAuth: (afterLogin?: () => void) => void;
-  closeAuth: () => void;
 };
 
 const CustomerAuthContext = createContext<CustomerAuthContextValue | null>(null);
@@ -28,8 +28,6 @@ async function authApi(path: string, init?: RequestInit) {
 export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [checking, setChecking] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
-  const [afterLogin, setAfterLogin] = useState<(() => void) | null>(null);
   const refreshSequence = useRef(0);
 
   const refresh = useCallback(async () => {
@@ -51,8 +49,6 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       refreshSequence.current += 1;
       setCustomer(null);
       setChecking(false);
-      setIsOpen(false);
-      setAfterLogin(null);
     };
     window.addEventListener("customer-login", onLogin);
     window.addEventListener("customer-logout", onLogout);
@@ -62,101 +58,48 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
-  const closeAuth = useCallback(() => {
-    setIsOpen(false);
-    setAfterLogin(null);
-  }, []);
-
   const openAuth = useCallback((callback?: () => void) => {
-    if (customer) {
-      callback?.();
-      return;
-    }
-    setAfterLogin(() => callback ?? null);
-    setIsOpen(true);
+    if (customer) callback?.();
   }, [customer]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeAuth();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [closeAuth, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || checking || !customer) return;
-    setIsOpen(false);
-    const callback = afterLogin;
-    setAfterLogin(null);
-    callback?.();
-  }, [afterLogin, checking, customer, isOpen]);
 
   const completeLogin = useCallback((nextCustomer: Customer) => {
     setCustomer(nextCustomer);
-    setIsOpen(false);
     window.dispatchEvent(new Event("customer-login"));
-    const callback = afterLogin;
-    setAfterLogin(null);
-    callback?.();
-  }, [afterLogin]);
+  }, []);
 
   const value = useMemo(() => ({
     customer,
     checking,
     authenticated: Boolean(customer),
     openAuth,
-    closeAuth,
-  }), [checking, closeAuth, customer, openAuth]);
+  }), [checking, customer, openAuth]);
 
   return (
     <CustomerAuthContext.Provider value={value}>
-      {children}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/65 p-4 backdrop-blur-[2px]"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Sign in to Bawari Banno"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeAuth();
-          }}
-        >
-          <div className="relative grid max-h-[min(720px,calc(100vh-2rem))] w-full max-w-4xl overflow-y-auto border border-border bg-white shadow-2xl md:grid-cols-[0.9fr_1.1fr]">
-            <button type="button" onClick={closeAuth} className="absolute right-4 top-4 z-10 flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-primary" aria-label="Close sign in">
-              <X className="size-4" />
-            </button>
-            <div className="flex min-h-[250px] flex-col justify-between bg-secondary p-7 md:min-h-[520px] md:p-10">
-              <div>
-                <p className="font-display text-3xl tracking-tight text-primary">Bawari Banno</p>
-                <div className="mt-8 flex size-24 items-center justify-center border border-gold/40 bg-white/80 font-display text-4xl text-gold md:size-32 md:text-5xl">BB</div>
+      {checking ? (
+        <div className="flex min-h-screen items-center justify-center bg-secondary px-5 text-sm text-muted-foreground">Checking your account…</div>
+      ) : customer ? children : (
+        <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-6 sm:px-8">
+          <div className="grid w-full max-w-5xl overflow-hidden border border-border bg-white shadow-xl md:min-h-[620px] md:grid-cols-[0.9fr_1.1fr]">
+            <section className="flex flex-col justify-center gap-8 bg-[#ED145B] p-7 text-white sm:gap-10 sm:p-10 md:p-12">
+              <img src={logoImage} alt="Bawari Banno" className="h-auto w-64 max-w-full object-contain sm:w-72" />
+              <div className="max-w-sm">
+                <h1 className="font-display text-3xl leading-tight text-white sm:text-4xl">Welcome to Bawari Banno</h1>
+                <p className="mt-4 text-sm leading-relaxed text-white/85">Discover handpicked sarees and timeless heirlooms, save your favourites, and follow every order from your account.</p>
               </div>
-              <div className="mt-8 max-w-xs">
-                <h2 className="font-display text-3xl leading-tight text-primary md:text-4xl">Welcome to Bawari Banno</h2>
-                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">Discover handpicked sarees and timeless heirlooms, saved favourites, and a simpler way to follow every order.</p>
-              </div>
-            </div>
-            <div className="flex items-center p-7 md:p-12">
-              {checking ? (
-                <div className="w-full py-16 text-center text-sm text-muted-foreground">Checking your account…</div>
-              ) : (
-                <AccountAccess onComplete={completeLogin} />
-              )}
-            </div>
+            </section>
+            <section className="flex items-center p-6 sm:p-9 md:p-12">
+              <AccountAccess onComplete={completeLogin} />
+            </section>
           </div>
-        </div>
+        </main>
       )}
     </CustomerAuthContext.Provider>
   );
 }
 
 function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => void }) {
+  const [mode, setMode] = useState<"signup" | "login">("signup");
   const [step, setStep] = useState<"phone" | "otp" | "details">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -164,12 +107,13 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const stepNumber = step === "phone" ? 1 : step === "otp" ? 2 : 3;
+  const totalSteps = mode === "signup" ? 3 : 2;
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone }) });
+      await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone, mode }) });
       setStep("otp");
       toast.success("OTP sent to your WhatsApp number.");
     } catch (error) {
@@ -183,8 +127,8 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     event.preventDefault();
     setBusy(true);
     try {
-      const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone, otp }) });
-      if (result.customer?.name) onComplete(result.customer);
+      const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone, otp, mode }) });
+      if (mode === "login" || (result.customer?.name && result.customer?.email)) onComplete(result.customer);
       else setStep("details");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Verification failed.");
@@ -210,25 +154,35 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full">
       <div className="flex items-center justify-between">
-        <p className="text-eyebrow text-muted-foreground">Welcome to Bawari Banno</p>
-        <span className="text-xs text-muted-foreground">{stepNumber}/3</span>
+        <p className="text-eyebrow text-muted-foreground">{mode === "signup" ? "Create your account" : "Customer login"}</p>
+        <span className="text-xs text-muted-foreground">{stepNumber}/{totalSteps}</span>
       </div>
-      <h2 className="mt-4 font-display text-3xl text-primary md:text-4xl">{step === "phone" ? "Create your account" : step === "otp" ? "Verify your number" : "Complete your details"}</h2>
+      <h2 className="mt-4 font-display text-3xl text-primary md:text-4xl">{step === "phone" ? (mode === "signup" ? "Create your account" : "Log in to your account") : step === "otp" ? "Verify your number" : "Complete your details"}</h2>
       <div className="mt-6 flex gap-1">
-        {[1, 2, 3].map((item) => <div key={item} className={`h-1 flex-1 ${item <= stepNumber ? "bg-primary" : "bg-border"}`} />)}
+        {Array.from({ length: totalSteps }, (_, index) => index + 1).map((item) => <div key={item} className={`h-1 flex-1 ${item <= stepNumber ? "bg-primary" : "bg-border"}`} />)}
       </div>
       {step === "phone" && (
-        <form onSubmit={sendOtp}>
-          <label className="mt-9 block text-eyebrow text-muted-foreground">Mobile number<input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))} placeholder="Enter 10-digit mobile number" className="mt-3 w-full border-b border-border px-0 py-3 text-sm outline-none focus:border-gold" /></label>
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to your WhatsApp number. No password required.</p>
-          <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Sending…" : "Continue"} <ArrowRight className="size-3.5" /></button>
-        </form>
+        <>
+          <div className="mt-7 grid grid-cols-2 border-b border-border" role="tablist" aria-label="Account access">
+            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => setMode("signup")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "signup" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Create account</button>
+            <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => setMode("login")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "login" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Log in</button>
+          </div>
+          <form onSubmit={sendOtp}>
+            <label className="mt-7 block text-eyebrow text-muted-foreground">Mobile number<input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))} placeholder="Enter 10-digit mobile number" className="mt-3 w-full border-b border-border px-0 py-3 text-sm outline-none focus:border-gold" /></label>
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to your WhatsApp number. No password required.</p>
+            <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Sending…" : mode === "signup" ? "Continue" : "Send login code"} <ArrowRight className="size-3.5" /></button>
+          </form>
+        </>
       )}
       {step === "otp" && (
         <form onSubmit={verify}>
           <label className="mt-9 block text-eyebrow text-muted-foreground">One-time password<input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} placeholder="123456" className="mt-3 w-full border-b border-border px-0 py-3 text-sm tracking-[0.4em] outline-none focus:border-gold" /></label>
           <p className="mt-4 text-xs text-muted-foreground">Enter the 6-digit code sent to your WhatsApp number.</p>
           <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Verifying…" : "Verify and continue"} <ChevronRight className="size-3.5" /></button>
+          <div className="mt-5 flex flex-wrap justify-between gap-3 text-xs">
+            <button type="button" onClick={() => { setStep("phone"); setOtp(""); }} className="text-muted-foreground underline underline-offset-4">Change number</button>
+            {mode === "login" && <button type="button" onClick={() => setMode("signup")} className="text-primary underline underline-offset-4">Create an account instead</button>}
+          </div>
         </form>
       )}
       {step === "details" && (

@@ -3003,6 +3003,7 @@ async function handleAuth(request: Request, path: string) {
     const input = await body(request);
     const phone = normalizeIndianPhone(input.phone);
     const otp = String(input.otp ?? "");
+    const mode = input.mode === "login" ? "login" : "signup";
     if (!phone || !/^\d{6}$/.test(otp)) return fail("Enter a valid mobile number and 6-digit OTP.");
 
     const challenges = database.collection("customer_otp_challenges");
@@ -3021,15 +3022,20 @@ async function handleAuth(request: Request, path: string) {
       else await challenges.updateOne({ _id: phone, otpHash: challenge.otpHash }, { $set: { attempts } });
       return fail(attempts >= 5 ? "Too many incorrect attempts. Request a new code." : "Incorrect OTP.", attempts >= 5 ? 429 : 401);
     }
+    let customer = await database.collection("customers").findOne({ phone });
+    if (!customer && mode === "login") {
+      return fail("No account was found for this number. Create an account instead.", 404);
+    }
+
     const consumed = await challenges.deleteOne({ _id: phone, otpHash: challenge.otpHash, expiresAt: { $gt: new Date() } });
     if (!consumed.deletedCount) return fail("This OTP has expired. Request a new code.", 401);
 
-    let customer = await database.collection("customers").findOne({ phone });
+    const isNewCustomer = !customer;
     if (!customer) {
       const result = await database.collection("customers").insertOne({ phone, name: "", email: "", createdAt: new Date(), updatedAt: new Date(), wishlist: [], addresses: [] });
       customer = await database.collection("customers").findOne({ _id: result.insertedId });
     }
-    return json({ ok: true, customer }, { headers: { "set-cookie": `bb_customer=${customerToken(String(customer?._id))}; ${customerCookieAttributes(request)}` } });
+    return json({ ok: true, customer, isNewCustomer }, { headers: { "set-cookie": `bb_customer=${customerToken(String(customer?._id))}; ${customerCookieAttributes(request)}` } });
   }
   if (path === "/api/auth/profile" && request.method === "PUT") {
     const customer = await customerFromRequest(request);
