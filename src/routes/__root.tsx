@@ -21,7 +21,7 @@ import { WishlistProvider } from "@/components/site/WishlistContext";
 import { Toaster } from "@/components/ui/sonner";
 
 // Temporary launch switch: set to false to restore the regular storefront and Admin UI.
-const COMING_SOON_MODE = true;
+const COMING_SOON_MODE = false;
 
 function ComingSoonPage() {
   return (
