@@ -2948,7 +2948,15 @@ async function storeSettings(request: Request) {
   }
   if (request.method === "PUT") {
     const input = cleanStoreSettings(await body(request));
-    await collection.updateOne({ _id: "store" }, { $set: { ...input, ...auditUpdateFields(actor) }, $setOnInsert: { ...auditCreateFields(actor) } }, { upsert: true });
+    const now = new Date();
+    await collection.updateOne(
+      { _id: "store" },
+      {
+        $set: { ...input, ...auditUpdateFields(actor, now) },
+        $setOnInsert: { createdBy: actor, createdAt: now },
+      },
+      { upsert: true },
+    );
     return json({ ...(await collection.findOne({ _id: "store" })), configured: true });
   }
   if (request.method === "DELETE") {

@@ -34,6 +34,11 @@ type StoreCoupon = {
   productIds?: string[];
 };
 
+type StoreShippingSettings = {
+  shippingCharges: number;
+  freeShippingThreshold: number;
+};
+
 const CartContext = createContext<CartContextValue | null>(null);
 
 function cartItemKey(product: Saree) {
@@ -111,6 +116,10 @@ function CartDrawer() {
   const [coupon, setCoupon] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [availableCoupons, setAvailableCoupons] = useState<StoreCoupon[]>([]);
+  const [shippingSettings, setShippingSettings] = useState<StoreShippingSettings>({
+    shippingCharges: 250,
+    freeShippingThreshold: 15000,
+  });
   const [discount, setDiscount] = useState(0);
   const [couponMessage, setCouponMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
@@ -160,16 +169,32 @@ function CartDrawer() {
   useEffect(() => {
     fetch("/api/store-config")
       .then((response) => response.json())
-      .then((result) => setAvailableCoupons(Array.isArray(result.coupons) ? result.coupons : []))
+      .then((result) => {
+        setAvailableCoupons(Array.isArray(result.coupons) ? result.coupons : []);
+        const settings = result.settings && typeof result.settings === "object" ? result.settings : {};
+        const shippingCharges = Number(settings.shippingCharges ?? 250);
+        const freeShippingThreshold = Number(settings.freeShippingThreshold ?? 15000);
+        setShippingSettings({
+          shippingCharges: Number.isFinite(shippingCharges) ? Math.max(0, shippingCharges) : 250,
+          freeShippingThreshold: Number.isFinite(freeShippingThreshold) ? Math.max(0, freeShippingThreshold) : 15000,
+        });
+      })
       .catch(() => setAvailableCoupons([]));
   }, []);
 
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const phonePeTestOnlyCart = isSinglePhonePeTestItem(items);
-  const shipping = calculateShippingCharge(items, subtotal);
+  const shipping = calculateShippingCharge(
+    items,
+    subtotal,
+    shippingSettings.shippingCharges,
+    shippingSettings.freeShippingThreshold,
+  );
   const total = Math.max(0, subtotal + shipping - discount);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const freeShippingProgress = Math.min(100, (subtotal / 15000) * 100);
+  const freeShippingProgress = shippingSettings.freeShippingThreshold === 0
+    ? 100
+    : Math.min(100, (subtotal / shippingSettings.freeShippingThreshold) * 100);
 
   useEffect(() => {
     if (!appliedCoupon) return;
@@ -222,7 +247,7 @@ function CartDrawer() {
             <>
               <div className="border-b border-border pb-5">
                 <div className="flex items-start justify-between gap-3 text-[0.7rem] sm:text-xs">
-                  <span className="max-w-[15rem] leading-relaxed text-muted-foreground">Free shipping on orders above ₹15,000</span>
+                  <span className="max-w-[15rem] leading-relaxed text-muted-foreground">Free shipping on orders of ₹{shippingSettings.freeShippingThreshold.toLocaleString("en-IN")} and above</span>
                   <span className="text-primary">{Math.round(freeShippingProgress)}%</span>
                 </div>
                 <div className="mt-3 h-1 bg-secondary">
