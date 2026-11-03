@@ -701,6 +701,10 @@ async function createPhonePeCheckout(request: Request) {
   const database = await db();
   const customer = await customerFromRequest(request);
   if (!customer) return fail("Please log in before proceeding to checkout.", 401);
+  const addressId = String(input.addressId ?? "");
+  const shippingAddress = (Array.isArray(customer.addresses) ? customer.addresses : [])
+    .find((entry: JsonRecord) => String(entry.id) === addressId);
+  if (!shippingAddress) return fail("Select a saved delivery address before placing your order.");
   const counter = await database.collection("counters").findOneAndUpdate(
     { _id: "orders" },
     { $inc: { value: 1 } },
@@ -763,6 +767,7 @@ async function createPhonePeCheckout(request: Request) {
     shipping,
     discount,
     total,
+    shippingAddress,
     ...(couponCode ? { couponCode } : {}),
     createdAt,
     updatedAt: createdAt,
@@ -3058,6 +3063,42 @@ async function handleAuth(request: Request, path: string) {
     if (!name || !email.includes("@")) return fail("Enter your name and a valid email.");
     await database.collection("customers").updateOne({ _id: customer._id }, { $set: { name, email, updatedAt: new Date() } });
     return json(await database.collection("customers").findOne({ _id: customer._id }));
+  }
+  if (path === "/api/auth/addresses" && (request.method === "GET" || request.method === "POST")) {
+    const customer = await customerFromRequest(request);
+    if (!customer) return fail("Customer login required.", 401);
+    if (request.method === "GET") {
+      return json({ addresses: Array.isArray(customer.addresses) ? customer.addresses : [] });
+    }
+    const input = await body(request);
+    const name = String(input.name ?? "").trim();
+    const addressLine = String(input.addressLine ?? "").trim();
+    const locality = String(input.locality ?? "").trim();
+    const pincode = String(input.pincode ?? "").trim();
+    const city = String(input.city ?? "").trim();
+    const state = String(input.state ?? "").trim();
+    if (!name || !addressLine || !locality || !/^\d{6}$/.test(pincode) || !city || !state) {
+      return fail("Enter your name, complete address, locality, 6-digit pincode, city and state.");
+    }
+    const currentAddresses = Array.isArray(customer.addresses) ? customer.addresses : [];
+    const address = {
+      id: new ObjectId().toString(),
+      name,
+      phone: String(customer.phone ?? ""),
+      addressLine,
+      locality,
+      pincode,
+      city,
+      state,
+      landmark: String(input.landmark ?? "").trim(),
+      isDefault: currentAddresses.length === 0,
+      createdAt: new Date(),
+    };
+    await database.collection("customers").updateOne(
+      { _id: customer._id },
+      { $push: { addresses: address }, $set: { updatedAt: new Date() } },
+    );
+    return json({ address, addresses: [...currentAddresses, address] }, { status: 201 });
   }
   if (path === "/api/auth/wishlist" && (request.method === "GET" || request.method === "POST")) {
     const customer = await customerFromRequest(request);

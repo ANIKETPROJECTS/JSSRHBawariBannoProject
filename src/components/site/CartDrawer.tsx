@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronRight, Minus, Plus, ShoppingBag, Tag, Trash2, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { cn } from "@/lib/utils";
@@ -113,6 +113,7 @@ export function useCart() {
 function CartDrawer() {
   const { items, isOpen, closeCart, updateQuantity, removeItem, clearCart } = useCart();
   const { openAuth } = useCustomerAuth();
+  const navigate = useNavigate();
   const [coupon, setCoupon] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [availableCoupons, setAvailableCoupons] = useState<StoreCoupon[]>([]);
@@ -132,20 +133,11 @@ function CartDrawer() {
       if (!sessionResponse.ok) {
         closeCart();
         toast.info("Please log in before proceeding to checkout.");
-        openAuth();
+        openAuth(() => { void navigate({ to: "/checkout", search: { coupon: appliedCoupon || undefined } }); });
         return;
       }
-      const response = await fetch("/api/inventory/purchase", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, variantId: product.selectedVariantId, quantity })), couponCode: appliedCoupon, subtotal, shipping, discount, total }),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
-      if (!result.redirectUrl) throw new Error("PhonePe did not return a payment URL.");
-      clearCart();
       closeCart();
-      window.location.assign(result.redirectUrl);
+      await navigate({ to: "/checkout", search: { coupon: appliedCoupon || undefined } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Checkout could not be completed.");
     } finally {

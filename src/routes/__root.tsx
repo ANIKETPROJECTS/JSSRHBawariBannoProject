@@ -4,7 +4,6 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
-  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -171,14 +170,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
 
   if (COMING_SOON_MODE) return <ComingSoonPage />;
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CustomerAuthProvider requireCustomerAuth={!isAdminRoute}>
+      <CustomerAuthProvider>
         <ReviewsProvider>
           <WishlistProvider>
             <CartProvider>

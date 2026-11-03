@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   CheckCircle2,
@@ -23,6 +23,10 @@ import { formatPrice, sarees } from "@/data/sarees";
 import { toStorefrontProduct, type StorefrontProduct } from "@/lib/storefront-product";
 
 export const Route = createFileRoute("/profile")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    returnTo: search.returnTo === "checkout" ? "checkout" as const : undefined,
+    coupon: typeof search.coupon === "string" ? search.coupon : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "My Profile | Bawari Banno" },
@@ -56,6 +60,7 @@ function Profile() {
 }
 
 function AuthenticatedProfile() {
+  const search = Route.useSearch();
   const [customer, setCustomer] = useState<{ name: string; email: string; phone: string; wishlist?: string[] } | null>(null);
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
   const [catalogProducts, setCatalogProducts] = useState<StorefrontProduct[]>([]);
@@ -103,7 +108,45 @@ function AuthenticatedProfile() {
   const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
   const savedIds = new Set((customer.wishlist ?? []).map(String));
   const saved = catalogProducts.filter((product) => savedIds.has(product.id));
-  return <CustomerProfileNoWishlist customer={customer} orders={customerOrders} saved={saved} editing={editing} saving={saving} onSave={save} onEditing={() => setEditing(!editing)} onSignOut={signOut} />;
+  return <><CustomerProfileNoWishlist customer={customer} orders={customerOrders} saved={saved} editing={editing} saving={saving} onSave={save} onEditing={() => setEditing(!editing)} onSignOut={signOut} /><SavedAddresses customer={customer} returnToCheckout={search.returnTo === "checkout"} coupon={search.coupon} /></>;
+}
+
+type SavedAddress = { id: string; name: string; phone: string; addressLine: string; locality: string; pincode: string; city: string; state: string; landmark?: string; isDefault?: boolean };
+
+function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { name: string; phone: string }; returnToCheckout: boolean; coupon?: string }) {
+  const navigate = useNavigate();
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { fetch("/api/auth/addresses").then((r) => r.json()).then((data) => setAddresses(Array.isArray(data.addresses) ? data.addresses : [])).catch(() => setAddresses([])); }, []);
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setSaving(true);
+    const data = new FormData(event.currentTarget);
+    const body = Object.fromEntries(["name", "addressLine", "locality", "pincode", "city", "state", "landmark"].map((key) => [key, data.get(key)]));
+    try {
+      const response = await fetch("/api/auth/addresses", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Could not save the address.");
+      setAddresses(result.addresses ?? [...addresses, result.address]); setEditing(false); toast.success("Delivery address saved.");
+      if (returnToCheckout) await navigate({ to: "/checkout", search: { coupon: coupon || undefined } });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save the address."); }
+    finally { setSaving(false); }
+  }
+  return <section className="mx-auto mt-8 max-w-7xl px-5 pb-10"><div className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => setEditing(!editing)} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {editing ? "Cancel" : "Add address"}</button></div>
+    {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p><p className="mt-2 text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</p></article>)}</div>}
+    {addresses.length === 0 && !editing && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
+    {editing && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
+      <label className="text-xs text-muted-foreground">Full name<input name="name" defaultValue={customer.name} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">Phone number<input value={`+91 ${customer.phone}`} readOnly className="mt-1 w-full border border-border bg-[#f8f6f3] px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Address<input name="addressLine" required placeholder="House, street, building" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">Locality<input name="locality" required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">Pincode<input name="pincode" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">City<input name="city" required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">State<input name="state" required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Landmark (optional)<input name="landmark" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <button disabled={saving} className="w-fit bg-primary px-6 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save address"}</button>
+    </form>}
+  </div></section>;
 }
 
 function CustomerOrderTimeline({ order }: { order: CustomerOrder }) {

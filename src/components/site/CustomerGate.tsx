@@ -9,6 +9,7 @@ export function CustomerGate({ children }: { children: React.ReactNode }) {
   }, [checking, customer, openAuth]);
 
   if (customer) return <>{children}</>;
+  if (checking) return <div className="flex min-h-[60vh] items-center justify-center px-5 text-sm text-muted-foreground">Checking your account…</div>;
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-5 text-center">

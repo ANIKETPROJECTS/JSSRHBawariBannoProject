@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Check, ChevronRight, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { ProductRating, ProductReviews } from "@/components/site/ProductReviews";
@@ -171,7 +171,8 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(saree.variants?.[0]?.id ?? "");
-  const { addItem } = useCart();
+  const { addItem, closeCart } = useCart();
+  const navigate = useNavigate();
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
   const [sharing, setSharing] = useState(false);
@@ -380,6 +381,18 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 bg-primary px-4 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:px-8"
             >
               <ShoppingBag className="size-4" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
+            </button>
+            <button
+              type="button"
+              disabled={availableStock === 0}
+              onClick={() => {
+                addItem(selectedProduct, qty);
+                closeCart();
+                void navigate({ to: "/checkout", search: { coupon: undefined } });
+              }}
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-primary bg-white px-4 py-3.5 text-eyebrow text-primary transition-colors hover:bg-[#fff6f8] disabled:cursor-not-allowed disabled:opacity-50 sm:px-8"
+            >
+              Buy now <ChevronRight className="size-4" strokeWidth={1.6} />
             </button>
           </div>
 

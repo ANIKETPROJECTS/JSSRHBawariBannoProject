@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Check, ChevronRight } from "lucide-react";
+import { ArrowRight, Check, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 
@@ -26,11 +25,12 @@ async function authApi(path: string, init?: RequestInit) {
   return result;
 }
 
-export function CustomerAuthProvider({ children, requireCustomerAuth = true }: { children: ReactNode; requireCustomerAuth?: boolean }) {
-  const navigate = useNavigate();
+export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [checking, setChecking] = useState(true);
+  const [authOpen, setAuthOpen] = useState(false);
   const refreshSequence = useRef(0);
+  const afterLoginRef = useRef<(() => void) | undefined>(undefined);
 
   const refresh = useCallback(async () => {
     const sequence = ++refreshSequence.current;
@@ -58,13 +58,26 @@ export function CustomerAuthProvider({ children, requireCustomerAuth = true }: {
   }, [refresh]);
 
   const openAuth = useCallback((callback?: () => void) => {
-    if (customer) callback?.();
+    if (customer) {
+      callback?.();
+      return;
+    }
+    afterLoginRef.current = callback;
+    setAuthOpen(true);
   }, [customer]);
+
+  const dismissAuth = () => {
+    afterLoginRef.current = undefined;
+    setAuthOpen(false);
+  };
 
   const completeLogin = useCallback((nextCustomer: Customer) => {
     setCustomer(nextCustomer);
-    void navigate({ to: "/", replace: true });
-  }, [navigate]);
+    setAuthOpen(false);
+    const callback = afterLoginRef.current;
+    afterLoginRef.current = undefined;
+    if (callback) window.setTimeout(callback, 0);
+  }, []);
 
   const value = useMemo(() => ({
     customer,
@@ -75,23 +88,35 @@ export function CustomerAuthProvider({ children, requireCustomerAuth = true }: {
 
   return (
     <CustomerAuthContext.Provider value={value}>
-      {!requireCustomerAuth || customer ? children : checking ? (
-        <div className="flex min-h-screen items-center justify-center bg-secondary px-5 text-sm text-muted-foreground">Checking your account…</div>
-      ) : (
-        <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-6 sm:px-8">
-          <div className="grid w-full max-w-5xl overflow-hidden border border-border bg-white shadow-xl md:min-h-[620px] md:grid-cols-[0.9fr_1.1fr]">
-            <section className="flex flex-col justify-center gap-8 bg-[#ED145B] p-7 text-white sm:gap-10 sm:p-10 md:p-12">
-              <img src={logoImage} alt="Bawari Banno" className="h-auto w-64 max-w-full object-contain sm:w-72" />
-              <div className="max-w-sm">
-                <h1 className="font-display text-3xl leading-tight text-white sm:text-4xl">Welcome to Bawari Banno</h1>
-                <p className="mt-4 text-sm leading-relaxed text-white/85">Discover handpicked sarees and timeless heirlooms, save your favourites, and follow every order from your account.</p>
-              </div>
-            </section>
-            <section className="flex items-center p-6 sm:p-9 md:p-12">
-              <AccountAccess onComplete={completeLogin} />
-            </section>
-          </div>
-        </main>
+      {children}
+      {authOpen && !customer && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/55 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) dismissAuth();
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sign in or create an account"
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto border border-border bg-white p-6 shadow-2xl sm:p-9"
+          >
+            <button
+              type="button"
+              aria-label="Close sign in"
+              onClick={dismissAuth}
+              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-primary"
+            >
+              <X className="size-5" />
+            </button>
+            <div className="mb-6 pr-8">
+              <img src={logoImage} alt="Bawari Banno" className="h-12 w-48 object-contain object-left" />
+              <p className="mt-4 text-sm text-muted-foreground">Sign in or create an account to continue with your purchase.</p>
+            </div>
+            <AccountAccess onComplete={completeLogin} />
+          </section>
+        </div>
       )}
     </CustomerAuthContext.Provider>
   );

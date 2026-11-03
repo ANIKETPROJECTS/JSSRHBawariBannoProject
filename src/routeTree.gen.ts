@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as BestsellerRouteImport } from './routes/bestseller'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as NewArrivalRouteImport } from './routes/new-arrival'
 import { Route as PaymentReturnRouteImport } from './routes/payment-return'
@@ -43,6 +44,11 @@ const AdminRoute = AdminRouteImport.update({
 const BestsellerRoute = BestsellerRouteImport.update({
   id: '/bestseller',
   path: '/bestseller',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/bestseller': typeof BestsellerRoute
+  '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
   '/payment-return': typeof PaymentReturnRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/bestseller': typeof BestsellerRoute
+  '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
   '/payment-return': typeof PaymentReturnRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/bestseller': typeof BestsellerRoute
+  '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/new-arrival': typeof NewArrivalRoute
   '/payment-return': typeof PaymentReturnRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/bestseller'
+    | '/checkout'
     | '/contact'
     | '/new-arrival'
     | '/payment-return'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/bestseller'
+    | '/checkout'
     | '/contact'
     | '/new-arrival'
     | '/payment-return'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/bestseller'
+    | '/checkout'
     | '/contact'
     | '/new-arrival'
     | '/payment-return'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   BestsellerRoute: typeof BestsellerRoute
+  CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   NewArrivalRoute: typeof NewArrivalRoute
   PaymentReturnRoute: typeof PaymentReturnRoute
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       path: '/bestseller'
       fullPath: '/bestseller'
       preLoaderRoute: typeof BestsellerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   BestsellerRoute: BestsellerRoute,
+  CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   NewArrivalRoute: NewArrivalRoute,
   PaymentReturnRoute: PaymentReturnRoute,
