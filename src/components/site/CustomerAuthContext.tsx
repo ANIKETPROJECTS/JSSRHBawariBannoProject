@@ -168,7 +168,13 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
             <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => setMode("login")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "login" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Log in</button>
           </div>
           <form onSubmit={sendOtp}>
-            <label className="mt-7 block text-eyebrow text-muted-foreground">Mobile number<input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))} placeholder="Enter 10-digit mobile number" className="mt-3 w-full border-b border-border px-0 py-3 text-sm outline-none focus:border-gold" /></label>
+            <label className="mt-7 block text-eyebrow text-muted-foreground">
+              Mobile number
+              <span className="mt-3 flex w-full items-center border-b border-border focus-within:border-gold">
+                <span className="border-r border-border py-3 pr-3 text-sm font-medium text-primary" aria-hidden="true">+91</span>
+                <input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Enter 10-digit mobile number" aria-label="10-digit Indian mobile number" className="w-full px-3 py-3 text-sm outline-none" />
+              </span>
+            </label>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to your WhatsApp number. No password required.</p>
             <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Sending…" : mode === "signup" ? "Continue" : "Send login code"} <ArrowRight className="size-3.5" /></button>
           </form>
