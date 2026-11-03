@@ -4,6 +4,7 @@ import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, C
 import { toast } from "sonner";
 import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { OrderInvoice } from "@/components/admin/OrderInvoice";
+import storefrontLogo from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import { invalidateStorefrontCatalogCache } from "@/lib/storefront-catalog";
 import { countableOrder, isSuccessfulPayment, recognizedOrderRevenue } from "@/lib/order-payment";
 import { cn } from "@/lib/utils";
@@ -222,7 +223,23 @@ function AdminPage() {
 function Login({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [busy, setBusy] = useState(false);
   async function submit(event: React.FormEvent) { event.preventDefault(); setBusy(true); try { await api("/api/admin/login", { method: "POST", body: JSON.stringify({ email, password }) }); onSuccess(); } catch (error) { toast.error(error instanceof Error ? error.message : "Login failed."); } finally { setBusy(false); } }
-  return <div className="flex min-h-screen items-center justify-center bg-[#f7f4ef] p-5"><form onSubmit={submit} className="w-full max-w-md border border-[#ded5c9] bg-white p-8 shadow-sm"><Link to="/" className="font-display text-3xl text-primary">Bawari Banno</Link><p className="mt-2 text-sm text-muted-foreground">Sign in to manage your store.</p><label className="mt-8 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Admin email<input required autoComplete="username" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="mt-5 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Password<input required autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><button disabled={busy} className="mt-7 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.18em] text-white disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button></form></div>;
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f7f4ef] p-5">
+      <form onSubmit={submit} className="w-full max-w-md overflow-hidden border border-[#ded5c9] bg-white shadow-sm">
+        <div className="flex justify-center bg-[#ED145B] px-6 py-6">
+          <Link to="/" aria-label="Bawari Banno home" className="flex items-center justify-center">
+            <img src={storefrontLogo} alt="Bawari Banno" className="h-16 w-60 object-contain object-center" />
+          </Link>
+        </div>
+        <div className="p-8">
+          <p className="text-sm text-muted-foreground">Sign in to manage your store.</p>
+          <label className="mt-8 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Admin email<input required autoComplete="username" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label>
+          <label className="mt-5 block text-xs uppercase tracking-[0.15em] text-muted-foreground">Password<input required autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label>
+          <button disabled={busy} className="mt-7 w-full bg-primary px-4 py-3 text-xs uppercase tracking-[0.18em] text-white disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 type ExpenseRecord = RecordItem & {
