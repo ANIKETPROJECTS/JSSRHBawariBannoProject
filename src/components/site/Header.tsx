@@ -152,13 +152,13 @@ export function Header() {
               </a>
             ))}
             <a
-              href="https://wa.me/911111111111"
-              aria-label="WhatsApp Bawari Banno at plus 91 11111 11111"
+              href="https://wa.me/919167599635"
+              aria-label="WhatsApp Bawari Banno at plus 91 91675 99635"
               className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               <img src={whatsappIcon} alt="" className="size-6 object-contain brightness-0 invert" />
               <span className="whitespace-nowrap text-base font-medium tracking-[0.02em]">
-                +91 11111 11111
+                +91 91675 99635
               </span>
             </a>
           </div>
