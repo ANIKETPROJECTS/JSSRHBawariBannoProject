@@ -187,10 +187,19 @@ function AdminPage() {
     <AdminConfirmProvider>
     <div className="min-h-screen bg-[#f7f4ef] text-[#2d2520]">
       <aside className={`fixed inset-y-0 left-0 z-20 hidden flex-col border-r border-[#ded5c9] bg-white py-7 transition-all lg:flex ${sidebarOpen ? "w-64 px-5" : "w-16 px-2"}`}>
-        <div className={`flex items-center ${sidebarOpen ? "justify-start" : "justify-center"}`}><Link to="/" className={`font-display text-primary ${sidebarOpen ? "text-3xl" : "text-lg"}`} aria-label="Bawari Banno">{sidebarOpen ? "Bawari Banno" : "BB"}</Link></div>
+        <div className={`flex items-center ${sidebarOpen ? "justify-start" : "justify-center"}`}>
+          <Link
+            to="/"
+            aria-label="Bawari Banno"
+            className={sidebarOpen ? "flex h-[68px] w-full items-center justify-center bg-[#ED145B] px-3" : "font-display text-lg text-primary"}
+          >
+            {sidebarOpen
+              ? <img src={storefrontLogo} alt="Bawari Banno" className="h-14 w-full object-contain object-center" />
+              : "BB"}
+          </Link>
+        </div>
         <button type="button" onClick={() => setSidebarOpen((current) => !current)} className="absolute right-0 top-1/2 z-30 flex size-7 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#ded5c9] bg-white text-muted-foreground shadow-sm transition-colors hover:bg-primary hover:text-white" aria-label={sidebarOpen ? "Minimize sidebar" : "Expand sidebar"} title={sidebarOpen ? "Minimize sidebar" : "Expand sidebar"}>{sidebarOpen ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}</button>
-        <p className="mt-1 text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Admin studio</p>
-        <nav className="admin-sidebar-scrollbar mt-12 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
+        <nav className="admin-sidebar-scrollbar mt-8 min-h-0 flex-1 space-y-1 overflow-y-auto pb-5 pr-1">
           {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" onClick={() => setTab(id)} title={sidebarOpen ? undefined : label} aria-label={label} className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm transition-colors ${sidebarOpen ? "" : "justify-center"} ${tab === id ? "bg-primary text-white" : "text-muted-foreground hover:bg-[#f4efe8]"}`}>
               <Icon className="size-4 shrink-0" /> {sidebarOpen && label}
