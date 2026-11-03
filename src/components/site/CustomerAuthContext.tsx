@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Check, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
@@ -26,6 +27,7 @@ async function authApi(path: string, init?: RequestInit) {
 }
 
 export function CustomerAuthProvider({ children, requireCustomerAuth = true }: { children: ReactNode; requireCustomerAuth?: boolean }) {
+  const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [checking, setChecking] = useState(true);
   const refreshSequence = useRef(0);
@@ -44,16 +46,13 @@ export function CustomerAuthProvider({ children, requireCustomerAuth = true }: {
 
   useEffect(() => {
     void refresh();
-    const onLogin = () => void refresh();
     const onLogout = () => {
       refreshSequence.current += 1;
       setCustomer(null);
       setChecking(false);
     };
-    window.addEventListener("customer-login", onLogin);
     window.addEventListener("customer-logout", onLogout);
     return () => {
-      window.removeEventListener("customer-login", onLogin);
       window.removeEventListener("customer-logout", onLogout);
     };
   }, [refresh]);
@@ -64,8 +63,8 @@ export function CustomerAuthProvider({ children, requireCustomerAuth = true }: {
 
   const completeLogin = useCallback((nextCustomer: Customer) => {
     setCustomer(nextCustomer);
-    window.dispatchEvent(new Event("customer-login"));
-  }, []);
+    void navigate({ to: "/", replace: true });
+  }, [navigate]);
 
   const value = useMemo(() => ({
     customer,
