@@ -25,7 +25,7 @@ async function authApi(path: string, init?: RequestInit) {
   return result;
 }
 
-export function CustomerAuthProvider({ children }: { children: ReactNode }) {
+export function CustomerAuthProvider({ children, requireCustomerAuth = true }: { children: ReactNode; requireCustomerAuth?: boolean }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [checking, setChecking] = useState(true);
   const refreshSequence = useRef(0);
@@ -76,9 +76,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <CustomerAuthContext.Provider value={value}>
-      {checking ? (
+      {!requireCustomerAuth || customer ? children : checking ? (
         <div className="flex min-h-screen items-center justify-center bg-secondary px-5 text-sm text-muted-foreground">Checking your account…</div>
-      ) : customer ? children : (
+      ) : (
         <main className="flex min-h-screen items-center justify-center bg-secondary px-4 py-6 sm:px-8">
           <div className="grid w-full max-w-5xl overflow-hidden border border-border bg-white shadow-xl md:min-h-[620px] md:grid-cols-[0.9fr_1.1fr]">
             <section className="flex flex-col justify-center gap-8 bg-[#ED145B] p-7 text-white sm:gap-10 sm:p-10 md:p-12">
