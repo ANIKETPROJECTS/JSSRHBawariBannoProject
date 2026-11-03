@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronRight, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
+import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { ProductRating, ProductReviews } from "@/components/site/ProductReviews";
@@ -229,10 +230,10 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
         document.execCommand("copy");
         input.remove();
       }
-      window.alert("Product link copied to your clipboard.");
+      toast.success("Product link copied to your clipboard.");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      window.alert("Could not share this product right now.");
+      toast.error("Could not share this product right now.");
     } finally {
       setSharing(false);
     }

@@ -19,9 +19,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { CustomerGate } from "@/components/site/CustomerGate";
+import { useCustomerAuth } from "@/components/site/CustomerAuthContext";
 import { SiteShell } from "@/components/site/SiteShell";
 import { formatPrice, sarees } from "@/data/sarees";
 import { toStorefrontProduct, type StorefrontProduct } from "@/lib/storefront-product";
+import { getCachedStorefrontCatalog, loadStorefrontCatalog } from "@/lib/storefront-catalog";
 
 export const Route = createFileRoute("/profile")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -62,25 +64,48 @@ function Profile() {
 
 function AuthenticatedProfile() {
   const search = Route.useSearch();
-  const [customer, setCustomer] = useState<{ name: string; email: string; phone: string; wishlist?: string[] } | null>(null);
+  const { customer: authenticatedCustomer } = useCustomerAuth();
+  const [customer, setCustomer] = useState<{ name: string; email: string; phone: string; wishlist?: string[] } | null>(() =>
+    authenticatedCustomer ? {
+      name: authenticatedCustomer.name ?? "",
+      email: authenticatedCustomer.email ?? "",
+      phone: authenticatedCustomer.phone,
+      wishlist: authenticatedCustomer.wishlist,
+    } : null,
+  );
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>([]);
-  const [catalogProducts, setCatalogProducts] = useState<StorefrontProduct[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [catalogProducts, setCatalogProducts] = useState<StorefrontProduct[]>(() =>
+    (getCachedStorefrontCatalog()?.products ?? [])
+      .map(toStorefrontProduct)
+      .filter((product): product is StorefrontProduct => product !== null),
+  );
+  const [wishlistLoading, setWishlistLoading] = useState(() => !getCachedStorefrontCatalog());
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { fetch("/api/auth/me").then((response) => response.json()).then((result) => setCustomer(result.customer)).catch(() => undefined); }, []);
-  useEffect(() => { fetch("/api/auth/orders").then((response) => response.json()).then((result) => setCustomerOrders(Array.isArray(result.orders) ? result.orders : [])).catch(() => undefined); }, []);
   useEffect(() => {
     let active = true;
-    fetch("/api/catalog", { credentials: "same-origin" })
+    fetch("/api/auth/orders", { credentials: "same-origin" })
       .then((response) => {
-        if (!response.ok) throw new Error("Catalog unavailable.");
+        if (!response.ok) throw new Error("Could not load orders.");
         return response.json();
       })
-      .then((catalog: { products?: unknown[] }) => {
-        if (active) setCatalogProducts((catalog.products ?? []).map(toStorefrontProduct).filter((product): product is StorefrontProduct => product !== null));
+      .then((result) => { if (active) setCustomerOrders(Array.isArray(result.orders) ? result.orders : []); })
+      .catch(() => { if (active) setCustomerOrders([]); })
+      .finally(() => { if (active) setOrdersLoading(false); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    loadStorefrontCatalog()
+      .then((catalog) => {
+        if (active) setCatalogProducts(catalog.products.map(toStorefrontProduct).filter((product): product is StorefrontProduct => product !== null));
       })
       .catch(() => {
         if (active) setCatalogProducts([]);
+      })
+      .finally(() => {
+        if (active) setWishlistLoading(false);
       });
     return () => {
       active = false;
@@ -109,7 +134,7 @@ function AuthenticatedProfile() {
   const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
   const savedIds = new Set((customer.wishlist ?? []).map(String));
   const saved = catalogProducts.filter((product) => savedIds.has(product.id));
-  return <><CustomerProfileNoWishlist customer={customer} orders={customerOrders} saved={saved} editing={editing} saving={saving} onSave={save} onEditing={() => setEditing(!editing)} onSignOut={signOut} /><SavedAddresses customer={customer} returnToCheckout={search.returnTo === "checkout"} coupon={search.coupon} /></>;
+  return <><CustomerProfileNoWishlist customer={customer} orders={customerOrders} saved={saved} ordersLoading={ordersLoading} wishlistLoading={wishlistLoading} editing={editing} saving={saving} onSave={save} onEditing={() => setEditing(!editing)} onSignOut={signOut} /><SavedAddresses customer={customer} returnToCheckout={search.returnTo === "checkout"} coupon={search.coupon} /></>;
 }
 
 type SavedAddress = { id: string; name: string; phone: string; addressLine: string; locality: string; pincode: string; city: string; state: string; landmark?: string; isDefault?: boolean };
@@ -120,6 +145,8 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
   const [formOpen, setFormOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<SavedAddress | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState(false);
   useEffect(() => { fetch("/api/auth/addresses").then((r) => r.json()).then((data) => setAddresses(Array.isArray(data.addresses) ? data.addresses : [])).catch(() => setAddresses([])); }, []);
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setSaving(true);
@@ -135,22 +162,24 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
     finally { setSaving(false); }
   }
   async function remove(address: SavedAddress) {
-    if (!window.confirm("Delete this saved address?")) return;
+    setDeletingAddress(true);
     try {
       const response = await fetch(`/api/auth/addresses/${encodeURIComponent(address.id)}`, { method: "DELETE" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not delete the address.");
       setAddresses(Array.isArray(result.addresses) ? result.addresses : []);
       if (editingAddress?.id === address.id) { setEditingAddress(null); setFormOpen(false); }
+      setAddressToDelete(null);
       toast.success("Address deleted.");
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete the address."); }
+    finally { setDeletingAddress(false); }
   }
   function startEdit(address: SavedAddress) {
     setEditingAddress(address);
     setFormOpen(true);
   }
   return <section className="mx-auto mt-8 max-w-7xl px-5 pb-10"><div className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => { setFormOpen(!formOpen); setEditingAddress(null); }} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {formOpen ? "Cancel" : "Add address"}</button></div>
-    {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => void remove(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</p></article>)}</div>}
+     {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setAddressToDelete(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</p></article>)}</div>}
     {addresses.length === 0 && !formOpen && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
     {formOpen && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
       <label className="text-xs text-muted-foreground">Full name<input name="name" defaultValue={editingAddress?.name ?? customer.name} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
@@ -162,8 +191,10 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
       <label className="text-xs text-muted-foreground">State<input name="state" defaultValue={editingAddress?.state ?? ""} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
       <label className="text-xs text-muted-foreground sm:col-span-2">Landmark (optional)<input name="landmark" defaultValue={editingAddress?.landmark ?? ""} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
       <div className="flex gap-3"><button disabled={saving} className="w-fit bg-primary px-6 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : editingAddress ? "Update address" : "Save address"}</button><button type="button" onClick={() => { setEditingAddress(null); setFormOpen(false); }} className="px-4 py-3 text-eyebrow text-muted-foreground">Cancel</button></div>
-    </form>}
-  </div></section>;
+     </form>}
+   </div>
+   {addressToDelete && <div className="fixed inset-0 z-[120] flex items-center justify-center bg-ink/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !deletingAddress) setAddressToDelete(null); }}><section role="alertdialog" aria-modal="true" aria-labelledby="delete-address-title" aria-describedby="delete-address-description" className="w-full max-w-md border border-border bg-white p-6 shadow-2xl sm:p-7"><p className="text-eyebrow text-muted-foreground">Saved address</p><h2 id="delete-address-title" className="mt-2 font-display text-2xl text-primary">Delete this address?</h2><p id="delete-address-description" className="mt-2 text-sm leading-relaxed text-muted-foreground">This address will be removed from your saved delivery details. This can’t be undone.</p><div className="mt-6 flex justify-end gap-3"><button type="button" disabled={deletingAddress} onClick={() => setAddressToDelete(null)} className="border border-border px-4 py-3 text-eyebrow text-primary disabled:opacity-50">Keep address</button><button type="button" disabled={deletingAddress} onClick={() => void remove(addressToDelete)} className="bg-primary px-4 py-3 text-eyebrow text-white disabled:opacity-50">{deletingAddress ? "Deleting…" : "Delete address"}</button></div></section></div>}
+   </section>;
 }
 
 function CustomerOrderTimeline({ order }: { order: CustomerOrder }) {
@@ -216,9 +247,58 @@ function formatOrderDate(value: string | undefined) {
   return Number.isFinite(date.getTime()) ? date.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Date pending";
 }
 
-function CustomerProfileNoWishlist({ customer, orders, saved, editing, saving, onSave, onEditing, onSignOut }: { customer: { name: string; email: string; phone: string }; orders: CustomerOrder[]; saved: StorefrontProduct[]; editing: boolean; saving: boolean; onSave: (event: React.FormEvent<HTMLFormElement>) => void; onEditing: () => void; onSignOut: () => void }) {
+function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wishlistLoading, editing, saving, onSave, onEditing, onSignOut }: { customer: { name: string; email: string; phone: string }; orders: CustomerOrder[]; saved: StorefrontProduct[]; ordersLoading: boolean; wishlistLoading: boolean; editing: boolean; saving: boolean; onSave: (event: React.FormEvent<HTMLFormElement>) => void; onEditing: () => void; onSignOut: () => void }) {
   const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
-  return <><section className="fabric-texture border-b border-border"><div className="mx-auto max-w-7xl px-5 py-14"><p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p><h1 className="mt-3 font-display text-5xl font-light text-primary">Welcome back, {customer.name || "to your account"}</h1><p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">Your personal space for heirlooms, orders and the little details that make every drape feel yours.</p></div></section><section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[260px_1fr] lg:gap-14"><aside><div className="border border-border bg-card p-6"><div className="flex items-center gap-4"><div className="flex size-16 items-center justify-center rounded-full bg-primary text-2xl text-white">{initials}</div><div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">+91 {customer.phone}</p></div></div><div className="mt-6 border-t border-border pt-5"><p className="text-eyebrow text-muted-foreground">Verified mobile</p><p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p></div></div><button type="button" onClick={onSignOut} className="mt-5 flex items-center gap-2 px-2 text-sm text-muted-foreground hover:text-primary"><LogOut className="size-4" /> Sign out</button></aside><div className="min-w-0"><section className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div><button type="button" onClick={onEditing} className="inline-flex items-center gap-2 text-sm text-primary"><Pencil className="size-3.5" />{editing ? "Cancel" : "Edit details"}</button></div><form onSubmit={onSave} className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2"><label><span className="text-eyebrow text-muted-foreground">Full name</span><input name="name" defaultValue={customer.name} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label><span className="text-eyebrow text-muted-foreground">Email address</span><input name="email" type="email" defaultValue={customer.email} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label><label><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={`+91 ${customer.phone}`} readOnly className="mt-2 w-full border-b border-border bg-transparent py-2 text-sm outline-none" /></label>{editing && <button disabled={saving} className="w-fit bg-primary px-7 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}</form></section><div className="mt-8 grid gap-4 sm:grid-cols-2"><div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">{orders.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Orders</p></div><Link to="/wishlist" className="border border-border bg-card p-5 transition-colors hover:border-gold"><p className="font-display text-4xl font-light text-primary">{saved.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Saved favourites</p><p className="mt-2 text-xs text-primary">View wishlist →</p></Link></div><section className="mt-8 border border-border bg-card p-6 sm:p-8"><div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Your purchases</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Order history</h2></div><span className="text-sm text-muted-foreground">{orders.length} order{orders.length === 1 ? "" : "s"}</span></div>{orders.length === 0 ? <p className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">Your order details will appear here after checkout.</p> : <div className="mt-6 space-y-4">{orders.map((order) => <article key={order._id ?? order.orderId} className="border border-border p-5"><div className="flex flex-wrap items-center gap-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId ?? "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Date unavailable"}</p><p className="mt-1 text-xs text-muted-foreground">{order.items?.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0) ?? 0} item(s) · {order.paymentMethod ?? "Demo payment"}</p></div><div className="text-right"><p className="font-medium text-primary">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><p className="mt-1 text-xs capitalize text-emerald-deep">{titleCaseOrderStatus(order.status ?? "pending")} · {order.paymentStatus ?? "pending"}</p></div></div><CustomerOrderTimeline order={order} /></article>)}</div>}</section></div></section></>;
+  return <>
+    <section className="fabric-texture border-b border-border">
+      <div className="mx-auto max-w-7xl px-5 py-14">
+        <p className="text-eyebrow text-muted-foreground">Your Bawari Banno</p>
+        <h1 className="mt-3 font-display text-5xl font-light text-primary">Welcome back, {customer.name || "to your account"}</h1>
+        <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">Your personal space for heirlooms, orders and the little details that make every drape feel yours.</p>
+      </div>
+    </section>
+    <section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[260px_1fr] lg:gap-14">
+      <aside>
+        <div className="border border-border bg-card p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex size-16 items-center justify-center rounded-full bg-primary text-2xl text-white">{initials}</div>
+            <div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">+91 {customer.phone}</p></div>
+          </div>
+          <div className="mt-6 border-t border-border pt-5"><p className="text-eyebrow text-muted-foreground">Verified mobile</p><p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p></div>
+        </div>
+        <button type="button" onClick={onSignOut} className="mt-5 flex items-center gap-2 px-2 text-sm text-muted-foreground hover:text-primary"><LogOut className="size-4" /> Sign out</button>
+      </aside>
+      <div className="min-w-0">
+        <section className="border border-border bg-card p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Account details</h2></div>
+            <button type="button" onClick={onEditing} className="inline-flex items-center gap-2 text-sm text-primary"><Pencil className="size-3.5" />{editing ? "Cancel" : "Edit details"}</button>
+          </div>
+          <form onSubmit={onSave} className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+            <label><span className="text-eyebrow text-muted-foreground">Full name</span><input name="name" defaultValue={customer.name} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label>
+            <label><span className="text-eyebrow text-muted-foreground">Email address</span><input name="email" type="email" defaultValue={customer.email} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label>
+            <label><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={`+91 ${customer.phone}`} readOnly className="mt-2 w-full border-b border-border bg-transparent py-2 text-sm outline-none" /></label>
+            {editing && <button disabled={saving} className="w-fit bg-primary px-7 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}
+          </form>
+        </section>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="border border-border bg-card p-5"><p className="font-display text-4xl font-light text-primary">{ordersLoading ? "—" : orders.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Orders</p></div>
+          <Link to="/wishlist" className="border border-border bg-card p-5 transition-colors hover:border-gold"><p className="font-display text-4xl font-light text-primary">{wishlistLoading ? "—" : saved.length}</p><p className="mt-2 text-eyebrow text-muted-foreground">Saved favourites</p><p className="mt-2 text-xs text-primary">View wishlist →</p></Link>
+        </div>
+        <section className="mt-8 border border-border bg-card p-6 sm:p-8">
+          <div className="flex items-end justify-between gap-4">
+            <div><p className="text-eyebrow text-muted-foreground">Your purchases</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Order history</h2></div>
+            <span className="text-sm text-muted-foreground">{ordersLoading ? "Loading…" : `${orders.length} order${orders.length === 1 ? "" : "s"}`}</span>
+          </div>
+          {ordersLoading ? <div className="mt-6 space-y-3" role="status" aria-label="Loading orders">{[0, 1].map((item) => <div key={item} className="h-24 animate-pulse border border-border bg-secondary/30" />)}</div> : orders.length === 0 ? <p className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">Your order details will appear here after checkout.</p> : <div className="mt-6 space-y-4">{orders.map((order) => <article key={order._id ?? order.orderId} className="border border-border p-5"><div className="flex flex-wrap items-center gap-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId ?? "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Date unavailable"}</p><p className="mt-1 text-xs text-muted-foreground">{order.items?.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0) ?? 0} item(s) · {order.paymentMethod ?? "Demo payment"}</p></div><div className="text-right"><p className="font-medium text-primary">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><p className="mt-1 text-xs capitalize text-emerald-deep">{titleCaseOrderStatus(order.status ?? "pending")} · {order.paymentStatus ?? "pending"}</p></div></div><CustomerOrderTimeline order={order} /></article>)}</div>}
+        </section>
+        <section className="mt-8 border border-border bg-card p-6 sm:p-8">
+          <div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Your saved edit</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Wishlist</h2></div><span className="text-sm text-muted-foreground">{wishlistLoading ? "Loading…" : `${saved.length} item${saved.length === 1 ? "" : "s"}`}</span></div>
+          {wishlistLoading ? <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3" role="status" aria-label="Loading wishlist">{[0, 1, 2].map((item) => <div key={item}><div className="aspect-[3/4] animate-pulse bg-secondary/40" /><div className="mt-2 h-4 w-3/4 animate-pulse bg-secondary/40" /></div>)}</div> : saved.length === 0 ? <p className="mt-6 text-sm text-muted-foreground">Your wishlist is empty. Tap the heart on any saree to save it here.</p> : <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">{saved.map((saree) => <Link key={saree.id} to="/products/$productId" params={{ productId: saree.id }} className="group"><img src={saree.image} alt={saree.name} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" /><p className="mt-2 text-sm text-primary">{saree.name}</p><p className="mt-1 text-sm">{formatPrice(saree.price)}</p></Link>)}</div>}
+        </section>
+      </div>
+    </section>
+  </>;
 }
 
 function LegacyCustomerProfileNoWishlist({ customer, orders, saved, editing, saving, onSave, onEditing, onSignOut }: { customer: { name: string; email: string; phone: string }; orders: CustomerOrder[]; saved: typeof sarees; editing: boolean; saving: boolean; onSave: (event: React.FormEvent<HTMLFormElement>) => void; onEditing: () => void; onSignOut: () => void }) {
