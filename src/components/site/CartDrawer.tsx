@@ -12,10 +12,15 @@ type CartItem = {
   quantity: number;
 };
 
+type AddItemOptions = {
+  openCart?: boolean;
+  showToast?: boolean;
+};
+
 type CartContextValue = {
   items: CartItem[];
   isOpen: boolean;
-  addItem: (product: Saree, quantity?: number) => void;
+  addItem: (product: Saree, quantity?: number, options?: AddItemOptions) => void;
   updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   removeItem: (productId: string, variantId?: string) => void;
   clearCart: () => void;
@@ -49,7 +54,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const addItem = (product: Saree, quantity = 1) => {
+  const addItem = (product: Saree, quantity = 1, options: AddItemOptions = {}) => {
     if (product.variants?.length && !product.selectedVariantId) {
       toast.error("Choose a color before adding this product to your bag.");
       return;
@@ -66,8 +71,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...current, { product, quantity: Math.min(9, quantity) }];
     });
-    setIsOpen(true);
-    toast.success(`${product.name} added to your bag`);
+    setIsOpen(options.openCart ?? true);
+    if (options.showToast !== false) toast.success(`${product.name} added to your bag`);
   };
 
   const value = useMemo(

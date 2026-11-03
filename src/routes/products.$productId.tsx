@@ -387,7 +387,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               disabled={availableStock === 0}
               onClick={() => {
-                addItem(selectedProduct, qty);
+                addItem(selectedProduct, qty, { openCart: false, showToast: false });
                 closeCart();
                 void navigate({ to: "/checkout", search: { coupon: undefined } });
               }}

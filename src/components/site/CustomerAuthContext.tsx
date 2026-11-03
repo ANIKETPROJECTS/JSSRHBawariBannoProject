@@ -111,7 +111,9 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
               <X className="size-5" />
             </button>
             <div className="mb-6 pr-8">
-              <img src={logoImage} alt="Bawari Banno" className="h-12 w-48 object-contain object-left" />
+              <div className="inline-flex bg-[#ED145B] px-3 py-1.5">
+                <img src={logoImage} alt="Bawari Banno" className="h-12 w-48 object-contain object-left" />
+              </div>
               <p className="mt-4 text-sm text-muted-foreground">Sign in or create an account to continue with your purchase.</p>
             </div>
             <AccountAccess onComplete={completeLogin} />
@@ -130,8 +132,8 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const stepNumber = step === "phone" ? 1 : step === "otp" ? 2 : 3;
-  const totalSteps = mode === "signup" ? 3 : 2;
+  const stepNumber = step === "details" ? 2 : 1;
+  const totalSteps = mode === "signup" ? 2 : 1;
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
@@ -191,6 +193,11 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
             <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => setMode("signup")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "signup" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Create account</button>
             <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => setMode("login")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "login" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Log in</button>
           </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            {mode === "signup"
+              ? "Already have an account? Choose Log in and enter the WhatsApp number registered with Bawari Banno."
+              : "Enter the WhatsApp number registered with your account to receive a login code."}
+          </p>
           <form onSubmit={sendOtp}>
             <label className="mt-7 block text-eyebrow text-muted-foreground">
               Mobile number
