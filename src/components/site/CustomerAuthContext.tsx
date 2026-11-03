@@ -111,8 +111,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
               <X className="size-5" />
             </button>
             <div className="mb-6 pr-8">
-              <div className="inline-flex bg-[#ED145B] px-3 py-1.5">
-                <img src={logoImage} alt="Bawari Banno" className="h-12 w-48 object-contain object-left" />
+              <div className="flex w-full justify-center rounded-sm bg-[#5b1728] px-4 py-4">
+                <div className="inline-flex rounded-sm bg-[#ED145B] px-3 py-1.5">
+                  <img src={logoImage} alt="Bawari Banno" className="h-12 w-48 object-contain object-center" />
+                </div>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">Sign in or create an account to continue with your purchase.</p>
             </div>
