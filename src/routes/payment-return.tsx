@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 
@@ -21,6 +21,7 @@ type PaymentState = {
 };
 
 function PaymentReturn() {
+  const navigate = useNavigate();
   const [state, setState] = useState<PaymentState | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -72,6 +73,14 @@ function PaymentReturn() {
   const pending = !paid && !failed;
   const Icon = paid ? CheckCircle2 : failed ? XCircle : Clock3;
 
+  useEffect(() => {
+    if (!paid) return;
+    const timer = window.setTimeout(() => {
+      void navigate({ to: "/profile" });
+    }, 3500);
+    return () => window.clearTimeout(timer);
+  }, [navigate, paid]);
+
   return (
     <SiteShell>
       <section className="fabric-texture border-b border-border">
@@ -89,7 +98,7 @@ function PaymentReturn() {
           <p className="mt-5 max-w-xl text-sm leading-relaxed text-muted-foreground">
             {error ||
               (paid
-                ? "Your order is now in our system. We will begin preparing it shortly."
+                ? "Your order is confirmed and saved to your account. Taking you to your order details…"
                 : failed
                   ? "No stock was deducted. You can return to the collection and try checkout again."
                   : "PhonePe is sending the payment result to us. This page will update automatically.")}

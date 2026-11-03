@@ -836,6 +836,11 @@ async function createPhonePeCheckout(request: Request) {
       ? String(result.redirectUrl ?? "")
       : String(legacyRedirectInfo.url ?? "");
     if (!response.ok || !redirect || (phonePe.mode === "legacy" && result.success !== true)) {
+      console.error("[PhonePe] checkout rejected", {
+        status: response.status,
+        code: String(result.code ?? "NO_CODE").slice(0, 80),
+        message: String(result.message ?? "No provider message").slice(0, 160),
+      });
       await database.collection("orders").updateOne(
         { orderId },
         { $set: { paymentStatus: "failed", paymentDetails: JSON.stringify({ code: result.code, message: result.message }).slice(0, 200), updatedAt: new Date() } },
@@ -3099,6 +3104,51 @@ async function handleAuth(request: Request, path: string) {
       { $push: { addresses: address }, $set: { updatedAt: new Date() } },
     );
     return json({ address, addresses: [...currentAddresses, address] }, { status: 201 });
+  }
+  const addressMatch = path.match(/^\/api\/auth\/addresses\/([^/]+)$/);
+  if (addressMatch && (request.method === "PUT" || request.method === "DELETE")) {
+    const customer = await customerFromRequest(request);
+    if (!customer) return fail("Customer login required.", 401);
+    const addressId = decodeURIComponent(addressMatch[1]);
+    const currentAddresses = Array.isArray(customer.addresses) ? customer.addresses as JsonRecord[] : [];
+    const existing = currentAddresses.find((address) => String(address.id) === addressId);
+    if (!existing) return fail("Saved address not found.", 404);
+    let nextAddresses: JsonRecord[];
+    if (request.method === "DELETE") {
+      nextAddresses = currentAddresses.filter((address) => String(address.id) !== addressId);
+      if (existing.isDefault && nextAddresses.length && !nextAddresses.some((address) => address.isDefault)) {
+        nextAddresses[0] = { ...nextAddresses[0], isDefault: true };
+      }
+    } else {
+      const input = await body(request);
+      const name = String(input.name ?? "").trim();
+      const addressLine = String(input.addressLine ?? "").trim();
+      const locality = String(input.locality ?? "").trim();
+      const pincode = String(input.pincode ?? "").trim();
+      const city = String(input.city ?? "").trim();
+      const state = String(input.state ?? "").trim();
+      if (!name || !addressLine || !locality || !/^\d{6}$/.test(pincode) || !city || !state) {
+        return fail("Enter your name, complete address, locality, 6-digit pincode, city and state.");
+      }
+      const updated: JsonRecord = {
+        ...existing,
+        name,
+        phone: String(customer.phone ?? ""),
+        addressLine,
+        locality,
+        pincode,
+        city,
+        state,
+        landmark: String(input.landmark ?? "").trim(),
+        updatedAt: new Date(),
+      };
+      nextAddresses = currentAddresses.map((address) => String(address.id) === addressId ? updated : address);
+    }
+    await database.collection("customers").updateOne(
+      { _id: customer._id },
+      { $set: { addresses: nextAddresses, updatedAt: new Date() } },
+    );
+    return json({ addresses: nextAddresses });
   }
   if (path === "/api/auth/wishlist" && (request.method === "GET" || request.method === "POST")) {
     const customer = await customerFromRequest(request);

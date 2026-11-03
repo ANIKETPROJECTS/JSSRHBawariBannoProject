@@ -12,6 +12,7 @@ import {
   Pencil,
   Plus,
   ShieldCheck,
+  Trash2,
   Truck,
   XCircle,
   UserRound,
@@ -53,7 +54,7 @@ const orders = [
   { id: "BB-2407-014", date: "28 July 2026", status: "In transit", item: sarees[3] },
 ];
 
-type CustomerOrder = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
+type CustomerOrder = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; total?: number; shippingAddress?: { name?: string; phone?: string; addressLine?: string; locality?: string; city?: string; state?: string; pincode?: string; landmark?: string }; items?: { productId: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
 
 function Profile() {
   return <SiteShell><CustomerGate><AuthenticatedProfile /></CustomerGate></SiteShell>;
@@ -116,7 +117,8 @@ type SavedAddress = { id: string; name: string; phone: string; addressLine: stri
 function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { name: string; phone: string }; returnToCheckout: boolean; coupon?: string }) {
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
-  const [editing, setEditing] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
   const [saving, setSaving] = useState(false);
   useEffect(() => { fetch("/api/auth/addresses").then((r) => r.json()).then((data) => setAddresses(Array.isArray(data.addresses) ? data.addresses : [])).catch(() => setAddresses([])); }, []);
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -124,27 +126,42 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
     const data = new FormData(event.currentTarget);
     const body = Object.fromEntries(["name", "addressLine", "locality", "pincode", "city", "state", "landmark"].map((key) => [key, data.get(key)]));
     try {
-      const response = await fetch("/api/auth/addresses", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const response = await fetch(editingAddress ? `/api/auth/addresses/${encodeURIComponent(editingAddress.id)}` : "/api/auth/addresses", { method: editingAddress ? "PUT" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not save the address.");
-      setAddresses(result.addresses ?? [...addresses, result.address]); setEditing(false); toast.success("Delivery address saved.");
+      setAddresses(result.addresses ?? [...addresses, result.address]); setFormOpen(false); setEditingAddress(null); toast.success(editingAddress ? "Address updated." : "Delivery address saved.");
       if (returnToCheckout) await navigate({ to: "/checkout", search: { coupon: coupon || undefined } });
     } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save the address."); }
     finally { setSaving(false); }
   }
-  return <section className="mx-auto mt-8 max-w-7xl px-5 pb-10"><div className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => setEditing(!editing)} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {editing ? "Cancel" : "Add address"}</button></div>
-    {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p><p className="mt-2 text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</p></article>)}</div>}
-    {addresses.length === 0 && !editing && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
-    {editing && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
-      <label className="text-xs text-muted-foreground">Full name<input name="name" defaultValue={customer.name} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+  async function remove(address: SavedAddress) {
+    if (!window.confirm("Delete this saved address?")) return;
+    try {
+      const response = await fetch(`/api/auth/addresses/${encodeURIComponent(address.id)}`, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Could not delete the address.");
+      setAddresses(Array.isArray(result.addresses) ? result.addresses : []);
+      if (editingAddress?.id === address.id) { setEditingAddress(null); setFormOpen(false); }
+      toast.success("Address deleted.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not delete the address."); }
+  }
+  function startEdit(address: SavedAddress) {
+    setEditingAddress(address);
+    setFormOpen(true);
+  }
+  return <section className="mx-auto mt-8 max-w-7xl px-5 pb-10"><div className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => { setFormOpen(!formOpen); setEditingAddress(null); }} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {formOpen ? "Cancel" : "Add address"}</button></div>
+    {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => void remove(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</p></article>)}</div>}
+    {addresses.length === 0 && !formOpen && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
+    {formOpen && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
+      <label className="text-xs text-muted-foreground">Full name<input name="name" defaultValue={editingAddress?.name ?? customer.name} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
       <label className="text-xs text-muted-foreground">Phone number<input value={`+91 ${customer.phone}`} readOnly className="mt-1 w-full border border-border bg-[#f8f6f3] px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground sm:col-span-2">Address<input name="addressLine" required placeholder="House, street, building" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground">Locality<input name="locality" required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground">Pincode<input name="pincode" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground">City<input name="city" required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground">State<input name="state" required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground sm:col-span-2">Landmark (optional)<input name="landmark" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <button disabled={saving} className="w-fit bg-primary px-6 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save address"}</button>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Address<input name="addressLine" defaultValue={editingAddress?.addressLine ?? ""} required placeholder="House, street, building" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">Locality<input name="locality" defaultValue={editingAddress?.locality ?? ""} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">Pincode<input name="pincode" defaultValue={editingAddress?.pincode ?? ""} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">City<input name="city" defaultValue={editingAddress?.city ?? ""} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">State<input name="state" defaultValue={editingAddress?.state ?? ""} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground sm:col-span-2">Landmark (optional)<input name="landmark" defaultValue={editingAddress?.landmark ?? ""} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
+      <div className="flex gap-3"><button disabled={saving} className="w-fit bg-primary px-6 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : editingAddress ? "Update address" : "Save address"}</button><button type="button" onClick={() => { setEditingAddress(null); setFormOpen(false); }} className="px-4 py-3 text-eyebrow text-muted-foreground">Cancel</button></div>
     </form>}
   </div></section>;
 }
@@ -168,6 +185,7 @@ function CustomerOrderTimeline({ order }: { order: CustomerOrder }) {
   const steps = terminal ? [...visibleSteps, { status: normalized, label: normalized === "rejected" ? "Order rejected" : "Order cancelled", detail: normalized === "rejected" ? "This order was not accepted." : "This order was cancelled.", Icon: XCircle }] : visibleSteps;
 
   return <div className="mt-5 border-t border-border pt-5">
+    {order.shippingAddress && <div className="mb-5 border border-border bg-[#fbf9f6] p-4"><p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Delivery address</p><p className="mt-2 text-sm font-medium text-primary">{order.shippingAddress.name}</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{order.shippingAddress.addressLine}, {order.shippingAddress.locality}, {order.shippingAddress.city}, {order.shippingAddress.state} — {order.shippingAddress.pincode}{order.shippingAddress.landmark ? ` · ${order.shippingAddress.landmark}` : ""}</p></div>}
     {order.items?.length ? <div className="mb-5"><p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Items in this order</p><div className="mt-3 divide-y divide-border border-y border-border">{order.items.map((item, index) => <div key={`${item.productId}-${index}`} className="flex items-center gap-3 py-3"><div className="size-14 shrink-0 overflow-hidden bg-secondary">{item.image ? <img src={item.image} alt="" className="h-full w-full object-cover" /> : <Package className="m-4 size-6 text-muted-foreground" />}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-primary">{item.name || item.productId}</p><p className="mt-1 text-xs text-muted-foreground">Quantity: {item.quantity}</p></div>{item.price !== undefined && <p className="text-sm text-primary">₹{Number(item.price).toLocaleString("en-IN")} each</p>}</div>)}</div></div> : <p className="mb-5 text-xs text-muted-foreground">Product details were not recorded for this order.</p>}
     <div className="flex items-center justify-between gap-3"><p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Order tracking</p><span className={`border px-2.5 py-1 text-[10px] uppercase tracking-[0.08em] ${terminal ? "border-red-200 bg-red-50 text-red-800" : normalized === "delivered" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-800"}`}>{normalized === "approved" ? "Confirmed" : normalized === "processing" ? "Processing" : normalized === "shipped" ? "In transit" : titleCaseOrderStatus(normalized)}</span></div>
     <ol className="mt-5 grid gap-0 sm:grid-cols-5">

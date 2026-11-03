@@ -1310,7 +1310,8 @@ function orderAddress(order: Order) {
   const raw = order.shippingAddress ?? order.address;
   if (!raw) return [];
   if (typeof raw === "string") return raw.split(/\n|,/).map((line) => line.trim()).filter(Boolean);
-  return [raw.name, raw.line1, raw.line2, [raw.city, raw.state, raw.pincode].filter(Boolean).join(", "), raw.phone].filter(Boolean).map(String);
+  const address = raw as OrderAddress & { addressLine?: string; locality?: string; landmark?: string };
+  return [address.name, address.addressLine ?? address.line1, address.locality ?? address.line2, address.landmark, [address.city, address.state, address.pincode].filter(Boolean).join(", "), address.phone].filter(Boolean).map(String);
 }
 
 function OrdersPage() {
