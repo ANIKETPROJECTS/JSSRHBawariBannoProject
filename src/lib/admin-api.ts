@@ -7,6 +7,7 @@ import { auditCreateFields, auditUpdateFields, businessSettingsDefaults, ensureB
 import { purchaseInvoiceDeletionPolicy } from "@/lib/purchase-invoice-policy";
 import { phonePeShaWebhookAuthorized } from "@/lib/phonepe-webhook-auth";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
+import { customerOtpMatches, generateCustomerOtp, hashCustomerOtp, normalizeIndianPhone, sendAtWassupOtp } from "@/lib/atwassup-otp";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -162,6 +163,7 @@ async function db(): Promise<Db> {
     database.collection("reviews").createIndex({ productId: 1, status: 1, createdAt: -1 }),
     database.collection("reviews").createIndex({ customerId: 1, createdAt: -1 }),
     database.collection("admin_users").createIndex({ email: 1 }, { unique: true }),
+    database.collection("customer_otp_challenges").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     ensureBusinessIndexes(database),
   ]);
   return database;
@@ -2955,15 +2957,73 @@ async function storeSettings(request: Request) {
 async function handleAuth(request: Request, path: string) {
   if (path === "/api/auth/send-otp" && request.method === "POST") {
     const input = await body(request);
-    const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
-    if (phone.length !== 10) return fail("Enter a valid 10-digit mobile number.");
-    return json({ ok: true, demoOtp: "123456" });
+    const phone = normalizeIndianPhone(input.phone);
+    if (!phone) return fail("Enter a valid 10-digit mobile number.");
+
+    const apiKey = process.env.ATWASSUP_API_KEY?.trim();
+    const phoneNumberId = process.env.ATWASSUP_PHONE_NUMBER_ID?.trim();
+    if (!apiKey || !phoneNumberId) {
+      return fail("WhatsApp OTP delivery is not configured yet.", 503);
+    }
+
+    const database = await db();
+    const challenges = database.collection("customer_otp_challenges");
+    const now = new Date();
+    const otp = generateCustomerOtp();
+    const otpHash = hashCustomerOtp(phone, otp, secret("SESSION_SECRET"));
+    const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+    const cooldownCutoff = new Date(now.getTime() - 60 * 1000);
+    const challenge = { otpHash, expiresAt, lastSentAt: now, attempts: 0 };
+    const claim = await challenges.updateOne(
+      { _id: phone, $or: [{ lastSentAt: { $lte: cooldownCutoff } }, { lastSentAt: { $exists: false } }] },
+      { $set: challenge },
+    );
+    if (!claim.matchedCount) {
+      try {
+        await challenges.insertOne({ _id: phone, ...challenge });
+      } catch (error) {
+        if (error && typeof error === "object" && "code" in error && error.code === 11000) {
+          return fail("Please wait one minute before requesting another OTP.", 429);
+        }
+        throw error;
+      }
+    }
+
+    try {
+      await sendAtWassupOtp({ apiKey, phoneNumberId, phone, otp });
+    } catch (error) {
+      await challenges.deleteOne({ _id: phone, otpHash });
+      const message = error instanceof Error ? error.message : "AtWassup could not send the OTP.";
+      return fail(message, 502);
+    }
+    return json({ ok: true, message: "OTP sent to your WhatsApp number." });
   }
   const database = await db();
   if (path === "/api/auth/verify" && request.method === "POST") {
     const input = await body(request);
-    const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
-    if (phone.length !== 10 || input.otp !== "123456") return fail("Invalid mobile number or demo OTP.", 401);
+    const phone = normalizeIndianPhone(input.phone);
+    const otp = String(input.otp ?? "");
+    if (!phone || !/^\d{6}$/.test(otp)) return fail("Enter a valid mobile number and 6-digit OTP.");
+
+    const challenges = database.collection("customer_otp_challenges");
+    const challenge = await challenges.findOne({ _id: phone });
+    if (!challenge || !(challenge.expiresAt instanceof Date) || challenge.expiresAt <= new Date()) {
+      if (challenge) await challenges.deleteOne({ _id: phone });
+      return fail("This OTP has expired. Request a new code.", 401);
+    }
+    if (Number(challenge.attempts ?? 0) >= 5) {
+      await challenges.deleteOne({ _id: phone });
+      return fail("Too many incorrect attempts. Request a new code.", 429);
+    }
+    if (!customerOtpMatches(phone, otp, String(challenge.otpHash ?? ""), secret("SESSION_SECRET"))) {
+      const attempts = Number(challenge.attempts ?? 0) + 1;
+      if (attempts >= 5) await challenges.deleteOne({ _id: phone });
+      else await challenges.updateOne({ _id: phone, otpHash: challenge.otpHash }, { $set: { attempts } });
+      return fail(attempts >= 5 ? "Too many incorrect attempts. Request a new code." : "Incorrect OTP.", attempts >= 5 ? 429 : 401);
+    }
+    const consumed = await challenges.deleteOne({ _id: phone, otpHash: challenge.otpHash, expiresAt: { $gt: new Date() } });
+    if (!consumed.deletedCount) return fail("This OTP has expired. Request a new code.", 401);
+
     let customer = await database.collection("customers").findOne({ phone });
     if (!customer) {
       const result = await database.collection("customers").insertOne({ phone, name: "", email: "", createdAt: new Date(), updatedAt: new Date(), wishlist: [], addresses: [] });

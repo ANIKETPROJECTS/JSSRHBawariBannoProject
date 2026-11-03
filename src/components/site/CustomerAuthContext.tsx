@@ -171,7 +171,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     try {
       await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone }) });
       setStep("otp");
-      toast.success("Demo OTP sent.");
+      toast.success("OTP sent to your WhatsApp number.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not send OTP.");
     } finally {
@@ -220,15 +220,14 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
       {step === "phone" && (
         <form onSubmit={sendOtp}>
           <label className="mt-9 block text-eyebrow text-muted-foreground">Mobile number<input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))} placeholder="Enter 10-digit mobile number" className="mt-3 w-full border-b border-border px-0 py-3 text-sm outline-none focus:border-gold" /></label>
-          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to verify your number. No password required.</p>
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to your WhatsApp number. No password required.</p>
           <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Sending…" : "Continue"} <ArrowRight className="size-3.5" /></button>
-          <p className="mt-5 text-center text-xs text-muted-foreground">Use any valid 10-digit number · Demo OTP: 123456</p>
         </form>
       )}
       {step === "otp" && (
         <form onSubmit={verify}>
           <label className="mt-9 block text-eyebrow text-muted-foreground">One-time password<input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} placeholder="123456" className="mt-3 w-full border-b border-border px-0 py-3 text-sm tracking-[0.4em] outline-none focus:border-gold" /></label>
-          <p className="mt-4 text-xs text-muted-foreground">Use demo OTP <strong className="font-medium text-primary">123456</strong>.</p>
+          <p className="mt-4 text-xs text-muted-foreground">Enter the 6-digit code sent to your WhatsApp number.</p>
           <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Verifying…" : "Verify and continue"} <ChevronRight className="size-3.5" /></button>
         </form>
       )}
