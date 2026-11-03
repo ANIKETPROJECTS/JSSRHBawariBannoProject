@@ -353,7 +353,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
           <div className="mt-6 h-px bg-border" />
 
-          <div className="mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="mt-8 grid grid-cols-[88px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[104px_minmax(0,1fr)_minmax(0,1fr)] sm:gap-3">
             <div className="flex items-center border border-border">
               <button
                 type="button"
@@ -378,9 +378,9 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               disabled={availableStock === 0}
               onClick={() => addItem(selectedProduct, qty)}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 bg-primary px-4 py-3.5 text-eyebrow text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:px-8"
+              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap bg-primary px-1.5 text-[0.58rem] tracking-[0.08em] text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem]"
             >
-              <ShoppingBag className="size-4" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
+              <ShoppingBag className="size-3.5 shrink-0" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
             </button>
             <button
               type="button"
@@ -390,9 +390,9 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 closeCart();
                 void navigate({ to: "/checkout", search: { coupon: undefined } });
               }}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-primary bg-white px-4 py-3.5 text-eyebrow text-primary transition-colors hover:bg-[#fff6f8] disabled:cursor-not-allowed disabled:opacity-50 sm:px-8"
+              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap border border-primary bg-white px-1.5 text-[0.58rem] tracking-[0.08em] text-primary transition-colors hover:bg-[#fff6f8] disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem]"
             >
-              Buy now <ChevronRight className="size-4" strokeWidth={1.6} />
+              Buy now <ChevronRight className="size-3.5 shrink-0" strokeWidth={1.6} />
             </button>
           </div>
 
