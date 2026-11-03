@@ -24,6 +24,7 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { formatPrice, sarees } from "@/data/sarees";
 import { toStorefrontProduct, type StorefrontProduct } from "@/lib/storefront-product";
 import { getCachedStorefrontCatalog, loadStorefrontCatalog } from "@/lib/storefront-catalog";
+import { isSuccessfulPayment } from "@/lib/order-payment";
 
 export const Route = createFileRoute("/profile")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -85,15 +86,37 @@ function AuthenticatedProfile() {
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     let active = true;
-    fetch("/api/auth/orders", { credentials: "same-origin" })
-      .then((response) => {
+    let requestPending = false;
+    async function refreshOrders() {
+      if (!active || requestPending) return;
+      requestPending = true;
+      try {
+        const response = await fetch("/api/auth/orders", { credentials: "same-origin", cache: "no-store" });
         if (!response.ok) throw new Error("Could not load orders.");
-        return response.json();
-      })
-      .then((result) => { if (active) setCustomerOrders(Array.isArray(result.orders) ? result.orders : []); })
-      .catch(() => { if (active) setCustomerOrders([]); })
-      .finally(() => { if (active) setOrdersLoading(false); });
-    return () => { active = false; };
+        const result = await response.json();
+        if (active) setCustomerOrders(Array.isArray(result.orders) ? result.orders.filter((order: CustomerOrder) => isSuccessfulPayment(order.paymentStatus)) : []);
+      } catch {
+        // Keep the last successful order list visible during temporary network failures.
+      } finally {
+        requestPending = false;
+        if (active) setOrdersLoading(false);
+      }
+    }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshOrders();
+    };
+    void refreshOrders();
+    const interval = window.setInterval(refreshWhenVisible, 15_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("pageshow", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("pageshow", refreshWhenVisible);
+    };
   }, []);
   useEffect(() => {
     let active = true;

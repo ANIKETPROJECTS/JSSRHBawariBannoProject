@@ -3174,7 +3174,7 @@ async function handleAuth(request: Request, path: string) {
     const orders = await database.collection("orders").find({
       $or: [{ customerId: customer._id }, { customerId: String(customer._id) }, { customerPhone: customer.phone }, ...(customer.email ? [{ customerEmail: customer.email }] : [])],
     }).sort({ createdAt: -1 }).limit(100).toArray();
-    return json({ orders });
+    return json({ orders: orders.filter((order) => isSuccessfulPayment(order.paymentStatus)) });
   }
   if (path === "/api/auth/logout" && request.method === "POST") return json({ ok: true }, { headers: { "set-cookie": "bb_customer=; HttpOnly; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax" } });
   return fail("Not found.", 404);

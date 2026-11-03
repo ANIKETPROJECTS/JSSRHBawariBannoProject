@@ -21,6 +21,9 @@ describe("order payment reporting", () => {
 
   it("recognizes successful payment statuses", () => {
     expect(isSuccessfulPayment("completed")).toBe(true);
+    expect(isSuccessfulPayment("paid")).toBe(true);
+    expect(isSuccessfulPayment("pending")).toBe(false);
+    expect(isSuccessfulPayment("failed")).toBe(false);
     expect(isSuccessfulPayment("refunded")).toBe(false);
   });
 });
