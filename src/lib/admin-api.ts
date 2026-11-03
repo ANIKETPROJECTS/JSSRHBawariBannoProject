@@ -7,6 +7,7 @@ import { auditCreateFields, auditUpdateFields, businessSettingsDefaults, ensureB
 import { purchaseInvoiceDeletionPolicy } from "@/lib/purchase-invoice-policy";
 import { phonePeShaWebhookAuthorized } from "@/lib/phonepe-webhook-auth";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
+import { countableOrder, isSuccessfulPayment, recognizedOrderRevenue } from "@/lib/order-payment";
 import { customerOtpMatches, generateCustomerOtp, hashCustomerOtp, normalizeIndianPhone, sendAtWassupOtp } from "@/lib/atwassup-otp";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
@@ -2570,7 +2571,7 @@ async function customersHistory(request: Request, customerId?: string) {
     ...(customerEmails.length ? [{ customerEmail: { $in: customerEmails } }] : []),
   ];
   const orders = orderMatch.length ? await database.collection("orders").find({ $or: orderMatch }).sort({ createdAt: -1 }).limit(5000).toArray() : [];
-  const allOrders = await database.collection("orders").find({}).project({ total: 1 }).limit(5000).toArray();
+  const allOrders = await database.collection("orders").find({}).project({ total: 1, paymentStatus: 1 }).limit(5000).toArray();
   const summary = new Map<string, { orders: number; total: number; latestActivity?: Date; paid: boolean; city?: string; state?: string; latestOrderName?: string }>();
   const readAddress = (value: unknown) => {
     if (!value || typeof value !== "object") return {};
@@ -2592,9 +2593,9 @@ async function customersHistory(request: Request, customerId?: string) {
     const current = summary.get(key) ?? { orders: 0, total: 0, paid: false };
     const createdAt = order.createdAt instanceof Date ? order.createdAt : new Date(String(order.createdAt ?? ""));
     const address = readAddress(order.shippingAddress ?? order.address);
-    current.orders += 1;
-    current.total += Number(order.total ?? 0);
-    current.paid ||= ["paid", "success", "completed"].includes(String(order.paymentStatus ?? "").toLowerCase());
+    if (countableOrder(order.paymentStatus)) current.orders += 1;
+    current.total += recognizedOrderRevenue(order.total, order.paymentStatus);
+    current.paid ||= isSuccessfulPayment(order.paymentStatus);
     if (!current.latestActivity || (createdAt.getTime() && createdAt > current.latestActivity)) current.latestActivity = createdAt;
     if (!current.city && address.city) current.city = address.city;
     if (!current.state && address.state) current.state = address.state;
@@ -2636,7 +2637,10 @@ async function customersHistory(request: Request, customerId?: string) {
     const value = (field: string, row: typeof a) => field === "orders" ? Number(row.orderCount) : field === "spend" ? Number(row.orderTotal) : field === "activity" ? new Date(String(row.lastActivity ?? 0)).getTime() : new Date(String(row.createdAt ?? 0)).getTime();
     return (value(sortField, a) - value(sortField, b)) * multiplier;
   });
-  const overall = allOrders.reduce((result, order) => ({ orders: result.orders + 1, revenue: result.revenue + Number(order.total ?? 0) }), { orders: 0, revenue: 0 });
+  const overall = allOrders.reduce((result, order) => ({
+    orders: result.orders + (countableOrder(order.paymentStatus) ? 1 : 0),
+    revenue: result.revenue + recognizedOrderRevenue(order.total, order.paymentStatus),
+  }), { orders: 0, revenue: 0 });
   return json(rows.map((customer) => ({ ...customer, customerStats: overall })));
 }
 
@@ -3426,10 +3430,13 @@ async function handleAdmin(request: Request, path: string) {
     const categoryMap = new Map<string, number>();
     for (const order of orders) {
       const currentStatus = String(order.status ?? "pending");
-      if (currentStatus in status) status[currentStatus as keyof typeof status] += 1;
+      if (countableOrder(order.paymentStatus) && currentStatus in status) status[currentStatus as keyof typeof status] += 1;
       const date = new Date(order.createdAt ?? Date.now());
       const month = monthMap.get(`${date.getFullYear()}-${date.getMonth()}`);
-      if (month) { month.revenue += Number(order.total ?? 0); month.orders += 1; }
+      if (month) {
+        month.revenue += recognizedOrderRevenue(order.total, order.paymentStatus);
+        if (countableOrder(order.paymentStatus)) month.orders += 1;
+      }
     }
     for (const product of products) categoryMap.set(String(product.category ?? "other"), (categoryMap.get(String(product.category ?? "other")) ?? 0) + 1);
     const categoryLabels = new Map(categories.map((category) => [String(category.slug ?? category._id), String(category.label ?? category.name ?? category.slug)]));
@@ -3495,7 +3502,7 @@ async function handleAdmin(request: Request, path: string) {
     let soldUnits = 0;
     let costedUnits = 0;
     for (const order of orders) {
-      if (["cancelled", "rejected"].includes(String(order.status ?? ""))) continue;
+      if (!isSuccessfulPayment(order.paymentStatus) || ["cancelled", "rejected"].includes(String(order.status ?? ""))) continue;
       const items = Array.isArray(order.items) ? order.items as JsonRecord[] : [];
       if (!items.length) continue;
       const itemSubtotal = items.reduce((sum, item) => sum + Number(item.price ?? 0) * Number(item.quantity ?? 0), 0);
@@ -3601,7 +3608,12 @@ async function handleAdmin(request: Request, path: string) {
       categories: [...expenseCategoryMap.entries()].map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total).slice(0, 8),
     };
     return json({
-      kpis: { revenue: orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0), orders: orders.length, customers, pending: status.pending },
+      kpis: {
+        revenue: orders.reduce((sum, order) => sum + recognizedOrderRevenue(order.total, order.paymentStatus), 0),
+        orders: orders.filter((order) => countableOrder(order.paymentStatus)).length,
+        customers,
+        pending: status.pending,
+      },
       trend: months,
       status,
       recentOrders: orders.slice(0, 6),
