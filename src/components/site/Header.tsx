@@ -93,13 +93,13 @@ export function Header() {
           <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className={`site-nav-trigger py-2 ${categoriesOpen ? "is-active" : ""}`}>
             Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
           </button>
-          {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="max-h-[min(70vh,28rem)] overflow-y-auto border border-black/15 bg-white p-2 shadow-xl">
+          {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-80 -translate-x-1/2 pt-3"><div className="max-h-[min(70vh,28rem)] overflow-y-auto border border-black/15 bg-white p-2 shadow-xl">
             {categoryLinks.slice(0, 4).map((category) => (
               <Link
                 key={category.slug}
                 to="/categories/$category"
                 params={{ category: category.slug }}
-                className="block px-3 py-2.5 text-sm text-black transition-colors hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                className="block px-3 py-3 font-display text-2xl leading-tight text-black transition-colors hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                 onClick={() => setCategoriesOpen(false)}
               >
                 {category.label}
@@ -336,7 +336,7 @@ export function Header() {
                   </summary>
                     <div className="grid gap-1 border-l border-border pl-3 pb-2">
                       {categoryLinks.slice(0, 4).map((category) => (
-                        <Link key={category.slug} to="/categories/$category" params={{ category: category.slug }} onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">
+                        <Link key={category.slug} to="/categories/$category" params={{ category: category.slug }} onClick={() => setMobileMenuOpen(false)} className="py-2 font-display text-xl text-white">
                           {category.label}
                         </Link>
                       ))}
