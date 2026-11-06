@@ -3803,7 +3803,7 @@ export async function handleAdminApi(request: Request) {
     }
     return null;
   } catch (error) {
-    console.error("Admin API error:", error instanceof Error ? error.message : error);
+    console.error(`Admin API error (${request.method} ${url.pathname}):`, error instanceof Error ? error.message : error);
     return fail("The database request could not be completed.", 500);
   }
 }
