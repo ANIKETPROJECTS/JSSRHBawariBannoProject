@@ -445,7 +445,7 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     }
     const duplicateCode = await collection.findOne({
       id: String(document.id),
-      ...(id && ObjectId.isValid(id) ? { _id: { $ne: new ObjectId(id) } } : {}),
+      ...(id ? { _id: { $ne: ObjectId.isValid(id) ? new ObjectId(id) : id } } : {}),
     });
     if (duplicateCode) throw new Error(`Product code "${String(document.id)}" is already in use. Choose a unique code.`);
     const parentSlug = String(document.category ?? "").trim();
@@ -510,7 +510,7 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     if (!Number.isFinite(minimumSubtotal) || !Number.isFinite(maxDiscount ?? 0)) throw new Error("Enter valid coupon limits.");
     if (productScope === "specific" && !productIds.length) throw new Error("Choose at least one product for a specific-product coupon.");
     if (expiresAt && Number.isNaN(expiresAt.getTime())) throw new Error("Enter a valid expiry date.");
-    const duplicate = await collection.findOne({ code, ...(id && ObjectId.isValid(id) ? { _id: { $ne: new ObjectId(id) } } : {}) });
+    const duplicate = await collection.findOne({ code, ...(id ? { _id: { $ne: ObjectId.isValid(id) ? new ObjectId(id) : id } } : {}) });
     if (duplicate) throw new Error("A coupon with this code already exists.");
     document.code = code;
     document.discountType = discountType;
@@ -523,9 +523,12 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     document.expiresAt = expiresAt;
     document.active = document.active !== false;
   }
-  if (id && ObjectId.isValid(id)) {
-    const previous = await collection.findOne({ _id: new ObjectId(id) });
-    await collection.updateOne({ _id: new ObjectId(id) }, clearSubcategory ? { $set: document, $unset: { subcategory: "" } } : { $set: document });
+  if (id) {
+    const recordId = ObjectId.isValid(id) ? new ObjectId(id) : id;
+    const recordFilter = { _id: recordId };
+    const previous = await collection.findOne(recordFilter);
+    if (!previous) throw new Error("This record could not be found. Refresh the page and try again.");
+    await collection.updateOne(recordFilter, clearSubcategory ? { $set: document, $unset: { subcategory: "" } } : { $set: document });
     if (resource === "products" && previous && typeof previous.stock === "number" && typeof document.stock === "number" && previous.stock !== document.stock) {
       await database.collection("inventory_movements").insertOne({
         productId: String(previous.id ?? id),
@@ -537,7 +540,7 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
         createdAt: new Date(),
       });
     }
-    return collection.findOne({ _id: new ObjectId(id) });
+    return collection.findOne(recordFilter);
   }
   const result = await collection.insertOne({ ...document, published: document.published !== false, createdAt: new Date() });
   return collection.findOne({ _id: result.insertedId });
