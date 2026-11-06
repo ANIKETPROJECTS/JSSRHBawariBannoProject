@@ -91,12 +91,12 @@ function CategoriesDirectory() {
                   />
                 ) : (
                   <div className="flex h-full items-end bg-gradient-to-br from-[#f8f4ef] to-[#eadfd5] p-4">
-                    <span className="font-display text-2xl text-primary/60">{category.label}</span>
+                    <span className="text-sm text-primary/60">{category.label}</span>
                   </div>
                 )}
               </div>
               <div className="p-3 sm:p-4">
-                <h2 className="font-display text-lg text-primary sm:text-xl">{category.label}</h2>
+                <h2 className="category-directory-card-title text-sm text-primary">{category.label}</h2>
                 <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{category.description}</p>
                 <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[#ED145B]">
                   View sarees <ArrowRight className="size-3.5" />
