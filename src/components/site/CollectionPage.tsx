@@ -76,6 +76,7 @@ export type CollectionPageProps = {
   productFilter?: (saree: Saree) => boolean;
   minimumProducts?: Saree[];
   initialSelection?: Selection;
+  categoryFallback?: string;
 };
 
 function categoryTreeFromRecords(records: unknown[]): CategoryNode[] {
@@ -94,6 +95,7 @@ function categoryTreeFromRecords(records: unknown[]): CategoryNode[] {
       return {
         id,
         label: String(parent.label ?? parent.name ?? id),
+        ...(parent.description ? { description: String(parent.description) } : {}),
         ...(children.length ? { children } : {}),
       };
     });
@@ -166,6 +168,7 @@ export function CollectionPage({
   productFilter,
   minimumProducts,
   initialSelection = { category: null, subcategory: null },
+  categoryFallback,
 }: CollectionPageProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const routeSearch = useRouterState({ select: (state) => state.location.search });
@@ -176,8 +179,6 @@ export function CollectionPage({
   const curatedPresentation = curatedListingPresentation[pathname];
   const sharedListingStyle = categoryListingStyle || Boolean(curatedPresentation);
   const bannerEyebrow = curatedPresentation?.eyebrow ?? eyebrow;
-  const bannerTitle = curatedPresentation?.title ?? title;
-  const bannerDescription = curatedPresentation?.description ?? description;
   const listingBadge = pathname === "/new-arrival" ? "new" : pathname === "/bestseller" ? "rank" : undefined;
   const [selection, setSelection] = useState<Selection>(initialSelection);
   const [sort, setSort] = useState<Sort>("featured");
@@ -193,6 +194,10 @@ export function CollectionPage({
     setSelection({ category: null, subcategory: null });
     setVisibleCount(16);
   }, [searchTerm]);
+
+  useEffect(() => {
+    setSelection(initialSelection);
+  }, [initialSelection.category, initialSelection.subcategory]);
 
   useEffect(() => {
     fetch("/api/catalog")
@@ -271,6 +276,27 @@ export function CollectionPage({
     if (sort === "featured") sorted.sort((a, b) => Number(!!b.featured) - Number(!!a.featured));
     return sorted;
   }, [collectionProducts, filters, searchTerm, selection, sort]);
+
+  const activeCategory = activeCategories.find((category) => category.id === selection.category);
+  const bannerTitle = curatedPresentation?.title ?? (categoryListingStyle ? activeCategory?.label ?? title : title);
+  const bannerDescription = curatedPresentation?.description ?? (categoryListingStyle ? activeCategory?.description ?? description : description);
+
+  useEffect(() => {
+    if (catalogState === "loading" || !categoryFallback || !initialSelection.category) return;
+    if (activeCategories.some((category) => category.id === initialSelection.category)) return;
+    const parentCategory = activeCategories.find((category) =>
+      category.children?.some((child) => child.id === initialSelection.category),
+    );
+    if (parentCategory) {
+      setSelection((current) => current.category === initialSelection.category
+        ? { category: parentCategory.id, subcategory: initialSelection.category }
+        : current);
+      return;
+    }
+    setSelection((current) => current.category === initialSelection.category
+      ? { ...current, category: categoryFallback }
+      : current);
+  }, [activeCategories, catalogState, categoryFallback, initialSelection.category]);
 
   const visibleList = list.slice(0, visibleCount);
   const clearFilters = () => {

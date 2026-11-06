@@ -57,6 +57,7 @@ export type Saree = {
 export type CategoryNode = {
   id: string;
   label: string;
+  description?: string;
   children?: { id: string; label: string }[];
 };
 

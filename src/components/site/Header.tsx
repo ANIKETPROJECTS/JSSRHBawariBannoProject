@@ -10,6 +10,7 @@ import searchIcon from "../../../attached_assets/search_(2)_1789284877555.png";
 import whatsappIcon from "../../../attached_assets/whatsapp_1789286832089.png";
 import { useCart } from "./CartDrawer";
 import { useWishlist } from "./WishlistContext";
+import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
 
 const nav = [
   { to: "/", label: "Home" },
@@ -20,6 +21,15 @@ const nav = [
   { to: "/about", label: "About Us" },
   { to: "/contact", label: "Contact Us" },
 ] as const;
+
+type CategoryLink = { slug: string; label: string };
+
+const fallbackCategories: CategoryLink[] = [
+  { slug: "silk", label: "Silk Sarees" },
+  { slug: "cotton", label: "Cotton Sarees" },
+  { slug: "designer", label: "Designer Sarees" },
+  { slug: "wedding", label: "Wedding Collection" },
+];
 
 const socialLinks = [
   { label: "Instagram", icon: instagramIcon },
@@ -32,6 +42,7 @@ export function Header() {
   const currentSearch = useRouterState({ select: (state) => state.location.search });
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const [categoryLinks, setCategoryLinks] = useState<CategoryLink[]>(fallbackCategories);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [typedPlaceholder, setTypedPlaceholder] = useState("Search a saree");
@@ -56,6 +67,25 @@ export function Header() {
     const term = (currentSearch as Record<string, unknown>).q;
     setQuery(typeof term === "string" ? term : "");
   }, [currentSearch]);
+
+  useEffect(() => {
+    let active = true;
+    void loadStorefrontCatalog()
+      .then(({ categories }) => {
+        const savedCategories = categories
+          .filter((category) => category.published !== false && !category.parentSlug)
+          .map((category) => ({
+            slug: String(category.slug ?? "").trim(),
+            label: String(category.label ?? category.name ?? category.slug ?? "").trim(),
+            order: Number(category.order ?? 0),
+          }))
+          .filter((category) => category.slug && category.label)
+          .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+        if (active && savedCategories.length) setCategoryLinks(savedCategories);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
   const renderDesktopNavItem = (item: (typeof nav)[number]) => {
     if (item.label === "Categories") {
       return (
@@ -63,22 +93,21 @@ export function Header() {
           <button type="button" aria-expanded={categoriesOpen} onClick={() => setCategoriesOpen((open) => !open)} className={`site-nav-trigger py-2 ${categoriesOpen ? "is-active" : ""}`}>
             Categories <ChevronDown className={`size-3 transition-transform ${categoriesOpen ? "rotate-180" : ""}`} strokeWidth={1.5} />
           </button>
-          {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="border border-black/15 bg-white p-2 shadow-xl">
-            {[
-              { label: "Silk Sarees", href: "/categories/silk-sarees" },
-              { label: "Cotton Sarees", href: "/categories/cotton-sarees" },
-              { label: "Designer Sarees", href: "/categories/designer-sarees" },
-              { label: "Wedding Collection", href: "/categories/wedding-collection" },
-            ].map((category) => (
+          {categoriesOpen && <div className="absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 pt-3"><div className="max-h-[min(70vh,28rem)] overflow-y-auto border border-black/15 bg-white p-2 shadow-xl">
+            {categoryLinks.slice(0, 4).map((category) => (
               <Link
-                key={category.label}
-                to={category.href}
+                key={category.slug}
+                to="/categories/$category"
+                params={{ category: category.slug }}
                 className="block px-3 py-2.5 text-sm text-black transition-colors hover:bg-black/5 hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black"
                 onClick={() => setCategoriesOpen(false)}
               >
                 {category.label}
               </Link>
             ))}
+            <Link to="/categories/" onClick={() => setCategoriesOpen(false)} className="mt-1 block border-t border-black/10 px-3 py-2.5 text-sm font-medium text-[#ED145B] hover:bg-black/5">
+              View all categories
+            </Link>
           </div></div>}
         </div>
       );
@@ -306,10 +335,14 @@ export function Header() {
                       Categories <ChevronDown className="float-right mt-0.5 size-4 text-white" strokeWidth={1.5} />
                   </summary>
                     <div className="grid gap-1 border-l border-border pl-3 pb-2">
-                      <Link to="/categories/silk-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Silk Sarees</Link>
-                      <Link to="/categories/cotton-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Cotton Sarees</Link>
-                      <Link to="/categories/designer-sarees" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Designer Sarees</Link>
-                      <Link to="/categories/wedding-collection" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">Wedding Collection</Link>
+                      {categoryLinks.slice(0, 4).map((category) => (
+                        <Link key={category.slug} to="/categories/$category" params={{ category: category.slug }} onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-white">
+                          {category.label}
+                        </Link>
+                      ))}
+                      <Link to="/categories/" onClick={() => setMobileMenuOpen(false)} className="py-1.5 font-medium text-white underline underline-offset-4">
+                        View all categories
+                      </Link>
                   </div>
                 </details>
               ) : (
