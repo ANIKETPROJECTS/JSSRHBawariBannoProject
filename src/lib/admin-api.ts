@@ -48,7 +48,7 @@ const expenseReceiptBucketName = "expense_receipts";
 const expenseReceiptLimit = 15 * 1024 * 1024;
 const expenseReceiptTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"]);
 const productImageBucketName = "product_images";
-const productImageLimit = 8 * 1024 * 1024;
+const productImageLimit = 20 * 1024 * 1024;
 const productImageTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 type CloudinaryUpload = { id: string; url: string; filename: string; contentType: string; size: number; storage: "cloudinary"; publicId: string; resourceType: string };
@@ -2671,7 +2671,7 @@ async function uploadProductImage(request: Request) {
   const upload = form.get("image");
   if (!isUpload(upload) || upload.size === 0) return fail("Choose a product image.");
   if (!productImageTypes.has(upload.type)) return fail("Only JPG, PNG, WEBP, and GIF product images are supported.");
-  if (upload.size > productImageLimit) return fail("Product images must be smaller than 8 MB.");
+  if (upload.size > productImageLimit) return fail("Product images must be smaller than 20 MB.");
   if (process.env.CLOUDINARY_URL) {
     const requestedFolder = cloudinaryFolder(form.get("folder"), "bawari-banno/catalog/uncategorized/products/unassigned/images");
     return json(await uploadToCloudinary(upload, requestedFolder, "image"));
