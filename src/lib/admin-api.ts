@@ -3803,7 +3803,11 @@ export async function handleAdminApi(request: Request) {
     }
     return null;
   } catch (error) {
-    console.error(`Admin API error (${request.method} ${url.pathname}):`, error instanceof Error ? error.message : error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Admin API error (${request.method} ${url.pathname}):`, errorMessage);
+    if (url.pathname === "/api/admin/product-images" && /forbidden|permission/i.test(errorMessage)) {
+      return fail("Cloudinary denied image upload. Check that CLOUDINARY_URL uses an API key allowed to create/upload images.", 502);
+    }
     return fail("The database request could not be completed.", 500);
   }
 }
