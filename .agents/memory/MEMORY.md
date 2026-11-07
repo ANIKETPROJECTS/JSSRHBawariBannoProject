@@ -9,3 +9,4 @@
 - [PhonePe transaction identity](phonepe-transaction-identity.md) — keep the provider payment ID separate from the merchant order reference.
 - [External live server](external-live-server.md) — production runs externally behind nginx/PM2; Replit deployment metadata does not describe that live host.
 - [Customer address persistence](customer-address-persistence.md) — saved addresses are customer-owned, reusable records; order shipping addresses remain historical snapshots.
+- [Verified customer reviews](verified-customer-reviews.md) — reviews require a successful product purchase and are public on the storefront after Admin approval.

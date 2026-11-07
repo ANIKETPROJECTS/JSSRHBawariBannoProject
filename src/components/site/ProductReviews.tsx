@@ -10,8 +10,14 @@ type ProductReview = {
   rating: number;
   title: string;
   body: string;
+  verifiedPurchase?: boolean;
   media?: ReviewMedia[];
   createdAt?: string;
+};
+type ReviewAccess = {
+  isAuthenticated: boolean;
+  canReview: boolean;
+  myReviewStatus: "pending" | "approved" | "rejected" | null;
 };
 
 function ReviewStars({ value, size = "text-sm" }: { value: number; size?: string }) {
@@ -40,10 +46,16 @@ export function ProductRating({ summary, compact = false }: { summary: ReviewSum
 export function ProductReviews({ productId }: { productId: string }) {
   const contextSummary = useReviewSummary(productId);
   const { refresh: refreshSummaries } = useReviews();
-  const { openAuth } = useCustomerAuth();
+  const { openAuth, authenticated } = useCustomerAuth();
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [summary, setSummary] = useState<ReviewSummary>(contextSummary);
   const [loading, setLoading] = useState(true);
+  const [accessLoaded, setAccessLoaded] = useState(false);
+  const [reviewAccess, setReviewAccess] = useState<ReviewAccess>({
+    isAuthenticated: false,
+    canReview: false,
+    myReviewStatus: null,
+  });
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rating, setRating] = useState(0);
@@ -51,7 +63,7 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [body, setBody] = useState("");
 
   useEffect(() => setSummary(contextSummary), [contextSummary]);
-  async function loadReviews() {
+  async function loadReviews(): Promise<ReviewAccess | null> {
     setLoading(true);
     try {
       const response = await fetch(`/api/reviews?productId=${encodeURIComponent(productId)}`, { credentials: "same-origin" });
@@ -59,14 +71,24 @@ export function ProductReviews({ productId }: { productId: string }) {
       if (!response.ok) throw new Error(result.error ?? "Could not load reviews.");
       setReviews(result.reviews ?? []);
       setSummary(result.summary ?? emptyReviewSummary);
+      const access: ReviewAccess = {
+        isAuthenticated: Boolean(result.isAuthenticated),
+        canReview: Boolean(result.canReview),
+        myReviewStatus: result.myReviewStatus ?? null,
+      };
+      setReviewAccess(access);
+      return access;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not load reviews.");
+      return null;
     } finally {
       setLoading(false);
+      setAccessLoaded(true);
     }
   }
 
   useEffect(() => {
+    setAccessLoaded(false);
     void loadReviews();
   }, [productId]);
 
@@ -77,8 +99,27 @@ export function ProductReviews({ productId }: { productId: string }) {
     setBody("");
   }
 
+  async function prepareReview() {
+    const access = await loadReviews();
+    if (access?.canReview) {
+      setShowForm(true);
+      return;
+    }
+    if (access?.myReviewStatus === "pending") {
+      toast.info("Your review is waiting for approval.");
+    } else if (access?.myReviewStatus === "approved") {
+      toast.info("You have already reviewed this saree.");
+    } else if (access?.isAuthenticated) {
+      toast.info("A successful order for this saree is required before reviewing.");
+    }
+  }
+
   function startReview() {
-    openAuth(() => setShowForm(true));
+    if (authenticated) {
+      void prepareReview();
+      return;
+    }
+    openAuth(() => { void prepareReview(); });
   }
 
   async function submitReview(event: React.FormEvent<HTMLFormElement>) {
@@ -99,12 +140,12 @@ export function ProductReviews({ productId }: { productId: string }) {
       if (!response.ok) {
         if (response.status === 401) {
           toast.info("Please log in before writing a review.");
-          openAuth(() => setShowForm(true));
+          openAuth(() => { void prepareReview(); });
           return;
         }
         throw new Error(result.error ?? "Could not submit your review.");
       }
-      toast.success("Review submitted for approval.");
+      toast.success("Review submitted. It will be visible to all customers after approval.");
       resetForm();
       await loadReviews();
       await refreshSummaries();
@@ -114,6 +155,28 @@ export function ProductReviews({ productId }: { productId: string }) {
       setSubmitting(false);
     }
   }
+
+  const reviewButtonDisabled = authenticated && accessLoaded && !reviewAccess.canReview;
+  const reviewButtonText = showForm
+    ? "Close review form"
+    : reviewAccess.myReviewStatus === "pending"
+      ? "Awaiting approval"
+      : reviewAccess.myReviewStatus === "approved"
+        ? "Review published"
+        : authenticated && accessLoaded && !reviewAccess.canReview
+          ? "Verified buyers only"
+          : "Write a review";
+  const accessMessage = !authenticated
+    ? "Sign in with the account used to place your order to write a review."
+    : !accessLoaded
+      ? "Checking your order history…"
+      : reviewAccess.myReviewStatus === "pending"
+        ? "Your review is saved and will appear to all customers after Admin approval."
+        : reviewAccess.myReviewStatus === "approved"
+          ? "Your approved review is visible to all customers below."
+          : reviewAccess.canReview
+            ? "Verified purchase. You can submit one review for this saree."
+            : "A successful order for this saree is required before reviewing.";
 
   return (
     <section id="reviews" className="mx-auto mt-24 max-w-7xl scroll-mt-8 px-5">
@@ -125,11 +188,13 @@ export function ProductReviews({ productId }: { productId: string }) {
         <button
           type="button"
           onClick={() => showForm ? setShowForm(false) : startReview()}
-          className="bg-primary px-5 py-3 text-eyebrow text-primary-foreground transition-colors hover:bg-ink"
+          disabled={reviewButtonDisabled}
+          className="bg-primary px-5 py-3 text-eyebrow text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {showForm ? "Close review form" : "Write a review"}
+          {reviewButtonText}
         </button>
       </div>
+      <p className="mt-3 text-xs text-muted-foreground">{accessMessage}</p>
 
       <div className="mt-7 grid gap-6 border border-border bg-card p-6 md:grid-cols-[190px_1fr] md:p-8">
         <div className="border-b border-border pb-6 text-center md:border-b-0 md:border-r md:pb-0 md:pr-8">
@@ -158,7 +223,7 @@ export function ProductReviews({ productId }: { productId: string }) {
             <div>
               <p className="text-eyebrow text-gold">Share your experience</p>
               <h3 className="mt-2 font-display text-2xl text-primary">How did this saree feel?</h3>
-              <p className="mt-2 text-sm text-muted-foreground">Your review will appear after a quick approval check.</p>
+              <p className="mt-2 text-sm text-muted-foreground">Only successful purchasers can review. Once approved, your review will be shown to all customers.</p>
             </div>
             <span className="text-xs text-muted-foreground">Signed-in customers only</span>
           </div>
@@ -184,7 +249,7 @@ export function ProductReviews({ productId }: { productId: string }) {
         {loading ? <p className="py-10 text-center text-sm text-muted-foreground">Loading reviews…</p> : reviews.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No reviews yet. Be the first to share your experience.</p> : reviews.map((review) => (
           <article key={review._id} className="py-7">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div><p className="font-medium text-primary">{review.reviewerName || "Bawari customer"}</p><div className="mt-1 flex items-center gap-3"><ReviewStars value={review.rating} /><span className="text-xs text-muted-foreground">{formatReviewDate(review.createdAt)}</span></div></div>
+              <div><p className="font-medium text-primary">{review.reviewerName || "Bawari customer"}</p><div className="mt-1 flex flex-wrap items-center gap-3"><ReviewStars value={review.rating} /><span className="text-xs text-muted-foreground">{formatReviewDate(review.createdAt)}</span>{review.verifiedPurchase && <span className="text-[10px] uppercase tracking-[0.12em] text-emerald-700">Verified purchase</span>}</div></div>
             </div>
             <h3 className="mt-4 font-medium text-primary">{review.title}</h3>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{review.body}</p>

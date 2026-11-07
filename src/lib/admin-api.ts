@@ -25,6 +25,7 @@ type ReviewRecord = {
   title: string;
   body: string;
   status: "pending" | "approved" | "rejected";
+  verifiedPurchase?: boolean;
   media: ReviewMedia[];
   createdAt: Date;
   updatedAt: Date;
@@ -2882,6 +2883,16 @@ function reviewSummaryShape() {
   return { average: 0, count: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
 }
 
+function customerProductOrderFilter(customer: JsonRecord, productId: string) {
+  return {
+    $and: [
+      customerOrdersFilter(customer),
+      { paymentStatus: { $in: ["paid", "success", "completed"] } },
+      { items: { $elemMatch: { productId } } },
+    ],
+  };
+}
+
 async function collectReviewSummaries(request: Request) {
   const url = new URL(request.url);
   const requestedIds = (url.searchParams.get("productIds") ?? "").split(",").map((id) => id.trim()).filter(Boolean);
@@ -2931,6 +2942,15 @@ async function createReview(request: Request) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) return fail("Choose a rating from 1 to 5.");
   if (!title || title.length > 120) return fail("Add a review title of 1–120 characters.");
   if (!reviewBody || reviewBody.length > 5000) return fail("Add review details of 1–5000 characters.");
+  const reviewsCollection = database.collection("reviews");
+  const [purchase, existingReview] = await Promise.all([
+    database.collection("orders").findOne(customerProductOrderFilter(customer, productId), { projection: { _id: 1 } }),
+    reviewsCollection.findOne({ productId, customerId: customer._id }) as Promise<ReviewRecord | null>,
+  ]);
+  if (!purchase) return fail("A successful order for this saree is required before you can review it.", 403);
+  if (existingReview && existingReview.status !== "rejected") {
+    return fail("You have already submitted a review for this saree.", 409);
+  }
   const files = form.getAll("media").filter(isUpload).filter((file) => file.size > 0);
   if (files.length > 5) return fail("You can attach up to 5 images or videos.");
   const media: ReviewMedia[] = [];
@@ -2945,11 +2965,27 @@ async function createReview(request: Request) {
       title,
       body: reviewBody,
       status: "pending",
-      media,
+      verifiedPurchase: true,
+      media: media.length ? media : existingReview?.media ?? [],
       createdAt: now,
       updatedAt: now,
     };
-    const result = await database.collection("reviews").insertOne(review);
+    if (existingReview?._id) {
+      await reviewsCollection.updateOne({ _id: existingReview._id }, {
+        $set: {
+          reviewerName: review.reviewerName,
+          rating: review.rating,
+          title: review.title,
+          body: review.body,
+          status: review.status,
+          media: review.media,
+          updatedAt: now,
+        },
+      });
+      if (media.length) await deleteReviewMedia(database, (existingReview.media ?? []).map((item) => item.id));
+      return json(publicReview({ ...existingReview, ...review, _id: existingReview._id, createdAt: existingReview.createdAt }), { status: 200 });
+    }
+    const result = await reviewsCollection.insertOne(review);
     return json(publicReview({ ...review, _id: result.insertedId }), { status: 201 });
   } catch (error) {
     await deleteReviewMedia(database, media.map((item) => item.id));
@@ -2967,7 +3003,24 @@ async function productReviews(request: Request) {
   const database = await db();
   const reviews = await database.collection("reviews").find({ productId, status: "approved" }).sort({ createdAt: -1 }).limit(100).toArray();
   const summaries = await collectReviewSummaries(new Request(`${url.origin}/api/reviews/summaries?productIds=${encodeURIComponent(productId)}`));
-  return json({ reviews: reviews.map((review) => publicReview(review as ReviewRecord)), summary: summaries[productId] ?? reviewSummaryShape() });
+  const customer = await customerFromRequest(request);
+  let canReview = false;
+  let myReviewStatus: ReviewRecord["status"] | null = null;
+  if (customer) {
+    const [purchase, myReview] = await Promise.all([
+      database.collection("orders").findOne(customerProductOrderFilter(customer, productId), { projection: { _id: 1 } }),
+      database.collection("reviews").findOne({ productId, customerId: customer._id }, { projection: { status: 1 } }),
+    ]);
+    myReviewStatus = (myReview?.status as ReviewRecord["status"] | undefined) ?? null;
+    canReview = Boolean(purchase) && (!myReviewStatus || myReviewStatus === "rejected");
+  }
+  return json({
+    reviews: reviews.map((review) => publicReview(review as ReviewRecord)),
+    summary: summaries[productId] ?? reviewSummaryShape(),
+    isAuthenticated: Boolean(customer),
+    canReview,
+    myReviewStatus,
+  });
 }
 
 async function reviewMedia(request: Request, id: string) {
