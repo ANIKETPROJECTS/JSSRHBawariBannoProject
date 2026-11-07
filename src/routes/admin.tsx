@@ -1446,7 +1446,7 @@ function InventoryPage() {
   </div>;
 }
 
-type OrderAddress = { name?: string; line1?: string; line2?: string; city?: string; state?: string; pincode?: string; phone?: string };
+type OrderAddress = { id?: string; name?: string; addressLine?: string; line1?: string; locality?: string; line2?: string; landmark?: string; city?: string; state?: string; pincode?: string; phone?: string; isDefault?: boolean };
 type Order = { _id?: string; orderId?: string; status?: string; paymentStatus?: string; paymentMethod?: string; paymentDetails?: string; transactionId?: string; phonePeTransactionId?: string; total?: number; subtotal?: number; shipping?: number; discount?: number; customerName?: string; customerPhone?: string; customerEmail?: string; shippingAddress?: OrderAddress | string; address?: OrderAddress | string; items?: { productId: string; variantId?: string; variantColor?: string; name?: string; image?: string; quantity: number; price?: number }[]; createdAt?: string; statusHistory?: { status: string; changedAt?: string }[] };
 
 const orderStatuses = ["pending", "approved", "processing", "shipped", "delivered", "cancelled", "rejected"];
@@ -1464,12 +1464,21 @@ function titleCase(value: string | undefined) {
   return String(value ?? "pending").replace(/[-_]/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-function orderAddress(order: Order) {
+function orderAddress(order: { shippingAddress?: OrderAddress | string; address?: OrderAddress | string }) {
   const raw = order.shippingAddress ?? order.address;
   if (!raw) return [];
   if (typeof raw === "string") return raw.split(/\n|,/).map((line) => line.trim()).filter(Boolean);
-  const address = raw as OrderAddress & { addressLine?: string; locality?: string; landmark?: string };
+  const address = raw;
   return [address.name, address.addressLine ?? address.line1, address.locality ?? address.line2, address.landmark, [address.city, address.state, address.pincode].filter(Boolean).join(", "), address.phone].filter(Boolean).map(String);
+}
+
+function savedAddressLines(address: OrderAddress) {
+  return [
+    address.addressLine ?? address.line1,
+    address.locality ?? address.line2,
+    address.landmark,
+    [address.city, address.state, address.pincode].filter(Boolean).join(", "),
+  ].map((line) => String(line ?? "").trim()).filter(Boolean);
 }
 
 function OrdersPage() {
@@ -1618,8 +1627,8 @@ function PaymentsPage() {
   </div>;
 }
 
-type CustomerRecord = { _id?: string; name?: string; email?: string; phone?: string; createdAt?: string; updatedAt?: string; lastLogin?: string; lastActivity?: string; orderCount?: number; orderTotal?: number; wishlist?: string[]; wishlistCount?: number; verified?: boolean; paidUser?: boolean; city?: string; state?: string; customerStats?: { orders: number; revenue: number } };
-type CustomerOrder = { orderId?: string; total?: number; status?: string; paymentStatus?: string; items?: { productId: string; quantity: number }[]; createdAt?: string };
+type CustomerRecord = { _id?: string; name?: string; email?: string; phone?: string; createdAt?: string; updatedAt?: string; lastLogin?: string; lastActivity?: string; orderCount?: number; orderTotal?: number; wishlist?: string[]; wishlistCount?: number; verified?: boolean; paidUser?: boolean; city?: string; state?: string; addresses?: OrderAddress[]; customerStats?: { orders: number; revenue: number } };
+type CustomerOrder = { orderId?: string; total?: number; status?: string; paymentStatus?: string; items?: { productId: string; quantity: number }[]; createdAt?: string; shippingAddress?: OrderAddress | string; address?: OrderAddress | string };
 
 function customerRelativeDate(value: string | undefined) {
   if (!value) return "—";
@@ -1656,7 +1665,124 @@ function CustomersPage() {
     try { setSelected(await api(`/api/admin/customers/${id}`)); }
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not load customer."); }
   }
-  if (selected) return <div><button type="button" onClick={() => setSelected(null)} className="mb-5 text-sm text-primary hover:underline">← Back to customers</button><div className="grid gap-5 lg:grid-cols-[280px_1fr]"><section className="border border-[#ded5c9] bg-white p-6"><div className="flex size-14 items-center justify-center rounded-full bg-primary text-xl text-white">{(selected.customer.name || "BB").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div><h2 className="mt-4 font-display text-2xl text-primary">{selected.customer.name || "Unnamed customer"}</h2><p className="mt-2 text-sm text-muted-foreground">{selected.customer.email || "Email not added"}</p><p className="mt-1 text-sm text-muted-foreground">+91 {selected.customer.phone}</p><div className="mt-6 border-t border-border pt-5 text-xs text-muted-foreground">Registered<br /><strong className="font-medium text-primary">{selected.customer.createdAt ? new Date(selected.customer.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "—"}</strong></div></section><section className="border border-[#ded5c9] bg-white p-6"><div className="flex items-end justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Purchase history</p><h2 className="mt-1 font-display text-3xl text-primary">Customer orders</h2></div><p className="text-sm text-muted-foreground">{selected.orders.length} order{selected.orders.length === 1 ? "" : "s"}</p></div>{selected.orders.length === 0 ? <p className="mt-8 border-t border-border pt-8 text-sm text-muted-foreground">No purchases yet. Orders made while this customer is signed in will appear here.</p> : <div className="mt-5 divide-y divide-border border-y border-border">{selected.orders.map((order) => <div key={order.orderId} className="flex flex-wrap items-center gap-4 py-4"><div className="min-w-32 flex-1"><p className="font-medium text-primary">{order.orderId}</p><p className="mt-1 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "—"}</p></div><p className="text-sm">{order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0} item(s)</p><p className="text-sm font-medium">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><span className="bg-amber-50 px-2 py-1 text-xs capitalize text-amber-800">{order.status}</span></div>)}</div>}</section></div></div>;
+  if (selected) {
+    const savedAddresses = selected.customer.addresses ?? [];
+
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setSelected(null)}
+          className="mb-5 text-sm text-primary hover:underline"
+        >
+          ← Back to customers
+        </button>
+        <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
+          <section className="border border-[#ded5c9] bg-white p-6">
+            <div className="flex size-14 items-center justify-center rounded-full bg-primary text-xl text-white">
+              {(selected.customer.name || "BB").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+            </div>
+            <h2 className="mt-4 font-display text-2xl text-primary">
+              {selected.customer.name || "Unnamed customer"}
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {selected.customer.email || "Email not added"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">+91 {selected.customer.phone}</p>
+
+            <div className="mt-6 border-t border-border pt-5">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Saved delivery addresses</p>
+              {savedAddresses.length ? (
+                <div className="mt-2 space-y-3">
+                  {savedAddresses.map((address, index) => (
+                    <div key={address.id ?? index} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                      <p className="text-sm font-medium text-primary">
+                        {address.name || selected.customer.name || "Delivery address"}
+                        {address.isDefault && <span className="ml-2 text-[10px] uppercase tracking-wide text-gold">Default</span>}
+                      </p>
+                      <address className="mt-1 space-y-0.5 text-sm not-italic leading-relaxed text-primary">
+                        {savedAddressLines(address).map((line, lineIndex) => (
+                          <span key={`${line}-${lineIndex}`} className="block">{line}</span>
+                        ))}
+                      </address>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        +91 {address.phone || selected.customer.phone}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted-foreground">No saved address on file.</p>
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-border pt-5 text-xs text-muted-foreground">
+              Registered<br />
+              <strong className="font-medium text-primary">
+                {selected.customer.createdAt
+                  ? new Date(selected.customer.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })
+                  : "—"}
+              </strong>
+            </div>
+          </section>
+
+          <section className="border border-[#ded5c9] bg-white p-6">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gold">Purchase history</p>
+                <h2 className="mt-1 font-display text-3xl text-primary">Customer orders</h2>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {selected.orders.length} order{selected.orders.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            {selected.orders.length === 0 ? (
+              <p className="mt-8 border-t border-border pt-8 text-sm text-muted-foreground">
+                No purchases yet. Orders made while this customer is signed in will appear here.
+              </p>
+            ) : (
+              <div className="mt-5 divide-y divide-border border-y border-border">
+                {selected.orders.map((order) => {
+                  const addressLines = orderAddress(order);
+                  return (
+                    <div key={order.orderId} className="py-4">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="min-w-32 flex-1">
+                          <p className="font-medium text-primary">{order.orderId}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {order.createdAt
+                              ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })
+                              : "—"}
+                          </p>
+                        </div>
+                        <p className="text-sm">
+                          {order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0} item(s)
+                        </p>
+                        <p className="text-sm font-medium">
+                          ₹{Number(order.total ?? 0).toLocaleString("en-IN")}
+                        </p>
+                        <span className="bg-amber-50 px-2 py-1 text-xs capitalize text-amber-800">
+                          {order.status}
+                        </span>
+                      </div>
+                      {addressLines.length > 0 && (
+                        <address className="mt-3 border-l-2 border-[#d5b36b] pl-3 text-xs not-italic leading-relaxed text-muted-foreground">
+                          <span className="mb-1 block text-[10px] uppercase tracking-[0.14em] text-gold">
+                            Delivery address
+                          </span>
+                          {addressLines.map((line, index) => <span key={`${line}-${index}`} className="block">{line}</span>)}
+                        </address>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
   return <div><div className="grid gap-4 sm:grid-cols-3"><MetricCard label="Registered customers" value={customers.length} icon={Users} /><MetricCard label="Customers with orders" value={customers.filter((customer) => Number(customer.orderCount) > 0).length} icon={ShoppingCart} /><MetricCard label="Customer sales" value={`₹${customers.reduce((sum, customer) => sum + Number(customer.orderTotal ?? 0), 0).toLocaleString("en-IN")}`} icon={BarChart3} /></div><div className="mt-6 border border-[#ded5c9] bg-white p-5"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name, email, or mobile…" className="w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></div><div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white"><table className="w-full min-w-[720px] text-left text-sm"><thead className="border-b border-border bg-[#fbf9f6] text-[10px] uppercase tracking-[0.15em] text-muted-foreground"><tr><th className="px-4 py-4">Customer</th><th className="px-4 py-4">Mobile</th><th className="px-4 py-4">Orders</th><th className="px-4 py-4">Total spent</th><th className="px-4 py-4">Joined</th><th className="px-4 py-4"></th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading customers…</td></tr> : customers.length === 0 ? <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No registered customers yet.</td></tr> : customers.map((customer) => <tr key={customer._id} className="border-b border-border last:border-0"><td className="px-4 py-4"><p className="font-medium text-primary">{customer.name || "Unnamed customer"}</p><p className="mt-1 text-xs text-muted-foreground">{customer.email || "Email not added"}</p></td><td className="px-4 py-4 text-muted-foreground">+91 {customer.phone}</td><td className="px-4 py-4">{customer.orderCount ?? 0}</td><td className="px-4 py-4">₹{Number(customer.orderTotal ?? 0).toLocaleString("en-IN")}</td><td className="px-4 py-4 text-xs text-muted-foreground">{customer.createdAt ? new Date(customer.createdAt).toLocaleDateString("en-IN") : "—"}</td><td className="px-4 py-4"><button type="button" onClick={() => customer._id && void openCustomer(customer._id)} className="text-xs text-primary hover:underline">View details</button></td></tr>)}</tbody></table></div></div>;
 }
 

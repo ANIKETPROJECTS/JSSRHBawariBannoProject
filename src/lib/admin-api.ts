@@ -2555,6 +2555,94 @@ async function updateOrder(request: Request, id: string) {
   return result ? json(result) : fail("Order not found.", 404);
 }
 
+function customerOrdersFilter(customer: JsonRecord) {
+  const customerId = customer._id;
+  const phone = String(customer.phone ?? "");
+  const email = String(customer.email ?? "");
+  return {
+    $or: [
+      { customerId },
+      { customerId: String(customerId) },
+      ...(phone ? [{ customerPhone: phone }] : []),
+      ...(email ? [{ customerEmail: email }] : []),
+    ],
+  };
+}
+
+function customerAddressSignature(address: JsonRecord) {
+  const values = [
+    address.addressLine ?? address.line1,
+    address.locality ?? address.line2,
+    address.landmark,
+    address.pincode,
+    address.city,
+    address.state,
+  ].map((value) => String(value ?? "").trim().toLowerCase().replace(/\s+/g, " "));
+  return values.some(Boolean) ? values.join("|") : "";
+}
+
+function savedAddressFromOrder(order: JsonRecord, customer: JsonRecord): JsonRecord | null {
+  const raw = order.shippingAddress ?? order.address;
+  if (!raw || (typeof raw !== "object" && typeof raw !== "string")) return null;
+  const source = typeof raw === "object" ? raw as JsonRecord : {};
+  const text = (value: unknown) => String(value ?? "").trim();
+  const addressLine = text(source.addressLine ?? source.line1 ?? (typeof raw === "string" ? raw : ""));
+  const locality = text(source.locality ?? source.line2);
+  const city = text(source.city);
+  const state = text(source.state);
+  const pincode = text(source.pincode);
+  const landmark = text(source.landmark);
+  if (![addressLine, locality, city, state, pincode, landmark].some(Boolean)) return null;
+
+  return {
+    ...source,
+    id: text(source.id) || new ObjectId().toString(),
+    name: text(source.name ?? order.customerName ?? customer.name),
+    phone: text(source.phone ?? order.customerPhone ?? customer.phone),
+    addressLine,
+    locality,
+    pincode,
+    city,
+    state,
+    landmark,
+    createdAt: source.createdAt ?? order.createdAt ?? new Date(),
+  };
+}
+
+async function syncCustomerAddressesFromOrders(
+  database: Db,
+  customer: JsonRecord,
+  orders: JsonRecord[],
+) {
+  const currentAddresses = Array.isArray(customer.addresses)
+    ? customer.addresses.filter((address): address is JsonRecord => Boolean(address) && typeof address === "object")
+    : [];
+  if (customer.legacyOrderAddressesImportedAt) return currentAddresses;
+
+  const addresses = [...currentAddresses];
+  const seenIds = new Set(addresses.map((address) => String(address.id ?? "")).filter(Boolean));
+  const seenSignatures = new Set(addresses.map(customerAddressSignature).filter(Boolean));
+
+  for (const order of orders) {
+    const address = savedAddressFromOrder(order, customer);
+    if (!address) continue;
+    const id = String(address.id ?? "");
+    const signature = customerAddressSignature(address);
+    if ((id && seenIds.has(id)) || (signature && seenSignatures.has(signature))) continue;
+
+    address.isDefault = !addresses.some((existing) => existing.isDefault === true);
+    addresses.push(address);
+    if (id) seenIds.add(id);
+    if (signature) seenSignatures.add(signature);
+  }
+
+  await database.collection("customers").updateOne(
+    { _id: customer._id },
+    { $set: { addresses, legacyOrderAddressesImportedAt: new Date() } },
+  );
+  return addresses;
+}
+
 async function customersHistory(request: Request, customerId?: string) {
   const database = await db();
   const collection = database.collection("customers");
@@ -2589,15 +2677,28 @@ async function customersHistory(request: Request, customerId?: string) {
   if (customerId) {
     const customer = await database.collection("customers").findOne({ _id: new ObjectId(customerId) });
     if (!customer) return fail("Customer not found.", 404);
-    const orders = await database.collection("orders").find({
-      $or: [
-        { customerId: new ObjectId(customerId) },
-        { customerId: String(customerId) },
-        ...(customer.phone ? [{ customerPhone: customer.phone }] : []),
-        ...(customer.email ? [{ customerEmail: customer.email }] : []),
-      ],
-    }).sort({ createdAt: -1 }).toArray();
-    return json({ customer, orders });
+    const orders = await database.collection("orders").find(customerOrdersFilter(customer)).sort({ createdAt: -1 }).toArray();
+    const addresses = await syncCustomerAddressesFromOrders(database, customer, orders as JsonRecord[]);
+    const addressForLocation = addresses.find((address) => address.isDefault === true && (address.city || address.state))
+      ?? addresses.find((address) => address.city || address.state);
+    const activityTimes = [
+      customer.lastLogin instanceof Date ? customer.lastLogin.getTime() : new Date(String(customer.lastLogin ?? "")).getTime(),
+      ...orders.map((order) => order.createdAt instanceof Date
+        ? order.createdAt.getTime()
+        : new Date(String(order.createdAt ?? "")).getTime()),
+    ].filter(Number.isFinite);
+    const lastActivity = activityTimes.length ? new Date(Math.max(...activityTimes)).toISOString() : undefined;
+    return json({
+      customer: {
+        ...customer,
+        addresses,
+        city: String(addressForLocation?.city ?? customer.city ?? ""),
+        state: String(addressForLocation?.state ?? customer.state ?? ""),
+        lastActivity: lastActivity ?? customer.lastActivity,
+        verified: Boolean(customer.phone),
+      },
+      orders,
+    });
   }
   const url = new URL(request.url);
   const search = url.searchParams.get("search")?.trim();
@@ -3110,7 +3211,9 @@ async function handleAuth(request: Request, path: string) {
     const customer = await customerFromRequest(request);
     if (!customer) return fail("Customer login required.", 401);
     if (request.method === "GET") {
-      return json({ addresses: Array.isArray(customer.addresses) ? customer.addresses : [] });
+      const orders = await database.collection("orders").find(customerOrdersFilter(customer)).sort({ createdAt: -1 }).toArray();
+      const addresses = await syncCustomerAddressesFromOrders(database, customer, orders as JsonRecord[]);
+      return json({ addresses });
     }
     const input = await body(request);
     const name = String(input.name ?? "").trim();

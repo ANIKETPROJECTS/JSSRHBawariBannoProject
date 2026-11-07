@@ -18,6 +18,15 @@ export const Route = createFileRoute("/checkout")({
 
 type Address = { id: string; name: string; phone: string; addressLine: string; locality: string; pincode: string; city: string; state: string; landmark?: string; isDefault?: boolean };
 
+function formatAddress(address: Address) {
+  return [
+    address.addressLine,
+    address.locality,
+    [address.city, address.state, address.pincode].filter(Boolean).join(", "),
+    address.landmark ? `Landmark: ${address.landmark}` : "",
+  ].filter(Boolean).join(", ");
+}
+
 function Checkout() {
   const navigate = useNavigate();
   const { coupon: initialCoupon } = Route.useSearch();
@@ -143,7 +152,7 @@ function Checkout() {
         <div className="space-y-6">
           <section className="border border-border bg-card p-5 sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><MapPin className="size-4 text-primary" /><h2 className="font-display text-2xl text-primary">Delivery address</h2></div>{addresses.length > 0 && <button type="button" onClick={() => setShowAddressForm((open) => !open)} className="text-xs text-primary underline underline-offset-4">{showAddressForm ? "Cancel" : "Add address"}</button>}</div>
-            {addresses.length > 0 && <div className="mt-5 space-y-3">{addresses.map((address) => <label key={address.id} className={`flex cursor-pointer gap-3 border p-4 transition-colors ${selectedId === address.id ? "border-primary bg-[#fff6f8]" : "border-border hover:border-gold"}`}><input type="radio" name="delivery-address" checked={selectedId === address.id} onChange={() => setSelectedId(address.id)} className="mt-1 accent-[#ed145b]" /><span className="min-w-0"><span className="block font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ed145b]">Default</span>}</span><span className="mt-1 block text-xs text-muted-foreground">+91 {address.phone}</span><span className="mt-2 block text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</span></span></label>)}</div>}
+            {addresses.length > 0 && <div className="mt-5 space-y-3">{addresses.map((address) => <label key={address.id} className={`flex cursor-pointer gap-3 border p-4 transition-colors ${selectedId === address.id ? "border-primary bg-[#fff6f8]" : "border-border hover:border-gold"}`}><input type="radio" name="delivery-address" checked={selectedId === address.id} onChange={() => setSelectedId(address.id)} className="mt-1 accent-[#ed145b]" /><span className="min-w-0"><span className="block font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ed145b]">Default</span>}</span><span className="mt-1 block text-xs text-muted-foreground">+91 {address.phone}</span><span className="mt-2 block text-sm leading-relaxed">{formatAddress(address)}</span></span></label>)}</div>}
             {showAddressForm && <div className="mt-5 border border-border bg-[#fbf9f6] p-4 sm:p-5"><h3 className="font-medium text-primary">{addresses.length ? "Add another address" : "Add your delivery address"}</h3><p className="mt-1 text-xs text-muted-foreground">This address will also be saved to your profile.</p><div className="mt-4 grid gap-3 sm:grid-cols-2">
               {([
                 ["name", "Full name", "text"],

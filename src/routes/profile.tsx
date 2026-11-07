@@ -162,6 +162,15 @@ function AuthenticatedProfile() {
 
 type SavedAddress = { id: string; name: string; phone: string; addressLine: string; locality: string; pincode: string; city: string; state: string; landmark?: string; isDefault?: boolean };
 
+function formatSavedAddress(address: SavedAddress) {
+  return [
+    address.addressLine,
+    address.locality,
+    [address.city, address.state, address.pincode].filter(Boolean).join(", "),
+    address.landmark ? `Landmark: ${address.landmark}` : "",
+  ].filter(Boolean).join(", ");
+}
+
 function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { name: string; phone: string }; returnToCheckout: boolean; coupon?: string }) {
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState<SavedAddress[]>([]);
@@ -202,7 +211,7 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
     setFormOpen(true);
   }
   return <section className="mx-auto mt-8 max-w-7xl px-5 pb-10"><div className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => { setFormOpen(!formOpen); setEditingAddress(null); }} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {formOpen ? "Cancel" : "Add address"}</button></div>
-     {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setAddressToDelete(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{address.addressLine}, {address.locality}, {address.city}, {address.state} — {address.pincode}{address.landmark ? ` · ${address.landmark}` : ""}</p></article>)}</div>}
+      {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setAddressToDelete(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{formatSavedAddress(address)}</p></article>)}</div>}
     {addresses.length === 0 && !formOpen && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
     {formOpen && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
       <label className="text-xs text-muted-foreground">Full name<input name="name" defaultValue={editingAddress?.name ?? customer.name} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
