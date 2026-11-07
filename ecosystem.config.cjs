@@ -21,6 +21,8 @@ module.exports = {
         ADMIN_EMAIL: process.env.ADMIN_EMAIL,
         ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
         CLOUDINARY_URL: process.env.CLOUDINARY_URL,
+        ATWASSUP_API_KEY: process.env.ATWASSUP_API_KEY,
+        ATWASSUP_PHONE_NUMBER_ID: process.env.ATWASSUP_PHONE_NUMBER_ID,
         PHONEPE_ENV: process.env.PHONEPE_ENV || "production",
         PHONEPE_API_BASE_URL: process.env.PHONEPE_API_BASE_URL,
         PHONEPE_AUTH_BASE_URL: process.env.PHONEPE_AUTH_BASE_URL,
