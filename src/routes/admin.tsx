@@ -3058,6 +3058,7 @@ function CustomerManagementPage() {
 
   if (selected) {
     const detailWishlistCount = selected.customer.wishlist?.length ?? selected.customer.wishlistCount ?? 0;
+    const savedAddresses = selected.customer.addresses ?? [];
     return <div>
       <button type="button" onClick={() => setSelected(null)} className="mb-5 text-sm text-primary hover:underline">← Back to customers</button>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -3066,8 +3067,80 @@ function CustomerManagementPage() {
       </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><MetricCard label="Total orders" value={selected.orders.length} icon={ShoppingCart} /><MetricCard label="Total spent" value={`₹${selected.orders.reduce((sum, order) => sum + Number(order.total ?? 0), 0).toLocaleString("en-IN")}`} icon={BarChart3} /><MetricCard label="Wishlist items" value={detailWishlistCount} icon={Heart} /><MetricCard label="Last activity" value={customerRelativeDate(selected.customer.lastActivity)} icon={UserCheck} /></div>
       <div className="mt-6 grid gap-5 lg:grid-cols-[280px_1fr]">
-        <section className="border border-[#ded5c9] bg-white p-6"><div className="flex size-14 items-center justify-center rounded-full bg-primary text-xl text-white">{(selected.customer.name || "BB").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div><h3 className="mt-4 font-display text-2xl text-primary">{selected.customer.name || "Unnamed customer"}</h3><p className="mt-2 text-sm text-muted-foreground">{selected.customer.email || "Email not provided"}</p><p className="mt-1 text-sm text-muted-foreground">+91 {selected.customer.phone || "Phone not provided"}</p><div className="mt-5 space-y-2 border-t border-border pt-5 text-sm"><p><span className="text-muted-foreground">Location:</span> {selected.customer.city || selected.customer.state ? [selected.customer.city, selected.customer.state].filter(Boolean).join(", ") : "Not provided"}</p><p><span className="text-muted-foreground">Joined:</span> {customerDate(selected.customer.createdAt)}</p><p><span className="text-muted-foreground">Last activity:</span> {customerRelativeDate(selected.customer.lastActivity)}</p><p><span className="text-muted-foreground">Phone:</span> {selected.customer.verified ? "Verified" : "Not verified"}</p></div></section>
-        <section className="border border-[#ded5c9] bg-white p-6"><div className="flex items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.18em] text-gold">Purchase history</p><h3 className="mt-1 font-display text-2xl text-primary">Customer orders</h3></div><p className="text-sm text-muted-foreground">{selected.orders.length} order{selected.orders.length === 1 ? "" : "s"}</p></div>{selected.orders.length === 0 ? <p className="mt-8 border-t border-border pt-8 text-sm text-muted-foreground">No purchases yet.</p> : <div className="mt-5 divide-y divide-border border-y border-border">{selected.orders.map((order, index) => <div key={`${order.orderId ?? "order"}-${index}`} className="flex flex-wrap items-center gap-4 py-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId || "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{customerDate(order.createdAt)}</p></div><p className="text-sm">{order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0} item(s)</p><p className="text-sm font-medium">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><span className={`border px-2 py-1 text-xs capitalize ${statusBadge(order.status)}`}>{titleCase(order.status)}</span></div>)}</div>}</section>
+        <section className="border border-[#ded5c9] bg-white p-6">
+          <div className="flex size-14 items-center justify-center rounded-full bg-primary text-xl text-white">
+            {(selected.customer.name || "BB").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
+          </div>
+          <h3 className="mt-4 font-display text-2xl text-primary">{selected.customer.name || "Unnamed customer"}</h3>
+          <p className="mt-2 text-sm text-muted-foreground">{selected.customer.email || "Email not provided"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">+91 {selected.customer.phone || "Phone not provided"}</p>
+          <div className="mt-5 space-y-2 border-t border-border pt-5 text-sm">
+            <p><span className="text-muted-foreground">Location:</span> {selected.customer.city || "Not provided"}</p>
+            <p><span className="text-muted-foreground">Joined:</span> {customerDate(selected.customer.createdAt)}</p>
+            <p><span className="text-muted-foreground">Last activity:</span> {customerRelativeDate(selected.customer.lastActivity)}</p>
+            <p><span className="text-muted-foreground">Phone:</span> {selected.customer.verified ? "Verified" : "Not verified"}</p>
+          </div>
+          <div className="mt-5 border-t border-border pt-5">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Saved delivery addresses</p>
+            {savedAddresses.length ? (
+              <div className="mt-3 space-y-3">
+                {savedAddresses.map((address, index) => (
+                  <div key={address.id ?? index} className="border-b border-border pb-3 last:border-0 last:pb-0">
+                    <p className="text-sm font-medium text-primary">
+                      {address.name || selected.customer.name || "Delivery address"}
+                      {address.isDefault && <span className="ml-2 text-[10px] uppercase tracking-wide text-gold">Default</span>}
+                    </p>
+                    <address className="mt-1 space-y-0.5 text-xs not-italic leading-relaxed text-muted-foreground">
+                      {savedAddressLines(address).map((line, lineIndex) => (
+                        <span key={`${line}-${lineIndex}`} className="block">{line}</span>
+                      ))}
+                    </address>
+                    <p className="mt-1 text-xs text-muted-foreground">+91 {address.phone || selected.customer.phone}</p>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="mt-2 text-sm text-muted-foreground">No saved address on file.</p>}
+          </div>
+        </section>
+        <section className="border border-[#ded5c9] bg-white p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-gold">Purchase history</p>
+              <h3 className="mt-1 font-display text-2xl text-primary">Customer orders</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">{selected.orders.length} order{selected.orders.length === 1 ? "" : "s"}</p>
+          </div>
+          {selected.orders.length === 0 ? (
+            <p className="mt-8 border-t border-border pt-8 text-sm text-muted-foreground">No purchases yet.</p>
+          ) : (
+            <div className="mt-5 divide-y divide-border border-y border-border">
+              {selected.orders.map((order, index) => {
+                const addressLines = orderAddress(order);
+                return (
+                  <div key={`${order.orderId ?? "order"}-${index}`} className="py-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <div className="min-w-40 flex-1">
+                        <p className="font-medium text-primary">{order.orderId || "Order"}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{customerDate(order.createdAt)}</p>
+                      </div>
+                      <p className="text-sm">{order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0} item(s)</p>
+                      <p className="text-sm font-medium">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p>
+                      <span className={`border px-2 py-1 text-xs capitalize ${statusBadge(order.status)}`}>{titleCase(order.status)}</span>
+                    </div>
+                    {addressLines.length > 0 && (
+                      <address className="mt-3 border-l-2 border-[#d5b36b] pl-3 text-xs not-italic leading-relaxed text-muted-foreground">
+                        <span className="mb-1 block text-[10px] uppercase tracking-[0.14em] text-gold">Address used for this order</span>
+                        {addressLines.map((line, lineIndex) => (
+                          <span key={`${line}-${lineIndex}`} className="block">{line}</span>
+                        ))}
+                      </address>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </div>;
   }
