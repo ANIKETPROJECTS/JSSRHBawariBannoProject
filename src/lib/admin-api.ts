@@ -312,6 +312,7 @@ function adminPermissionForPath(path: string): AdminPermission | null {
   if (path === "/api/admin/analytics" || path === "/api/admin/summary" || path === "/api/admin/product-financials") return "inventory";
   if (path === "/api/admin/purchase-suggestions" || path.startsWith("/api/admin/purchase-invoices") || path.startsWith("/api/admin/vendors") || path.startsWith("/api/admin/expenses") || path.startsWith("/api/admin/business-trips")) return "procurement";
   if (path.startsWith("/api/admin/inventory")) return "inventory";
+  if (path.startsWith("/api/admin/payments")) return "orders";
   if (path.startsWith("/api/admin/orders")) return "orders";
   if (path.startsWith("/api/admin/customers")) return "customers";
   if (path.startsWith("/api/admin/reviews")) return "marketing";
@@ -883,7 +884,12 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
       const products = database.collection("products");
       const order = await orders.findOne({ orderId }, { session });
       if (!order) throw new Error("Order not found.");
-      if (String(order.paymentStatus).toLowerCase() === "paid") return;
+      if (String(order.paymentStatus).toLowerCase() === "paid") {
+        if (Object.keys(phonePeTransactionFields).length) {
+          await orders.updateOne({ _id: order._id }, { $set: phonePeTransactionFields }, { session });
+        }
+        return;
+      }
 
       const events: JsonRecord[] = [];
       const updatedItems: JsonRecord[] = [];
@@ -2357,6 +2363,29 @@ async function ordersHistory(request: Request) {
   }));
 }
 
+async function adminPayments(request: Request) {
+  const url = new URL(request.url);
+  const query: JsonRecord = { paymentStatus: { $in: ["paid", "success", "completed"] } };
+  const search = url.searchParams.get("search")?.trim();
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  if (search) {
+    const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    query.$or = ["orderId", "transactionId", "phonePeTransactionId", "customerName", "customerEmail", "customerPhone"]
+      .map((field) => ({ [field]: { $regex: escaped, $options: "i" } }));
+  }
+  if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
+  const pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get("limit")) || 50));
+  const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
+  const database = await db();
+  const [summary] = await database.collection("orders").aggregate([
+    { $match: query },
+    { $group: { _id: null, count: { $sum: 1 }, amount: { $sum: { $convert: { input: "$total", to: "double", onError: 0, onNull: 0 } } } } },
+  ]).toArray();
+  const payments = await database.collection("orders").find(query).sort({ createdAt: -1 }).skip(offset).limit(pageSize).toArray();
+  return json({ payments, totalCount: Number(summary?.count ?? 0), totalAmount: Number(summary?.amount ?? 0) });
+}
+
 async function adminOrders(request: Request, orderId?: string) {
   const database = await db();
   const collection = database.collection("orders");
@@ -3735,6 +3764,7 @@ async function handleAdmin(request: Request, path: string) {
   const inventoryMatch = path.match(/^\/api\/admin\/inventory\/([^/]+)$/);
   if (inventoryMatch) return await inventoryCrud(request, inventoryMatch[1]);
   if (path === "/api/admin/orders") return await adminOrders(request);
+  if (path === "/api/admin/payments") return await adminPayments(request);
   const orderMatch = path.match(/^\/api\/admin\/orders\/([^/]+)$/);
   if (orderMatch) return await adminOrders(request, orderMatch[1]);
   if (path === "/api/admin/expenses") return await adminExpenses(request);

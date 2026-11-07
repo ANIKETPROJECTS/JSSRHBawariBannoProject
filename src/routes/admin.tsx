@@ -1515,6 +1515,9 @@ function OrdersPage() {
 
 function PaymentsPage() {
   const [payments, setPayments] = useState<Order[]>([]);
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -1522,31 +1525,35 @@ function PaymentsPage() {
   const requestVersion = useRef(0);
   useEffect(() => {
     const version = ++requestVersion.current;
-    const params = new URLSearchParams({ payment: "paid", search, sort: "newest", from, to });
+    const pageSize = 50;
+    const params = new URLSearchParams({ search, from, to, limit: String(pageSize), offset: String(page * pageSize) });
     setLoading(true);
-    api(`/api/admin/orders?${params}`).then((rows) => {
-      if (version === requestVersion.current) setPayments(rows);
+    api(`/api/admin/payments?${params}`).then((result) => {
+      if (version === requestVersion.current) {
+        setPayments(result.payments);
+        setTotalAmount(result.totalAmount);
+        setTotalCount(result.totalCount);
+      }
     }).catch((error) => {
       if (version === requestVersion.current) toast.error(error instanceof Error ? error.message : "Could not load successful payments.");
     }).finally(() => {
       if (version === requestVersion.current) setLoading(false);
     });
     return () => { requestVersion.current += 1; };
-  }, [search, from, to]);
-  const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.total ?? 0), 0);
+  }, [search, from, to, page]);
   return <div>
     <div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Payment records</p><h2 className="mt-1 font-display text-3xl text-primary">Successful payments</h2><p className="mt-2 text-sm text-muted-foreground">Only confirmed, paid transactions are shown.</p></div>
     <div className="mt-6 grid gap-4 sm:grid-cols-2">
-      <MetricCard label="Total payments received" value={`₹${totalPaid.toLocaleString("en-IN")}`} icon={CreditCard} />
-      <MetricCard label="Successful transactions" value={payments.length} icon={CheckCircle2} />
+      <MetricCard label="Total payments received" value={`₹${totalAmount.toLocaleString("en-IN")}`} icon={CreditCard} />
+      <MetricCard label="Successful transactions" value={totalCount.toLocaleString("en-IN")} icon={CheckCircle2} />
     </div>
     <section className="mt-6 border border-[#ded5c9] bg-white p-5">
-      <div className="mb-4 flex items-center justify-between"><p className="text-[10px] uppercase tracking-[0.16em] text-gold">Filter successful payments</p><p className="text-xs text-muted-foreground">{loading ? "Refreshing…" : `${payments.length} matching payment${payments.length === 1 ? "" : "s"}`}</p></div>
+      <div className="mb-4 flex items-center justify-between"><p className="text-[10px] uppercase tracking-[0.16em] text-gold">Filter successful payments</p><p className="text-xs text-muted-foreground">{loading ? "Refreshing…" : `${totalCount.toLocaleString("en-IN")} matching payment${totalCount === 1 ? "" : "s"}`}</p></div>
       <div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_auto_auto_auto]">
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search PhonePe ID, order, or customer…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" />
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">From<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="border border-border px-2 py-2 text-sm text-primary" /></label>
-        <label className="flex items-center gap-2 text-xs text-muted-foreground">To<input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="border border-border px-2 py-2 text-sm text-primary" /></label>
-        <button type="button" onClick={() => { setSearch(""); setFrom(""); setTo(""); }} className="border border-border px-3 py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear filters</button>
+        <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }} placeholder="Search PhonePe ID, order, or customer…" className="border border-border px-3 py-2.5 text-sm outline-none focus:border-gold" />
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">From<input type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(0); }} className="border border-border px-2 py-2 text-sm text-primary" /></label>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">To<input type="date" value={to} onChange={(event) => { setTo(event.target.value); setPage(0); }} className="border border-border px-2 py-2 text-sm text-primary" /></label>
+        <button type="button" onClick={() => { setSearch(""); setFrom(""); setTo(""); setPage(0); }} className="border border-border px-3 py-2 text-xs text-muted-foreground hover:border-primary hover:text-primary">Clear filters</button>
       </div>
     </section>
     <div className="mt-5 overflow-x-auto border border-[#ded5c9] bg-white">
@@ -1564,6 +1571,10 @@ function PaymentsPage() {
           </tr>;
         })}</tbody>
       </table>
+    </div>
+    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+      <span>{totalCount ? `Showing ${page * 50 + 1}–${page * 50 + payments.length} of ${totalCount}` : "No payment records"}</span>
+      <div className="flex gap-2"><button type="button" disabled={page === 0 || loading} onClick={() => setPage((value) => Math.max(0, value - 1))} className="border border-border px-3 py-2 disabled:opacity-40">Previous</button><button type="button" disabled={(page + 1) * 50 >= totalCount || loading} onClick={() => setPage((value) => value + 1)} className="border border-border px-3 py-2 disabled:opacity-40">Next</button></div>
     </div>
   </div>;
 }
