@@ -852,7 +852,7 @@ async function createPhonePeCheckout(request: Request) {
     }
     await database.collection("orders").updateOne(
       { orderId },
-      { $set: { transactionId: orderId, phonePeMerchantTransactionId: orderId, phonePeApiVersion: phonePe.mode === "oauth" ? "standard-checkout-v2" : "legacy", updatedAt: new Date() } },
+      { $set: { phonePeMerchantTransactionId: orderId, phonePeApiVersion: phonePe.mode === "oauth" ? "standard-checkout-v2" : "legacy", updatedAt: new Date() } },
     );
     return json({ ok: true, orderId, redirectUrl: redirect });
   } catch (error) {
@@ -872,6 +872,10 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
   const database = await db();
   const client = await getClient();
   const session = client.startSession();
+  const providerTransactionId = String(paymentResponse.transactionId ?? "").trim();
+  const phonePeTransactionFields = providerTransactionId && providerTransactionId !== orderId
+    ? { phonePeTransactionId: providerTransactionId, transactionId: providerTransactionId }
+    : {};
   let inventoryError = "";
   try {
     await session.withTransaction(async () => {
@@ -924,7 +928,7 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
           $set: {
             paymentStatus: "paid",
             paymentMethod: "PhonePe",
-            transactionId: String(paymentResponse.transactionId ?? orderId),
+            ...phonePeTransactionFields,
             phonePeCode: String(paymentResponse.code ?? "PAYMENT_SUCCESS"),
             inventoryAdjusted: true,
             items: updatedItems,
@@ -943,7 +947,7 @@ async function finalizePhonePePayment(orderId: string, paymentResponse: JsonReco
         $set: {
           paymentStatus: "paid",
           paymentMethod: "PhonePe",
-          transactionId: String(paymentResponse.transactionId ?? orderId),
+            ...phonePeTransactionFields,
           phonePeCode: String(paymentResponse.code ?? "PAYMENT_SUCCESS"),
           inventoryAdjusted: false,
           inventoryAdjustmentError: inventoryError.slice(0, 240),
@@ -1085,7 +1089,7 @@ async function phonePePaymentStatus(request: Request) {
       if (phonePe.mode === "oauth") {
         const accessToken = await phonePeAccessToken(phonePe);
         const response = await fetch(
-          `${phonePe.apiBaseUrl}/checkout/v2/order/${encodeURIComponent(transactionId)}/status?details=false`,
+          `${phonePe.apiBaseUrl}/checkout/v2/order/${encodeURIComponent(transactionId)}/status?details=true`,
           { headers: { Authorization: `O-Bearer ${accessToken}`, "Content-Type": "application/json" } },
         );
         const result = await response.json().catch(() => ({})) as JsonRecord;
@@ -2306,7 +2310,7 @@ async function ordersHistory(request: Request) {
   const to = url.searchParams.get("to");
   if (status && status !== "all") query.status = status;
   if (payment && payment !== "all") query.paymentStatus = payment === "paid" ? { $in: ["paid", "success", "completed"] } : payment;
-  if (search) query.$or = [{ orderId: { $regex: search, $options: "i" } }, { customerName: { $regex: search, $options: "i" } }, { customerEmail: { $regex: search, $options: "i" } }, { customerPhone: { $regex: search, $options: "i" } }];
+  if (search) query.$or = [{ orderId: { $regex: search, $options: "i" } }, { transactionId: { $regex: search, $options: "i" } }, { phonePeTransactionId: { $regex: search, $options: "i" } }, { customerName: { $regex: search, $options: "i" } }, { customerEmail: { $regex: search, $options: "i" } }, { customerPhone: { $regex: search, $options: "i" } }];
   if (from || to) query.createdAt = { ...(from ? { $gte: new Date(from) } : {}), ...(to ? { $lte: new Date(`${to}T23:59:59.999Z`) } : {}) };
   const sort = url.searchParams.get("sort") === "oldest" ? { createdAt: 1 } : url.searchParams.get("sort") === "amount" ? { total: -1 } : { createdAt: -1 };
   const database = await db();
