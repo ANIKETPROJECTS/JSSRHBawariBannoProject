@@ -11,6 +11,7 @@ module.exports = {
       cwd: __dirname,
       script: ".output/server/index.mjs",
       interpreter: "node",
+      node_args: "--env-file=/var/www/BawariBanno/.env",
       exec_mode: "fork",
       instances: 1,
       autorestart: true,
