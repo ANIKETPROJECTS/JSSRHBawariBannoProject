@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -21,7 +22,11 @@ import { WishlistProvider } from "@/components/site/WishlistContext";
 import { Toaster } from "@/components/ui/sonner";
 
 // Temporary launch switch: set to false to restore the regular storefront and Admin UI.
-const COMING_SOON_MODE = false;
+const COMING_SOON_MODE = true;
+
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
 
 function ComingSoonPage() {
   return (
@@ -62,7 +67,8 @@ function ComingSoonPage() {
 }
 
 function NotFoundComponent() {
-  if (COMING_SOON_MODE) return <ComingSoonPage />;
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  if (COMING_SOON_MODE && !isAdminPath(pathname)) return <ComingSoonPage />;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -88,11 +94,12 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
-  if (COMING_SOON_MODE) return <ComingSoonPage />;
+  if (COMING_SOON_MODE && !isAdminPath(pathname)) return <ComingSoonPage />;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -150,8 +157,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   }),
   shellComponent: RootShell,
   component: RootComponent,
-  notFoundComponent: COMING_SOON_MODE ? ComingSoonPage : NotFoundComponent,
-  errorComponent: COMING_SOON_MODE ? ComingSoonPage : ErrorComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
 });
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -170,8 +177,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
-  if (COMING_SOON_MODE) return <ComingSoonPage />;
+  if (COMING_SOON_MODE && !isAdminPath(pathname)) return <ComingSoonPage />;
 
   return (
     <QueryClientProvider client={queryClient}>
