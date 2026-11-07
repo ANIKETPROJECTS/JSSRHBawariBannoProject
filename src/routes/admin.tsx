@@ -35,11 +35,11 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "customers", label: "Customers", icon: Users },
   { id: "reviews", label: "Reviews", icon: Star },
   { id: "categories", label: "Categories", icon: Tags },
+  { id: "audit-logs", label: "Audit logs", icon: History },
   { id: "heroes", label: "Hero slides", icon: Image },
   { id: "announcements", label: "Announcement bar", icon: Megaphone },
   { id: "coupons", label: "Coupons", icon: Tags },
   { id: "settings", label: "Settings", icon: Settings },
-  { id: "audit-logs", label: "Audit logs", icon: History },
 ];
 
 async function api(path: string, init?: RequestInit) {
