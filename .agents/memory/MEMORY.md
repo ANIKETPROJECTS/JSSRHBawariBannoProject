@@ -7,3 +7,4 @@
 - [Cloudinary media structure](cloudinary-media-structure.md) — store catalog and Admin attachments in predictable Cloudinary folders while keeping invoice/expense access behind Admin routes.
 - [Git push ownership](git-push-ownership.md) — leave remote pushes to the user; make and verify local changes without pushing.
 - [PhonePe transaction identity](phonepe-transaction-identity.md) — keep the provider payment ID separate from the merchant order reference.
+- [External live server](external-live-server.md) — production runs externally behind nginx/PM2; Replit deployment metadata does not describe that live host.
