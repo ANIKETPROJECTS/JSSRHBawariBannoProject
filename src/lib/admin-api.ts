@@ -2323,12 +2323,13 @@ async function ordersHistory(request: Request) {
   const orderRows = await database.collection("orders").find(query).sort(sort).limit(500).toArray();
   const customerIds = orderRows.map((order) => order.customerId).filter(Boolean);
   const customerPhones = orderRows.map((order) => order.customerPhone).filter(Boolean);
-  const customers = await database.collection("customers").find({
-    $or: [
-      ...(customerIds.length ? [{ _id: { $in: customerIds } }] : []),
-      ...(customerPhones.length ? [{ phone: { $in: customerPhones } }] : []),
-    ],
-  }).toArray();
+  const customerMatch = [
+    ...(customerIds.length ? [{ _id: { $in: customerIds } }] : []),
+    ...(customerPhones.length ? [{ phone: { $in: customerPhones } }] : []),
+  ];
+  const customers = customerMatch.length
+    ? await database.collection("customers").find({ $or: customerMatch }).toArray()
+    : [];
   const customersById = new Map(customers.map((customer) => [String(customer._id), customer]));
   const customersByPhone = new Map(customers.map((customer) => [String(customer.phone), customer]));
   const productIds = orderRows.flatMap((order) => Array.isArray(order.items) ? order.items.map((item: JsonRecord) => item.productId).filter(Boolean) : []);
