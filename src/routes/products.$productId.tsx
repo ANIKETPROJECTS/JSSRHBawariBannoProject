@@ -59,6 +59,13 @@ function ProductDetail() {
   const { saree, loading } = currentProductState;
 
   useEffect(() => {
+    if (loading || typeof document === "undefined") return;
+    document.title = saree
+      ? `${saree.name} — ${saree.fabric} | Bawari Banno`
+      : "Saree unavailable | Bawari Banno";
+  }, [loading, saree]);
+
+  useEffect(() => {
     let active = true;
     void loadStorefrontCatalog()
       .then((catalog) => {
