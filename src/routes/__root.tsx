@@ -8,18 +8,114 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import logoImage from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+import comingSoonLogoImage from "../../attached_assets/Full_Final-01_1792488092202.png";
+import comingSoonBackgroundImage from "../../attached_assets/pexels-mccutcheon-1450034_1792488431857.jpg";
 import { CartProvider } from "@/components/site/CartDrawer";
 import { CustomerAuthProvider } from "@/components/site/CustomerAuthContext";
 import { ReviewsProvider } from "@/components/site/ReviewsContext";
 import { WishlistProvider } from "@/components/site/WishlistContext";
 import { Toaster } from "@/components/ui/sonner";
 
+type StorefrontMode = "loading" | "storefront" | "coming-soon";
+
+function isAdminPath(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+function useStorefrontMode(pathname: string): StorefrontMode {
+  const [modeByPath, setModeByPath] = useState<{ pathname: string; mode: StorefrontMode }>({
+    pathname: "",
+    mode: "loading",
+  });
+
+  useEffect(() => {
+    if (isAdminPath(pathname)) {
+      setModeByPath({ pathname, mode: "storefront" });
+      return;
+    }
+
+    let active = true;
+    async function loadMode() {
+      setModeByPath({ pathname, mode: "loading" });
+      try {
+        const response = await fetch("/api/storefront-mode", { cache: "no-store" });
+        if (!response.ok) throw new Error("Could not read storefront availability.");
+        const result = await response.json() as { comingSoonEnabled?: boolean };
+        if (active) {
+          setModeByPath({ pathname, mode: result.comingSoonEnabled ? "coming-soon" : "storefront" });
+        }
+      } catch (error) {
+        console.error("Could not read storefront availability:", error);
+        if (active) setModeByPath({ pathname, mode: "coming-soon" });
+      }
+    }
+    void loadMode();
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "bb-storefront-mode-updated") void loadMode();
+    };
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      active = false;
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [pathname]);
+
+  if (isAdminPath(pathname)) return "storefront";
+  return modeByPath.pathname === pathname ? modeByPath.mode : "loading";
+}
+
+function StorefrontLoading() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#ED145B] px-6" aria-busy="true">
+      <img src={logoImage} alt="Bawari Banno" className="h-20 w-72 object-contain" />
+    </main>
+  );
+}
+
+function ComingSoonPage() {
+  return (
+    <main
+      aria-labelledby="coming-soon-title"
+      className="flex min-h-screen w-full flex-col items-center justify-center bg-cover bg-center bg-no-repeat px-6 py-12 text-center text-[#171717]"
+      style={{ backgroundImage: `url(${comingSoonBackgroundImage})` }}
+    >
+      <div className="flex w-full flex-col items-center">
+        <div className="mb-8 flex size-[min(16rem,72vw)] items-center justify-center rounded-full border border-[#ED145B]/20 bg-white p-3 shadow-[0_12px_36px_rgba(23,23,23,0.10)]">
+          <img src={comingSoonLogoImage} alt="Bawari Banno" className="size-full rounded-full object-contain" />
+        </div>
+        <section className="w-full max-w-xl rounded-[2rem] border border-[#D4B16A]/70 bg-[#FFF8FC]/95 px-6 py-8 shadow-[0_18px_60px_rgba(150,20,70,0.2)] ring-1 ring-inset ring-white/70 backdrop-blur-md sm:px-10 sm:py-10">
+          <div aria-hidden="true" className="mx-auto mb-6 h-px w-16 bg-[#D4B16A]" />
+          <h1 id="coming-soon-title" className="font-display text-4xl font-medium text-[#ED145B] sm:text-5xl">Coming Soon</h1>
+          <p className="mt-4 text-base leading-relaxed text-[#5D5960] sm:text-lg">
+            We’re getting things ready. Please check back soon.
+          </p>
+          <a
+            href="https://wa.me/919167599635"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Chat with us on WhatsApp at 9167599635"
+            className="mt-6 inline-block text-sm text-[#ED145B] underline decoration-[#ED145B]/60 underline-offset-4 transition-colors hover:text-[#B90F47] sm:text-base"
+          >
+            Visit us on WhatsApp · 9167599635
+          </a>
+        </section>
+      </div>
+    </main>
+  );
+}
+
 function NotFoundComponent() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const storefrontMode = useStorefrontMode(pathname);
+  if (storefrontMode === "loading") return <StorefrontLoading />;
+  if (storefrontMode === "coming-soon") return <ComingSoonPage />;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -44,9 +140,14 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const storefrontMode = useStorefrontMode(pathname);
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
+
+  if (storefrontMode === "loading") return <StorefrontLoading />;
+  if (storefrontMode === "coming-soon") return <ComingSoonPage />;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -124,6 +225,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const storefrontMode = useStorefrontMode(pathname);
+
+  if (storefrontMode === "loading") return <StorefrontLoading />;
+  if (storefrontMode === "coming-soon") return <ComingSoonPage />;
 
   return (
     <QueryClientProvider client={queryClient}>

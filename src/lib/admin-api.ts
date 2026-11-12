@@ -309,7 +309,7 @@ function passwordMatches(password: string, stored: string) {
 function adminPermissionForPath(path: string): AdminPermission | null {
   if (path === "/api/admin/me") return null;
   if (path === "/api/admin/audit-logs") return "audit";
-  if (path === "/api/admin/settings" || path.startsWith("/api/admin/team")) return "settings";
+  if (path === "/api/admin/settings" || path === "/api/admin/storefront-mode" || path.startsWith("/api/admin/team")) return "settings";
   if (path === "/api/admin/analytics" || path === "/api/admin/summary" || path === "/api/admin/product-financials") return "inventory";
   if (path === "/api/admin/purchase-suggestions" || path.startsWith("/api/admin/purchase-invoices") || path.startsWith("/api/admin/vendors") || path.startsWith("/api/admin/expenses") || path.startsWith("/api/admin/business-trips")) return "procurement";
   if (path.startsWith("/api/admin/inventory")) return "inventory";
@@ -3167,6 +3167,37 @@ async function storeSettings(request: Request) {
   return fail("Method not allowed.", 405);
 }
 
+async function storefrontMode(request: Request) {
+  const collection = (await db()).collection("settings");
+  if (request.method === "GET") {
+    const current = await collection.findOne({ _id: "store" }, { projection: { comingSoonEnabled: 1 } });
+    return json({ comingSoonEnabled: current?.comingSoonEnabled === true });
+  }
+  if (request.method === "PUT") {
+    const input = await body(request);
+    if (typeof input.comingSoonEnabled !== "boolean") return fail("Choose whether the Coming Soon page should be enabled.");
+    const actor = adminIdentity(request) ?? "admin";
+    const now = new Date();
+    await collection.updateOne(
+      { _id: "store" },
+      {
+        $set: { comingSoonEnabled: input.comingSoonEnabled, ...auditUpdateFields(actor, now) },
+        $setOnInsert: {
+          shippingCharges: businessSettingsDefaults.shippingCharges,
+          freeShippingThreshold: businessSettingsDefaults.freeShippingThreshold,
+          businessState: businessSettingsDefaults.businessState,
+          businessStateCode: businessSettingsDefaults.businessStateCode,
+          createdBy: actor,
+          createdAt: now,
+        },
+      },
+      { upsert: true },
+    );
+    return json({ comingSoonEnabled: input.comingSoonEnabled });
+  }
+  return fail("Method not allowed.", 405);
+}
+
 async function handleAuth(request: Request, path: string) {
   if (path === "/api/auth/send-otp" && request.method === "POST") {
     const input = await body(request);
@@ -3657,6 +3688,7 @@ async function handleAdmin(request: Request, path: string) {
   if (teamMatch) return await adminTeam(request, teamMatch[1]);
   if (path === "/api/admin/purchase-suggestions") return json(await adminPurchaseSuggestions(request));
   if (path === "/api/admin/product-financials") return json(await adminProductFinancials(request));
+  if (path === "/api/admin/storefront-mode") return await storefrontMode(request);
   if (path === "/api/admin/audit-logs") {
     if (request.method !== "GET") return fail("Method not allowed.", 405);
     const url = new URL(request.url);
@@ -3969,6 +4001,7 @@ export async function handleAdminApi(request: Request) {
     if (url.pathname === "/api/reviews" || url.pathname === "/api/reviews/summaries") return await productReviews(request);
     if ((url.pathname === "/api/phonepe/checkout" || url.pathname === "/api/inventory/purchase") && request.method === "POST") return await createPhonePeCheckout(request);
     if (url.pathname.startsWith("/api/admin/")) return await handleAdmin(request, url.pathname);
+    if (url.pathname === "/api/storefront-mode" && request.method === "GET") return await storefrontMode(request);
     if (url.pathname === "/api/catalog" && request.method === "GET") {
       const database = await db();
       const [heroes, categories, products] = await Promise.all([

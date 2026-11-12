@@ -127,6 +127,7 @@ export const businessSettingsDefaults = {
   _id: "store",
   shippingCharges: 250,
   freeShippingThreshold: 15000,
+  comingSoonEnabled: false,
   businessState: "",
   businessStateCode: "",
 };

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, Copy, CreditCard, Eye, FileText, GripVertical, Heart, History, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
+import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, Copy, CreditCard, Eye, FileText, GripVertical, Heart, History, Image, LayoutDashboard, LogOut, Mail, MapPin, Megaphone, Menu, Package, Phone, Plus, Power, Save, Search, Settings, ShoppingCart, SlidersHorizontal, Star, Tags, Trash2, UserCheck, Users, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { OrderInvoice } from "@/components/admin/OrderInvoice";
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "expenses-trips" | "orders" | "payments" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "settings" | "audit-logs";
+type Tab = "dashboard" | "products" | "purchase-suggestions" | "inventory" | "vendors" | "purchase-invoices" | "expenses-trips" | "orders" | "payments" | "customers" | "reviews" | "categories" | "heroes" | "announcements" | "coupons" | "storefront-mode" | "settings" | "audit-logs";
 type RecordItem = Record<string, unknown> & { _id?: string };
 type ProductVariantForm = { id?: string; color: string; stock: number | string; reorderLevel: number | string; image: string; extraImages: string };
 type AdminPermission = "catalog" | "procurement" | "inventory" | "orders" | "customers" | "marketing" | "audit";
@@ -40,6 +40,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "heroes", label: "Hero slides", icon: Image },
   { id: "announcements", label: "Announcement bar", icon: Megaphone },
   { id: "coupons", label: "Coupons", icon: Tags },
+  { id: "storefront-mode", label: "Coming soon", icon: Power },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -246,7 +247,7 @@ function AdminPage() {
   const canAccess = (id: Tab) => adminProfile?.role === "owner" || ({
     dashboard: true, products: adminProfile?.permissions.includes("catalog"), categories: adminProfile?.permissions.includes("catalog"), heroes: adminProfile?.permissions.includes("catalog"), announcements: adminProfile?.permissions.includes("catalog"), coupons: adminProfile?.permissions.includes("catalog"),
     "purchase-suggestions": adminProfile?.permissions.includes("procurement"), vendors: adminProfile?.permissions.includes("procurement"), "purchase-invoices": adminProfile?.permissions.includes("procurement"), "expenses-trips": adminProfile?.permissions.includes("procurement"),
-    inventory: adminProfile?.permissions.includes("inventory"), orders: adminProfile?.permissions.includes("orders"), payments: adminProfile?.permissions.includes("orders"), customers: adminProfile?.permissions.includes("customers"), reviews: adminProfile?.permissions.includes("marketing"), settings: adminProfile?.permissions.includes("settings"), "audit-logs": adminProfile?.permissions.includes("audit"),
+    inventory: adminProfile?.permissions.includes("inventory"), orders: adminProfile?.permissions.includes("orders"), payments: adminProfile?.permissions.includes("orders"), customers: adminProfile?.permissions.includes("customers"), reviews: adminProfile?.permissions.includes("marketing"), "storefront-mode": adminProfile?.permissions.includes("settings"), settings: adminProfile?.permissions.includes("settings"), "audit-logs": adminProfile?.permissions.includes("audit"),
   } as Record<Tab, boolean | undefined>)[id] === true;
   const visibleTabs = tabs.filter(({ id }) => canAccess(id));
 
@@ -289,7 +290,7 @@ function AdminPage() {
         </div>
         <AdminPaginationContext.Provider value={setAdminPagination}>
         <div className="mx-auto max-w-7xl p-4 sm:p-5 md:p-10">
-          {tab === "dashboard" ? <><ProcurementDashboard /><MarginDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage initialDraft={reorderDraft} onInitialDraftConsumed={() => setReorderDraft(null)} /> : tab === "expenses-trips" ? <ExpensesTripsPage /> : tab === "orders" ? <OrdersPage /> : tab === "payments" ? <PaymentsPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage role={adminProfile?.role} /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : tab === "audit-logs" ? <AuditLogsPage /> : <ResourceManager resource={tab} />}
+          {tab === "dashboard" ? <><ProcurementDashboard /><MarginDashboard /><Dashboard /></> : tab === "products" ? <ResourceManager resource="products" onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "purchase-suggestions" ? <PurchaseSuggestionsPage onOpenProducts={() => setTab("products")} onOpenInvoices={() => setTab("purchase-invoices")} onReorder={(draft) => { setReorderDraft(draft); setTab("purchase-invoices"); }} /> : tab === "inventory" ? <InventoryCrudPage /> : tab === "vendors" ? <VendorsPage /> : tab === "purchase-invoices" ? <PurchaseInvoicesPage initialDraft={reorderDraft} onInitialDraftConsumed={() => setReorderDraft(null)} /> : tab === "expenses-trips" ? <ExpensesTripsPage /> : tab === "orders" ? <OrdersPage /> : tab === "payments" ? <PaymentsPage /> : tab === "customers" ? <CustomerManagementPage /> : tab === "settings" ? <SettingsCrudPage role={adminProfile?.role} /> : tab === "storefront-mode" ? <StorefrontModePage /> : tab === "announcements" ? <AnnouncementCrudPage /> : tab === "coupons" ? <CouponManager /> : tab === "reviews" ? <ReviewCrudPage /> : tab === "audit-logs" ? <AuditLogsPage /> : <ResourceManager resource={tab} />}
           {adminPagination}
         </div>
         </AdminPaginationContext.Provider>
@@ -2925,6 +2926,88 @@ function SettingsCrudPage({ role }: { role?: AdminProfile["role"] }) {
     catch (error) { toast.error(error instanceof Error ? error.message : "Could not reset settings."); }
   }
   return <><form onSubmit={save} className="max-w-2xl border border-[#ded5c9] bg-white p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-gold">Singleton store record</p><h2 className="mt-2 font-display text-3xl text-primary">Store settings</h2><p className="mt-2 text-sm text-muted-foreground">{configured ? "Edit checkout and business configuration." : "No saved settings record exists yet. Create one below."}</p></div>{configured && <button type="button" onClick={() => void reset()} className="text-xs text-red-700 hover:underline">Delete / reset</button>}</div><div className="mt-7 grid gap-5 sm:grid-cols-2"><label className="block text-xs text-muted-foreground">Shipping charge (₹)<input type="number" min="0" value={form.shippingCharges} onChange={(event) => setForm({ ...form, shippingCharges: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Free shipping threshold (₹)<input type="number" min="0" value={form.freeShippingThreshold} onChange={(event) => setForm({ ...form, freeShippingThreshold: Number(event.target.value) })} className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">Business state<input value={form.businessState} onChange={(event) => setForm({ ...form, businessState: event.target.value })} placeholder="e.g. Gujarat" className="mt-2 w-full border border-border px-3 py-3 text-sm outline-none focus:border-gold" /></label><label className="block text-xs text-muted-foreground">State code<input value={form.businessStateCode} onChange={(event) => setForm({ ...form, businessStateCode: event.target.value.toUpperCase() })} placeholder="e.g. GJ" maxLength={10} className="mt-2 w-full border border-border px-3 py-3 text-sm uppercase outline-none focus:border-gold" /></label></div><p className="mt-4 text-xs leading-5 text-muted-foreground">The business state is used later to determine IGST versus CGST + SGST on vendor invoices. Leave it blank until your registered business state is confirmed.</p><button disabled={busy} className="mt-6 bg-primary px-5 py-3 text-xs uppercase tracking-[0.14em] text-white disabled:opacity-50">{busy ? "Saving…" : configured ? "Save settings" : "Create settings record"}</button></form>{role === "owner" && <StaffAccessPanel />}</>;
+}
+
+function StorefrontModePage() {
+  const [comingSoonEnabled, setComingSoonEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    api("/api/admin/storefront-mode")
+      .then((data) => {
+        if (active) setComingSoonEnabled(data.comingSoonEnabled === true);
+      })
+      .catch((error) => {
+        if (active) toast.error(error instanceof Error ? error.message : "Could not load storefront status.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  async function updateMode(nextEnabled: boolean) {
+    if (saving || loading) return;
+    setSaving(true);
+    try {
+      const result = await api("/api/admin/storefront-mode", {
+        method: "PUT",
+        body: JSON.stringify({ comingSoonEnabled: nextEnabled }),
+      });
+      const savedMode = result.comingSoonEnabled === true;
+      setComingSoonEnabled(savedMode);
+      try {
+        window.localStorage.setItem("bb-storefront-mode-updated", String(Date.now()));
+      } catch {
+        // The saved database setting still applies on the next storefront load.
+      }
+      toast.success(savedMode ? "Coming Soon page is now on." : "The regular storefront is now on.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update storefront status.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="max-w-3xl border border-[#ded5c9] bg-white p-6 sm:p-8">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-gold">Storefront visibility</p>
+      <h2 className="mt-2 font-display text-3xl text-primary">Coming Soon page</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Choose whether visitors see the Coming Soon page or the regular saree storefront. Admin remains accessible either way.
+      </p>
+
+      <div className="mt-7 flex flex-wrap items-center justify-between gap-5 border border-[#ded5c9] bg-[#fbf9f6] p-5">
+        <div>
+          <p className="text-sm font-medium text-primary">{comingSoonEnabled ? "Coming Soon is enabled" : "Storefront is open"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {loading ? "Checking saved status…" : comingSoonEnabled ? "Visitors see the Coming Soon page." : "Visitors can browse and shop normally."}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={comingSoonEnabled}
+          aria-label="Coming Soon page"
+          disabled={loading || saving}
+          onClick={() => void updateMode(!comingSoonEnabled)}
+          className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors disabled:cursor-wait disabled:opacity-60 ${comingSoonEnabled ? "bg-[#ED145B]" : "bg-[#b7b0a8]"}`}
+        >
+          <span className={`inline-block size-6 rounded-full bg-white shadow transition-transform ${comingSoonEnabled ? "translate-x-7" : "translate-x-1"}`} />
+        </button>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs leading-5 text-muted-foreground">Your choice is saved and applies to the storefront without changing Admin access.</p>
+        <Link to="/" target="_blank" rel="noreferrer" className="text-xs text-primary underline underline-offset-4">
+          Preview storefront
+        </Link>
+      </div>
+      {saving && <p className="mt-4 text-xs text-muted-foreground" role="status">Saving storefront status…</p>}
+    </section>
+  );
 }
 
 const staffPermissionOptions: { value: AdminPermission; label: string }[] = [
