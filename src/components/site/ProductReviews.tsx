@@ -179,7 +179,7 @@ export function ProductReviews({ productId }: { productId: string }) {
             : "A successful order for this saree is required before reviewing.";
 
   return (
-    <section id="reviews" className="mx-auto mt-24 max-w-7xl scroll-mt-8 px-5">
+    <section id="reviews" className="mx-auto mt-12 max-w-7xl scroll-mt-8 px-4 sm:mt-24 sm:px-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-eyebrow text-muted-foreground">From our customers</p>
@@ -196,7 +196,7 @@ export function ProductReviews({ productId }: { productId: string }) {
       </div>
       <p className="mt-3 text-xs text-muted-foreground">{accessMessage}</p>
 
-      <div className="mt-7 grid gap-6 border border-border bg-card p-6 md:grid-cols-[190px_1fr] md:p-8">
+      <div className="mt-5 grid gap-4 border border-border bg-card p-4 sm:mt-7 sm:gap-6 sm:p-6 md:grid-cols-[190px_1fr] md:p-8">
         <div className="border-b border-border pb-6 text-center md:border-b-0 md:border-r md:pb-0 md:pr-8">
           <p className="font-display text-5xl text-primary">{summary.count ? summary.average.toFixed(1) : "—"}</p>
           <ReviewStars value={summary.average} size="mt-2 text-lg" />
@@ -218,7 +218,7 @@ export function ProductReviews({ productId }: { productId: string }) {
       </div>
 
       {showForm && (
-        <form onSubmit={submitReview} className="mt-6 border border-gold/50 bg-card p-6 md:p-8">
+        <form onSubmit={submitReview} className="mt-5 border border-gold/50 bg-card p-4 sm:mt-6 sm:p-6 md:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-eyebrow text-gold">Share your experience</p>
@@ -247,7 +247,7 @@ export function ProductReviews({ productId }: { productId: string }) {
 
       <div className="mt-8 divide-y divide-border border-y border-border">
         {loading ? <p className="py-10 text-center text-sm text-muted-foreground">Loading reviews…</p> : reviews.length === 0 ? <p className="py-10 text-center text-sm text-muted-foreground">No reviews yet. Be the first to share your experience.</p> : reviews.map((review) => (
-          <article key={review._id} className="py-7">
+          <article key={review._id} className="py-5 sm:py-7">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div><p className="font-medium text-primary">{review.reviewerName || "Bawari customer"}</p><div className="mt-1 flex flex-wrap items-center gap-3"><ReviewStars value={review.rating} /><span className="text-xs text-muted-foreground">{formatReviewDate(review.createdAt)}</span>{review.verifiedPurchase && <span className="text-[10px] uppercase tracking-[0.12em] text-emerald-700">Verified purchase</span>}</div></div>
             </div>

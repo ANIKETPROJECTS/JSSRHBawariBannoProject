@@ -27,7 +27,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
           }}
-          className="fixed bottom-[4.75rem] right-3 z-40 flex size-10 items-center justify-center rounded-full bg-primary text-white shadow-md transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          className="fixed bottom-[4.5rem] right-3 z-40 flex size-9 items-center justify-center rounded-full bg-primary text-white shadow-md transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:bottom-[4.75rem] sm:size-10"
         >
           <ArrowUp aria-hidden="true" className="size-4" />
         </button>
@@ -40,7 +40,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         title="Chat with us on WhatsApp"
         className="fixed bottom-3 right-3 z-50 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
-        <img src={whatsappIcon} alt="" className="size-14 object-contain" />
+        <img src={whatsappIcon} alt="" className="size-11 object-contain sm:size-14" />
       </a>
       <Footer />
     </div>
@@ -58,7 +58,7 @@ export function PageHeading({
 }) {
   return (
     <div className="section-frame mx-2 fabric-texture sm:mx-3">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-5 sm:py-14">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-5 sm:py-14">
         <p className="text-eyebrow text-muted-foreground">{eyebrow}</p>
         <h1 className="mt-3 break-words font-display text-4xl text-primary sm:text-5xl md:text-6xl">{title}</h1>
         {intro && (

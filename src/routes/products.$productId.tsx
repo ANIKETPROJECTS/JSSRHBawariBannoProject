@@ -282,7 +282,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 type="button"
                 onClick={() => setActive(i)}
                 className={cn(
-                  "w-16 border transition-colors",
+                  "w-14 border transition-colors sm:w-16",
                   active === i ? "border-gold" : "border-border hover:border-gold/50",
                 )}
               >
@@ -361,7 +361,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
           <div className="mt-6 h-px bg-border" />
 
-          <div className="mt-8 grid grid-cols-[88px_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[104px_minmax(0,1fr)_minmax(0,1fr)] sm:gap-3">
+          <div className="product-detail-purchase-actions mt-8">
             <div className="flex items-center border border-border">
               <button
                 type="button"
@@ -386,7 +386,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               disabled={availableStock === 0}
               onClick={() => addItem(selectedProduct, qty)}
-              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap bg-primary px-1.5 text-[0.58rem] tracking-[0.08em] text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem]"
+              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap bg-primary px-2 text-[0.7rem] tracking-[0.04em] text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem] sm:tracking-[0.08em]"
             >
               <ShoppingBag className="size-3.5 shrink-0" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
             </button>
@@ -398,7 +398,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 closeCart();
                 void navigate({ to: "/checkout", search: { coupon: undefined } });
               }}
-              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap border border-primary bg-white px-1.5 text-[0.58rem] tracking-[0.08em] text-primary transition-colors hover:bg-[#fff6f8] disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem]"
+              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap border border-primary bg-white px-2 text-[0.7rem] tracking-[0.04em] text-primary transition-colors hover:bg-[#fff6f8] disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem] sm:tracking-[0.08em]"
             >
               Buy now <ChevronRight className="size-3.5 shrink-0" strokeWidth={1.6} />
             </button>
@@ -410,7 +410,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               aria-pressed={isWishlisted}
               onClick={() => void toggleWishlist(saree.id)}
               className={cn(
-                "inline-flex min-w-0 flex-1 items-center justify-center gap-2 border px-3 py-3 text-[0.62rem] transition-colors sm:flex-none sm:px-5 sm:text-eyebrow",
+                "inline-flex min-w-0 flex-1 items-center justify-center gap-2 border px-2.5 py-3 text-[0.7rem] transition-colors sm:flex-none sm:px-5 sm:text-eyebrow",
                 isWishlisted
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-primary hover:border-gold hover:bg-gold/5",
@@ -427,7 +427,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               onClick={() => void shareProduct()}
               disabled={sharing}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-border px-3 py-3 text-[0.62rem] text-primary transition-colors hover:border-gold hover:bg-gold/5 disabled:cursor-wait disabled:opacity-60 sm:flex-none sm:px-5 sm:text-eyebrow"
+              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-border px-2.5 py-3 text-[0.7rem] text-primary transition-colors hover:border-gold hover:bg-gold/5 disabled:cursor-wait disabled:opacity-60 sm:flex-none sm:px-5 sm:text-eyebrow"
             >
               <Share2 className="size-4" strokeWidth={1.6} />
               {sharing ? "Sharing…" : "Share Product"}

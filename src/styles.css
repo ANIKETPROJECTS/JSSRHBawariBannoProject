@@ -1181,7 +1181,7 @@ form[class*="max-h-"] {
 
 @media (max-width: 639px) {
   .site-header-logo {
-    left: -1rem;
+    left: 0;
   }
 
   .home-section-heading {
@@ -1970,6 +1970,13 @@ form[class*="max-h-"] {
   min-width: 0;
 }
 
+.product-detail-purchase-actions {
+  display: grid;
+  grid-template-columns: minmax(100px, 116px) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
 .product-detail-reviews-container {
   padding-top: 0;
   padding-bottom: 48px;
@@ -2378,9 +2385,96 @@ form[class*="max-h-"] {
   transform: scaleX(1);
 }
 
+@media (max-width: 639px) {
+  h1,
+  h2 {
+    font-size: clamp(1.75rem, 7vw, 2.3rem) !important;
+    line-height: 1.12 !important;
+  }
+
+  .site-mobile-collection-tabs {
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .site-mobile-collection-tab {
+    font-size: clamp(11px, 3vw, 13px);
+    letter-spacing: 0.055em;
+  }
+
+  .product-detail-breadcrumb-wrap {
+    padding-top: 16px;
+  }
+
+  .product-detail-frame {
+    gap: 24px;
+    margin-top: 16px;
+    padding-bottom: 32px;
+  }
+
+  .product-detail-accordion {
+    margin-top: 24px;
+  }
+
+  .product-detail-accordion-trigger {
+    min-height: 48px;
+    padding-block: 14px;
+    font-size: 12px;
+  }
+
+  .product-trust-strip {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    overflow: visible;
+    padding: 12px;
+  }
+
+  .product-trust-item {
+    min-width: 0;
+    flex: initial;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .product-trust-item:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .product-recommendations-band {
+    padding-block: 32px;
+  }
+}
+
+@media (max-width: 380px) {
+  .product-detail-purchase-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-detail-purchase-actions > div:first-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
 @media (min-width: 1024px) {
   .site-mobile-collection-tabs {
     display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .site-mobile-collection-tabs {
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .site-mobile-collection-tab {
+    font-size: clamp(11px, 3vw, 13px);
+    letter-spacing: 0.055em;
   }
 }
 

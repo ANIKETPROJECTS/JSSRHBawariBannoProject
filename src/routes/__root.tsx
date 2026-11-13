@@ -8,7 +8,7 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -28,33 +28,38 @@ function isAdminPath(pathname: string) {
 }
 
 function useStorefrontMode(pathname: string): StorefrontMode {
-  const [modeByPath, setModeByPath] = useState<{ pathname: string; mode: StorefrontMode }>({
-    pathname: "",
-    mode: "loading",
-  });
+  const [mode, setMode] = useState<StorefrontMode>(() => (
+    isAdminPath(pathname) ? "storefront" : "loading"
+  ));
+  const currentMode = useRef(mode);
+  currentMode.current = mode;
+  const wasAdminPath = useRef(isAdminPath(pathname));
 
   useEffect(() => {
     if (isAdminPath(pathname)) {
-      setModeByPath({ pathname, mode: "storefront" });
+      wasAdminPath.current = true;
+      if (currentMode.current !== "storefront") setMode("storefront");
       return;
     }
 
     let active = true;
+    const shouldLoad = wasAdminPath.current || currentMode.current === "loading";
+    wasAdminPath.current = false;
     async function loadMode() {
-      setModeByPath({ pathname, mode: "loading" });
+      setMode("loading");
       try {
         const response = await fetch("/api/storefront-mode", { cache: "no-store" });
         if (!response.ok) throw new Error("Could not read storefront availability.");
         const result = await response.json() as { comingSoonEnabled?: boolean };
         if (active) {
-          setModeByPath({ pathname, mode: result.comingSoonEnabled ? "coming-soon" : "storefront" });
+          setMode(result.comingSoonEnabled ? "coming-soon" : "storefront");
         }
       } catch (error) {
         console.error("Could not read storefront availability:", error);
-        if (active) setModeByPath({ pathname, mode: "coming-soon" });
+        if (active) setMode("coming-soon");
       }
     }
-    void loadMode();
+    if (shouldLoad) void loadMode();
     const handleStorage = (event: StorageEvent) => {
       if (event.key === "bb-storefront-mode-updated") void loadMode();
     };
@@ -67,7 +72,8 @@ function useStorefrontMode(pathname: string): StorefrontMode {
   }, [pathname]);
 
   if (isAdminPath(pathname)) return "storefront";
-  return modeByPath.pathname === pathname ? modeByPath.mode : "loading";
+  if (wasAdminPath.current) return "loading";
+  return mode;
 }
 
 function StorefrontLoading() {
