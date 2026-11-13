@@ -192,8 +192,8 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
       {step === "phone" && (
         <>
           <div className="mt-7 grid grid-cols-2 border-b border-border" role="tablist" aria-label="Account access">
-            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => setMode("signup")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "signup" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Create account</button>
-            <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => setMode("login")} className={`border-b-2 px-3 py-3 text-sm transition-colors ${mode === "login" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Log in</button>
+            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => setMode("signup")} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs transition-colors sm:px-3 sm:text-sm ${mode === "signup" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Create account</button>
+            <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => setMode("login")} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs transition-colors sm:px-3 sm:text-sm ${mode === "login" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Log in</button>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
             {mode === "signup"
@@ -205,7 +205,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
               Mobile number
               <span className="mt-3 flex w-full items-center border-b border-border focus-within:border-gold">
                 <span className="border-r border-border py-3 pr-3 text-sm font-medium text-primary" aria-hidden="true">+91</span>
-                <input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="Enter 10-digit mobile number" aria-label="10-digit Indian mobile number" className="w-full px-3 py-3 text-sm outline-none" />
+                <input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" aria-label="10-digit Indian mobile number" className="min-w-0 flex-1 px-3 py-3 text-sm outline-none" />
               </span>
             </label>
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to your WhatsApp number. No password required.</p>

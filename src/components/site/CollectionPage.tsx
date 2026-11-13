@@ -341,6 +341,7 @@ export function CollectionPage({
           productsForCategories={collectionProducts}
           availableColors={availableColors}
           categoryListingStyle={sharedListingStyle}
+          mobileDrawerStyle={!sharedListingStyle}
         />
 
         <div className={sharedListingStyle ? "category-listing-results" : "flex-1"}>
@@ -367,11 +368,11 @@ export function CollectionPage({
           </div>
 
           {catalogState === "loading" && !products ? (
-            <div className={sharedListingStyle ? "category-listing-product-grid category-listing-skeleton-grid" : "mt-7 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 lg:grid-cols-3"} aria-busy="true" aria-label="Loading the collection">
+            <div className={sharedListingStyle ? "category-listing-product-grid category-listing-skeleton-grid" : "mt-7 grid grid-cols-2 gap-x-3 gap-y-8 sm:mt-8 sm:gap-x-6 lg:grid-cols-3"} aria-busy="true" aria-label="Loading the collection">
               {[0, 1, 2].map((item) => <div key={item} className="aspect-[3/4] animate-pulse bg-secondary/70" />)}
             </div>
           ) : (
-            <div className={sharedListingStyle ? "category-listing-product-grid" : "mt-7 grid grid-cols-1 gap-x-4 gap-y-10 sm:mt-8 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4"}>
+            <div className={sharedListingStyle ? "category-listing-product-grid" : "mt-7 grid grid-cols-2 gap-x-3 gap-y-8 sm:mt-8 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4"}>
               {(categoryListingStyle ? visibleList : list).map((saree, index) => (
                 <ProductCard
                   key={saree.id}

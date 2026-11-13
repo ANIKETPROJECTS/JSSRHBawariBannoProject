@@ -192,7 +192,7 @@ export function ProductCard({
             className={`product-card-name ${useCategoryListingVisuals
               ? "category-listing-product-name"
               : editorial
-              ? "font-sans text-xl font-medium leading-tight text-foreground transition-colors group-hover:text-primary"
+              ? "min-h-[2.5rem] font-sans text-sm font-normal leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-0 sm:text-base md:text-lg lg:text-xl lg:font-medium"
               : "min-h-[2.75rem] overflow-hidden text-lg leading-snug text-foreground transition-colors group-hover:text-primary sm:min-h-[3.5rem] sm:text-2xl"}`}
             title={saree.name}
           >

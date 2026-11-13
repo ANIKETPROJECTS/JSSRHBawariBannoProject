@@ -1263,6 +1263,94 @@ form[class*="max-h-"] {
   }
 }
 
+/* Mobile filter drawer for the standard All Sarees and search collections. */
+.product-collection-filter-trigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d9c5a1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #641c2c;
+  background: #fff;
+  font: 500 14px/1 Inter, system-ui, sans-serif;
+}
+
+.product-collection-filter-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  border: 0;
+  background: rgb(29 19 22 / 48%);
+}
+
+.product-collection-filter-panel {
+  position: fixed;
+  z-index: 61;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(88vw, 360px);
+  overflow-y: auto;
+  border: 0 !important;
+  padding: 20px 18px 90px !important;
+  background: #fff;
+  box-shadow: 12px 0 30px rgb(30 17 20 / 16%);
+  transform: translateX(-105%);
+  visibility: hidden;
+  transition: transform 220ms ease, visibility 220ms ease;
+}
+
+.product-collection-filter-panel.is-open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.product-collection-filter-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #51474a;
+}
+
+.product-collection-filter-apply {
+  position: fixed;
+  z-index: 62;
+  bottom: 0;
+  left: 0;
+  width: min(88vw, 360px);
+  min-height: 58px;
+  border-top: 1px solid #eadbc0;
+  color: #fff;
+  background: #641c2c;
+  font: 600 13px/1 Inter, system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 1024px) {
+  .product-collection-filter-trigger,
+  .product-collection-filter-close,
+  .product-collection-filter-apply {
+    display: none;
+  }
+
+  .product-collection-filter-panel {
+    position: static;
+    width: auto;
+    max-height: none;
+    overflow: visible;
+    border: 0 !important;
+    border-right: 1px solid #e9dfd1 !important;
+    padding: 16px 28px 0 0 !important;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+    visibility: visible;
+  }
+}
+
 /* Category listing visual variant; other collection routes keep their existing styles. */
 .category-listing-page {
   --category-ivory: #fffaf4;
@@ -1795,7 +1883,7 @@ form[class*="max-h-"] {
   }
 
   .category-listing-product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px 14px;
   }
 }
@@ -1818,8 +1906,14 @@ form[class*="max-h-"] {
   }
 
   .category-listing-product-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px 18px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .category-listing-product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -2413,6 +2507,15 @@ form[class*="max-h-"] {
     padding-bottom: 32px;
   }
 
+  .product-detail-purchase-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .product-detail-purchase-actions > div:first-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
   .product-detail-accordion {
     margin-top: 24px;
   }
@@ -2448,17 +2551,6 @@ form[class*="max-h-"] {
   }
 }
 
-@media (max-width: 380px) {
-  .product-detail-purchase-actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .product-detail-purchase-actions > div:first-child {
-    grid-column: 1 / -1;
-    justify-self: center;
-  }
-}
-
 @media (min-width: 1024px) {
   .site-mobile-collection-tabs {
     display: none;
@@ -2475,6 +2567,14 @@ form[class*="max-h-"] {
   .site-mobile-collection-tab {
     font-size: clamp(11px, 3vw, 13px);
     letter-spacing: 0.055em;
+  }
+
+  .product-card-name:not(.category-listing-product-name) {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 }
 

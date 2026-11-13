@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Filter, RotateCcw, X } from "lucide-react";
 import { categories, type CategoryNode, type Saree } from "@/data/sarees";
 import { productColors } from "@/data/colors";
@@ -19,6 +19,7 @@ type Props = {
   productsForCategories?: ReadonlyArray<Saree>;
   availableColors?: ReadonlyArray<{ key: string; label: string; hex: string }>;
   categoryListingStyle?: boolean;
+  mobileDrawerStyle?: boolean;
 };
 
 function toggleValue(values: string[], value: string) {
@@ -60,18 +61,41 @@ export function CategorySidebar({
   productsForCategories,
   availableColors,
   categoryListingStyle = false,
+  mobileDrawerStyle = false,
 }: Props) {
   const categoryItems = categoryData ?? categories;
   const colorOptions = availableColors ?? productColors;
   const fabrics = Array.from(new Set((productsForCategories ?? []).map((product) => product.fabric).filter(Boolean)));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const useMobileDrawer = categoryListingStyle || mobileDrawerStyle;
+
+  useEffect(() => {
+    if (!mobileOpen || !useMobileDrawer) return;
+    const previousOverflow = document.body.style.overflow;
+    const updateScrollLock = () => {
+      document.body.style.overflow = window.matchMedia("(min-width: 1024px)").matches
+        ? previousOverflow
+        : "hidden";
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    updateScrollLock();
+    window.addEventListener("resize", updateScrollLock);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("resize", updateScrollLock);
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen, useMobileDrawer]);
 
   return (
     <aside className={cn("lg:w-64 lg:shrink-0", categoryListingStyle && "category-listing-sidebar")}>
-      {categoryListingStyle && (
+      {useMobileDrawer && (
         <button
           type="button"
-          className="category-listing-filter-trigger"
+          className={categoryListingStyle ? "category-listing-filter-trigger" : "product-collection-filter-trigger"}
           aria-haspopup="dialog"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
@@ -79,10 +103,10 @@ export function CategorySidebar({
           <Filter className="size-4" aria-hidden="true" /> Filter
         </button>
       )}
-      {categoryListingStyle && mobileOpen && (
+      {useMobileDrawer && mobileOpen && (
         <button
           type="button"
-          className="category-listing-filter-backdrop"
+          className={categoryListingStyle ? "category-listing-filter-backdrop" : "product-collection-filter-backdrop"}
           aria-label="Close filters"
           onClick={() => setMobileOpen(false)}
         />
@@ -91,10 +115,12 @@ export function CategorySidebar({
         className={cn(
           "border-y border-border py-4 lg:border-y-0 lg:border-r lg:pr-7",
           categoryListingStyle && "category-listing-sidebar-panel",
-          categoryListingStyle && mobileOpen && "is-open",
+          mobileDrawerStyle && !categoryListingStyle && "product-collection-filter-panel",
+          useMobileDrawer && mobileOpen && "is-open",
         )}
-        role={categoryListingStyle && mobileOpen ? "dialog" : undefined}
-        aria-label={categoryListingStyle && mobileOpen ? "Product filters" : undefined}
+        role={useMobileDrawer && mobileOpen ? "dialog" : undefined}
+        aria-modal={useMobileDrawer && mobileOpen ? true : undefined}
+        aria-label={useMobileDrawer && mobileOpen ? "Product filters" : undefined}
       >
         <div className={cn("flex items-center justify-between border-b border-border pb-4", categoryListingStyle && "category-listing-sidebar-heading")}>
           <div>
@@ -112,10 +138,10 @@ export function CategorySidebar({
             >
               {!categoryListingStyle && <RotateCcw className="size-3" strokeWidth={1.5} />} Clear
             </button>
-            {categoryListingStyle && (
+            {useMobileDrawer && (
               <button
                 type="button"
-                className="category-listing-close-filters"
+                className={categoryListingStyle ? "category-listing-close-filters" : "product-collection-filter-close"}
                 aria-label="Close filters"
                 onClick={() => setMobileOpen(false)}
               >
@@ -268,8 +294,12 @@ export function CategorySidebar({
           />
         </details>
 
-        {categoryListingStyle && (
-          <button type="button" className="category-listing-apply" onClick={() => setMobileOpen(false)}>
+        {useMobileDrawer && (
+          <button
+            type="button"
+            className={categoryListingStyle ? "category-listing-apply" : "product-collection-filter-apply"}
+            onClick={() => setMobileOpen(false)}
+          >
             Apply
           </button>
         )}
