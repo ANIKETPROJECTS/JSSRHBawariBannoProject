@@ -4,7 +4,7 @@
 - [Financial inventory foundation](financial-inventory-foundation.md) — preserve legacy stock as explicit opening balance until real vendor and cost history exists.
 - [Admin access control](admin-access-control.md) — owner sessions have full access; staff sessions use explicit database-backed permission sets.
 - [Private invoice upload flow](private-invoice-upload-flow.md) — preserve multipart boundaries and allow missing-document recovery without changing posted financial data.
-- [Cloudinary media structure](cloudinary-media-structure.md) — store catalog and Admin attachments in predictable Cloudinary folders while keeping invoice/expense access behind Admin routes.
+- [Cloudinary media structure](cloudinary-media-structure.md) — save catalog images locally; keep invoice and expense attachments in private Cloudinary folders.
 - [Git push ownership](git-push-ownership.md) — leave remote pushes to the user; make and verify local changes without pushing.
 - [PhonePe transaction identity](phonepe-transaction-identity.md) — keep the provider payment ID separate from the merchant order reference.
 - [External live server](external-live-server.md) — production runs externally behind nginx/PM2; Replit deployment metadata does not describe that live host.

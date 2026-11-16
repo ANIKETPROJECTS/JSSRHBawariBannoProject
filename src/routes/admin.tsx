@@ -83,102 +83,47 @@ function productImageUploadError(response: Response, result: unknown, fallback: 
     : String(rawError ?? "");
   const message = providerMessage.toLowerCase();
   if (response.status === 413 || /file.{0,20}(too large|size limit)|payload too large/.test(message)) {
-    return new Error("The image host or live server rejected this upload as too large. The Admin app has no image-size cap; check the live server or image-host limits.");
+    return new Error("The live server or reverse proxy rejected this upload as too large. The Admin app has no image-size cap; check the live server upload settings.");
   }
-  if ([401, 403].includes(response.status) || /invalid signature|invalid api key|unauthorized|forbidden|permission/.test(message)) {
-    return new Error("Image hosting rejected the upload authorization. Verify CLOUDINARY_URL on the running server.");
-  }
-  if (response.status === 429 || /rate limit|quota/.test(message)) {
-    return new Error("Image hosting is temporarily rate-limited. Wait a moment and retry.");
+  if ([401, 403].includes(response.status) || /unauthorized|forbidden|permission/.test(message)) {
+    return new Error("Your Admin session or role cannot upload product images.");
   }
   if (response.status === 400) {
-    return new Error("The image host rejected this file. Check that it is a valid JPG, PNG, WEBP, or GIF.");
-  }
-  if (response.status >= 500) {
-    return new Error("The image service could not complete the upload. Retry in a moment.");
+    return new Error("Only JPG, PNG, WEBP, and GIF product images are supported.");
   }
   return new Error(`${fallback} (HTTP ${response.status}).`);
 }
 
-async function uploadProductImage(file: File, folder?: string) {
+async function uploadProductImage(file: File) {
   if (!file.size) throw new Error("Choose a product image.");
   if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
     throw new Error("Only JPG, PNG, WEBP, and GIF product images are supported.");
   }
 
-  let signatureResponse: Response;
+  let response: Response;
   try {
-    signatureResponse = await fetch("/api/admin/product-image-signature", {
+    response = await fetch("/api/admin/product-images", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ contentType: file.type, size: file.size, folder }),
+      headers: { "content-type": file.type },
+      body: file,
     });
   } catch {
     throw new Error("Could not reach the upload server. Check your connection and retry.");
   }
-  const signatureResult = await signatureResponse.json().catch(() => null) as Record<string, unknown> | null;
-  if (signatureResponse.status === 401) throw new Error("Your Admin session expired. Sign in again and retry the upload.");
-  if (signatureResponse.status === 403) throw new Error("Your Admin role does not have permission to upload product images.");
-  if (!signatureResponse.ok) {
-    throw productImageUploadError(signatureResponse, signatureResult, "Could not prepare the product image upload");
-  }
-
-  if (signatureResult?.storage === "gridfs") {
-    const form = new FormData();
-    form.append("image", file);
-    if (folder) form.append("folder", folder);
-    let response: Response;
-    try {
-      response = await fetch("/api/admin/product-images", { method: "POST", body: form });
-    } catch {
-      throw new Error("Could not reach the upload server. Check your connection and retry.");
-    }
-    const result = await response.json().catch(() => null) as Record<string, unknown> | null;
-    if (response.status === 401) throw new Error("Your Admin session expired. Sign in again and retry the upload.");
-    if (response.status === 403) throw new Error("Your Admin role does not have permission to upload product images.");
-    if (!response.ok) throw productImageUploadError(response, result, "Could not upload the product image");
-    if (typeof result?.url !== "string" || !result.url) throw new Error("The upload server returned no image URL.");
-    return { url: result.url };
-  }
-
-  const cloudName = String(signatureResult?.cloudName ?? "");
-  const apiKey = String(signatureResult?.apiKey ?? "");
-  const timestamp = String(signatureResult?.timestamp ?? "");
-  const signedFolder = String(signatureResult?.folder ?? "");
-  const signature = String(signatureResult?.signature ?? "");
-  if (!cloudName || !apiKey || !timestamp || !signedFolder || !signature) {
-    throw new Error("The upload server returned incomplete image authorization.");
-  }
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("api_key", apiKey);
-  form.append("timestamp", timestamp);
-  form.append("folder", signedFolder);
-  form.append("signature", signature);
-  let response: Response;
-  try {
-    response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
-      method: "POST",
-      body: form,
-    });
-  } catch {
-    throw new Error("Could not reach Cloudinary from this browser. Check the connection and retry.");
-  }
   const result = await response.json().catch(() => null) as Record<string, unknown> | null;
-  if (!response.ok) throw productImageUploadError(response, result, "Cloudinary rejected the product image");
-  if (typeof result?.secure_url !== "string" || !result.secure_url) {
-    throw new Error("Cloudinary completed the request but returned no image URL.");
-  }
-  return { url: result.secure_url };
+  if (response.status === 401) throw new Error("Your Admin session expired. Sign in again and retry the upload.");
+  if (response.status === 403) throw new Error("Your Admin role does not have permission to upload product images.");
+  if (!response.ok) throw productImageUploadError(response, result, "Could not save the product image");
+  if (typeof result?.url !== "string" || !result.url) throw new Error("The upload server returned no image URL.");
+  return { url: result.url };
 }
 
-function ProductImagePicker({ value, onChange, folder, label = "Cover image URL", required = false }: { value: string; onChange: (value: string) => void; folder?: string; label?: string; required?: boolean }) {
+function ProductImagePicker({ value, onChange, label = "Cover image URL", required = false }: { value: string; onChange: (value: string) => void; label?: string; required?: boolean }) {
   const [busy, setBusy] = useState(false);
   async function choose(file: File) {
     setBusy(true);
     try {
-      const uploaded = await uploadProductImage(file, folder);
+      const uploaded = await uploadProductImage(file);
       onChange(uploaded.url);
       toast.success("Product image uploaded.");
     } catch (error) {
@@ -190,7 +135,7 @@ function ProductImagePicker({ value, onChange, folder, label = "Cover image URL"
   return <div className="text-xs text-muted-foreground"><label>{label}<input required={required} value={value} onChange={(event) => onChange(event.target.value)} placeholder="https://… or upload below" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="mt-2 block">Or upload image<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; if (file) void choose(file); event.currentTarget.value = ""; }} className="mt-1 block w-full text-xs file:mr-2 file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:text-white disabled:opacity-50" /><span className="mt-1 block text-[11px]">{busy ? "Uploading…" : "JPG, PNG, WEBP, or GIF · no Admin size cap"}</span></label></div>;
 }
 
-function ProductExtraImagesPicker({ value, onChange, folder }: { value: string; onChange: (value: string) => void; folder?: string }) {
+function ProductExtraImagesPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [busy, setBusy] = useState(false);
 
   async function choose(files: FileList | null) {
@@ -205,7 +150,7 @@ function ProductExtraImagesPicker({ value, onChange, folder }: { value: string; 
     setBusy(true);
     try {
       for (const file of selected) {
-        const uploaded = await uploadProductImage(file, folder);
+        const uploaded = await uploadProductImage(file);
         currentUrls.push(uploaded.url);
         onChange(currentUrls.join("\n"));
       }
@@ -957,9 +902,7 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
 
   async function chooseNewProductImage(file: File) {
     try {
-      const category = newProduct.category === "__new__" ? newProduct.newCategorySlug : newProduct.category;
-      const folder = `bawari-banno/catalog/${adminSlug(category) || "uncategorized"}/products/${adminSlug(newProduct.code || newProduct.name) || "new-product"}/images`;
-      const uploaded = await uploadProductImage(file, folder);
+      const uploaded = await uploadProductImage(file);
       setNewProduct((current) => ({ ...current, image: uploaded.url }));
       toast.success("Product image uploaded.");
     } catch (error) {
@@ -2465,8 +2408,8 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         </section>
         {variants.length === 0 && <section className="border-t border-border pt-5">
           <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required when no color variants are added. Add up to four extra images by URL or upload.</p>
-          <div className="mt-3"><ProductImagePicker value={String(form.coverImage ?? "")} onChange={(value) => set("coverImage", value)} folder={`bawari-banno/catalog/${adminSlug(form.category) || "uncategorized"}/products/${adminSlug(form.id ?? form.name) || "new-product"}/images`} required /></div>
-          <ProductExtraImagesPicker value={String(form.extraImages ?? "")} onChange={(value) => set("extraImages", value)} folder={`bawari-banno/catalog/${adminSlug(form.category) || "uncategorized"}/products/${adminSlug(form.id ?? form.name) || "new-product"}/images`} />
+          <div className="mt-3"><ProductImagePicker value={String(form.coverImage ?? "")} onChange={(value) => set("coverImage", value)} required /></div>
+          <ProductExtraImagesPicker value={String(form.extraImages ?? "")} onChange={(value) => set("extraImages", value)} />
         </section>}
         <section className="border-t border-border pt-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2560,7 +2503,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
                     </div>
                      <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                      <label className="text-xs text-muted-foreground">Reorder level<input required type="number" min="0" step="1" value={variant.reorderLevel === "" ? "" : Number(variant.reorderLevel ?? 3)} onChange={(event) => setVariant(index, "reorderLevel", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
-                     <div className="sm:col-span-2"><ProductImagePicker value={variant.image} onChange={(value) => setVariant(index, "image", value)} folder={`bawari-banno/catalog/${adminSlug(form.category) || "uncategorized"}/products/${adminSlug(form.id ?? form.name) || "new-product"}/variants/${adminSlug(variant.color) || `variant-${index + 1}`}/images`} label="Variant cover image URL" required /></div>
+                     <div className="sm:col-span-2"><ProductImagePicker value={variant.image} onChange={(value) => setVariant(index, "image", value)} label="Variant cover image URL" required /></div>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant extra image URLs <span>(optional, maximum 4)</span><textarea value={variant.extraImages} onChange={(event) => setVariant(index, "extraImages", event.target.value)} rows={3} placeholder={"https://…/yellow-detail-1.jpg\nhttps://…/yellow-detail-2.jpg"} className="mt-1 w-full resize-y border border-border bg-white px-3 py-2.5 text-sm" /></label>
                   </div>
                 </article>
