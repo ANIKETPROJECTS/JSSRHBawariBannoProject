@@ -310,6 +310,7 @@ function adminPermissionForPath(path: string): AdminPermission | null {
   if (path === "/api/admin/me") return null;
   if (path === "/api/admin/audit-logs") return "audit";
   if (path === "/api/admin/settings" || path === "/api/admin/storefront-mode" || path.startsWith("/api/admin/team")) return "settings";
+  if (path === "/api/admin/product-image-signature" || path === "/api/admin/product-images") return "catalog";
   if (path === "/api/admin/analytics" || path === "/api/admin/summary" || path === "/api/admin/product-financials") return "inventory";
   if (path === "/api/admin/purchase-suggestions" || path.startsWith("/api/admin/purchase-invoices") || path.startsWith("/api/admin/vendors") || path.startsWith("/api/admin/expenses") || path.startsWith("/api/admin/business-trips")) return "procurement";
   if (path.startsWith("/api/admin/inventory")) return "inventory";
@@ -2805,6 +2806,34 @@ function productImageUrl(id: string) {
   return `/api/product-media/${id}`;
 }
 
+async function productImageSignature(request: Request) {
+  const input = await body(request);
+  const contentType = String(input.contentType ?? "");
+  const size = Number(input.size ?? 0);
+  if (!productImageTypes.has(contentType)) return fail("Only JPG, PNG, WEBP, and GIF product images are supported.");
+  if (!Number.isFinite(size) || size <= 0) return fail("Choose a product image.");
+  if (size > productImageLimit) return fail("Product images must be smaller than 20 MB.", 413);
+  if (!process.env.CLOUDINARY_URL) return json({ storage: "gridfs" });
+
+  let config: ReturnType<typeof cloudinaryConfig>;
+  try {
+    config = cloudinaryConfig();
+  } catch {
+    return fail("Image hosting is misconfigured on this server. Check its CLOUDINARY_URL secret.", 503);
+  }
+  const folder = cloudinaryFolder(input.folder, "bawari-banno/catalog/uncategorized/products/unassigned/images");
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = cloudinarySignature({ folder, timestamp }, config.apiSecret);
+  return json({
+    storage: "cloudinary",
+    cloudName: config.cloudName,
+    apiKey: config.apiKey,
+    folder,
+    timestamp,
+    signature,
+  });
+}
+
 async function uploadProductImage(request: Request) {
   const form = await request.formData();
   const upload = form.get("image");
@@ -3683,6 +3712,7 @@ async function handleAdmin(request: Request, path: string) {
     const context = adminContext(request);
     return json({ ok: true, role: context?.role ?? "owner", permissions: context?.permissions ?? [...adminPermissions] });
   }
+  if (path === "/api/admin/product-image-signature" && request.method === "POST") return await productImageSignature(request);
   if (path === "/api/admin/product-images" && request.method === "POST") return await uploadProductImage(request);
   const teamMatch = path.match(/^\/api\/admin\/team(?:\/([^/]+))?$/);
   if (teamMatch) return await adminTeam(request, teamMatch[1]);

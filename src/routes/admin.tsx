@@ -75,14 +75,103 @@ async function uploadExpenseReceipt(expenseId: string, file: File) {
   return result;
 }
 
+function productImageUploadError(response: Response, result: unknown, fallback: string) {
+  const body = result && typeof result === "object" ? result as Record<string, unknown> : {};
+  const rawError = body.error;
+  const providerMessage = rawError && typeof rawError === "object"
+    ? String((rawError as Record<string, unknown>).message ?? "")
+    : String(rawError ?? "");
+  const message = providerMessage.toLowerCase();
+  if (response.status === 413 || /file.{0,20}(too large|size limit)|payload too large/.test(message)) {
+    return new Error("This image exceeds the upload size limit. Choose a smaller image and retry.");
+  }
+  if ([401, 403].includes(response.status) || /invalid signature|invalid api key|unauthorized|forbidden|permission/.test(message)) {
+    return new Error("Image hosting rejected the upload authorization. Verify CLOUDINARY_URL on the running server.");
+  }
+  if (response.status === 429 || /rate limit|quota/.test(message)) {
+    return new Error("Image hosting is temporarily rate-limited. Wait a moment and retry.");
+  }
+  if (response.status === 400) {
+    return new Error("The image host rejected this file. Check that it is a valid JPG, PNG, WEBP, or GIF under 20 MB.");
+  }
+  if (response.status >= 500) {
+    return new Error("The image service could not complete the upload. Retry in a moment.");
+  }
+  return new Error(`${fallback} (HTTP ${response.status}).`);
+}
+
 async function uploadProductImage(file: File, folder?: string) {
+  if (!file.size) throw new Error("Choose a product image.");
+  if (file.size > 20 * 1024 * 1024) throw new Error("Product images must be smaller than 20 MB.");
+  if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+    throw new Error("Only JPG, PNG, WEBP, and GIF product images are supported.");
+  }
+
+  let signatureResponse: Response;
+  try {
+    signatureResponse = await fetch("/api/admin/product-image-signature", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ contentType: file.type, size: file.size, folder }),
+    });
+  } catch {
+    throw new Error("Could not reach the upload server. Check your connection and retry.");
+  }
+  const signatureResult = await signatureResponse.json().catch(() => null) as Record<string, unknown> | null;
+  if (signatureResponse.status === 401) throw new Error("Your Admin session expired. Sign in again and retry the upload.");
+  if (signatureResponse.status === 403) throw new Error("Your Admin role does not have permission to upload product images.");
+  if (!signatureResponse.ok) {
+    throw productImageUploadError(signatureResponse, signatureResult, "Could not prepare the product image upload");
+  }
+
+  if (signatureResult?.storage === "gridfs") {
+    const form = new FormData();
+    form.append("image", file);
+    if (folder) form.append("folder", folder);
+    let response: Response;
+    try {
+      response = await fetch("/api/admin/product-images", { method: "POST", body: form });
+    } catch {
+      throw new Error("Could not reach the upload server. Check your connection and retry.");
+    }
+    const result = await response.json().catch(() => null) as Record<string, unknown> | null;
+    if (response.status === 401) throw new Error("Your Admin session expired. Sign in again and retry the upload.");
+    if (response.status === 403) throw new Error("Your Admin role does not have permission to upload product images.");
+    if (!response.ok) throw productImageUploadError(response, result, "Could not upload the product image");
+    if (typeof result?.url !== "string" || !result.url) throw new Error("The upload server returned no image URL.");
+    return { url: result.url };
+  }
+
+  const cloudName = String(signatureResult?.cloudName ?? "");
+  const apiKey = String(signatureResult?.apiKey ?? "");
+  const timestamp = String(signatureResult?.timestamp ?? "");
+  const signedFolder = String(signatureResult?.folder ?? "");
+  const signature = String(signatureResult?.signature ?? "");
+  if (!cloudName || !apiKey || !timestamp || !signedFolder || !signature) {
+    throw new Error("The upload server returned incomplete image authorization.");
+  }
+
   const form = new FormData();
-  form.append("image", file);
-  if (folder) form.append("folder", folder);
-  const response = await fetch("/api/admin/product-images", { method: "POST", body: form });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error ?? "Could not upload the product image.");
-  return result as { url: string };
+  form.append("file", file);
+  form.append("api_key", apiKey);
+  form.append("timestamp", timestamp);
+  form.append("folder", signedFolder);
+  form.append("signature", signature);
+  let response: Response;
+  try {
+    response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
+      method: "POST",
+      body: form,
+    });
+  } catch {
+    throw new Error("Could not reach Cloudinary from this browser. Check the connection and retry.");
+  }
+  const result = await response.json().catch(() => null) as Record<string, unknown> | null;
+  if (!response.ok) throw productImageUploadError(response, result, "Cloudinary rejected the product image");
+  if (typeof result?.secure_url !== "string" || !result.secure_url) {
+    throw new Error("Cloudinary completed the request but returned no image URL.");
+  }
+  return { url: result.secure_url };
 }
 
 function ProductImagePicker({ value, onChange, folder, label = "Cover image URL", required = false }: { value: string; onChange: (value: string) => void; folder?: string; label?: string; required?: boolean }) {
