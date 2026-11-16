@@ -549,6 +549,9 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
         createdAt: new Date(),
       });
     }
+    if (resource === "products" && previous) {
+      await deleteUnreferencedProductImages(database, collectLocalProductImageNames(previous));
+    }
     return collection.findOne(recordFilter);
   }
   const result = await collection.insertOne({ ...document, published: document.published !== false, createdAt: new Date() });
@@ -596,6 +599,9 @@ async function validateCoupon(request: Request) {
 async function remove(resource: Resource, id: string) {
   if (!ObjectId.isValid(id)) return false;
   const database = await db();
+  const productToRemove = resource === "products"
+    ? await database.collection("products").findOne({ _id: new ObjectId(id) })
+    : null;
   if (resource === "categories") {
     const category = await database.collection("categories").findOne({ _id: new ObjectId(id) });
     if (!category) return false;
@@ -607,6 +613,9 @@ async function remove(resource: Resource, id: string) {
     if (productCount || childCount) throw new Error("Move or remove this category's products and subcategories before deleting it.");
   }
   const result = await database.collection(resource).deleteOne({ _id: new ObjectId(id) });
+  if (resource === "products" && productToRemove && result.deletedCount > 0) {
+    await deleteUnreferencedProductImages(database, collectLocalProductImageNames(productToRemove));
+  }
   return result.deletedCount > 0;
 }
 
@@ -2860,6 +2869,68 @@ async function localProductImage(pathname: string) {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return fail("Product image not found.", 404);
     throw error;
+  }
+}
+
+function collectLocalProductImageNames(value: unknown) {
+  const record = value && typeof value === "object" ? value as JsonRecord : {};
+  const variants = Array.isArray(record.variants) ? record.variants as JsonRecord[] : [];
+  const candidates = [
+    record.image,
+    record.coverImage,
+    record.extraImages,
+    ...(Array.isArray(record.images) ? record.images : []),
+    ...variants.flatMap((variant) => [
+      variant.image,
+      variant.coverImage,
+      variant.extraImages,
+      ...(Array.isArray(variant.images) ? variant.images : []),
+    ]),
+  ];
+  const names = new Set<string>();
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue;
+    try {
+      const pathname = new URL(candidate, "https://local-image.invalid").pathname;
+      const match = pathname.match(/^\/allimages\/([a-f0-9]{32}\.(?:jpg|png|webp|gif))$/i);
+      if (match) names.add(match[1]);
+    } catch {
+      // Ignore external, malformed, and legacy image references.
+    }
+  }
+  return names;
+}
+
+async function deleteUnreferencedProductImages(database: Db, candidates: Set<string>) {
+  const imageFieldsByCollection: Record<string, string[]> = {
+    products: ["image", "images", "coverImage", "extraImages", "variants.image", "variants.images"],
+    categories: ["image"],
+    heroes: ["image"],
+    announcements: ["image"],
+    orders: ["items.image", "items.images"],
+  };
+  for (const filename of candidates) {
+    const escapedFilename = filename.replace(".", "\\.");
+    const reference = new RegExp(`(?:^|/)allimages/${escapedFilename}(?:[?#].*)?$`);
+    let isReferenced = false;
+    try {
+      for (const [collectionName, fields] of Object.entries(imageFieldsByCollection)) {
+        const query = { $or: fields.map((field) => ({ [field]: { $regex: reference } })) };
+        if (await database.collection(collectionName).findOne(query, { projection: { _id: 1 } })) {
+          isReferenced = true;
+          break;
+        }
+      }
+    } catch (error) {
+      console.error(`Could not verify whether local product image ${filename} is still in use:`, error);
+      continue;
+    }
+    if (isReferenced) continue;
+    try {
+      await rm(join(productImagesDirectory, filename), { force: true });
+    } catch (error) {
+      console.error(`Could not remove replaced local product image ${filename}:`, error);
+    }
   }
 }
 

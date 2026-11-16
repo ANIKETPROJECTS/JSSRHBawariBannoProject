@@ -125,7 +125,7 @@ function ProductImagePicker({ value, onChange, label = "Cover image URL", requir
     try {
       const uploaded = await uploadProductImage(file);
       onChange(uploaded.url);
-      toast.success("Product image uploaded.");
+      toast.success("Image uploaded. Save the product to apply it and clean up the old local image if unused.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not upload the product image.");
     } finally {
@@ -154,7 +154,7 @@ function ProductExtraImagesPicker({ value, onChange }: { value: string; onChange
         currentUrls.push(uploaded.url);
         onChange(currentUrls.join("\n"));
       }
-      toast.success(`${selected.length} extra image${selected.length === 1 ? "" : "s"} uploaded.`);
+      toast.success(`${selected.length} extra image${selected.length === 1 ? "" : "s"} uploaded. Save the product to clean up any replaced local images.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not upload the extra image.");
     } finally {
