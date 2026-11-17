@@ -275,7 +275,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
 
       <section className="product-detail-frame">
         <div className="product-detail-gallery flex self-start gap-2 sm:gap-4">
-          <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-16 sm:gap-3">
+          {gallery.length > 0 && <div className="flex w-14 shrink-0 flex-col gap-2 sm:w-16 sm:gap-3">
             {gallery.map((img, i) => (
               <button
                 key={i}
@@ -296,15 +296,21 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 />
               </button>
             ))}
-          </div>
+          </div>}
           <div className="aspect-[3/4] flex-1 border border-border bg-card">
-            <img
-              src={gallery[active]}
-              alt={saree.name}
-              width={900}
-              height={1200}
-              className="h-full w-full object-cover"
-            />
+            {gallery[active] ? (
+              <img
+                src={gallery[active]}
+                alt={saree.name}
+                width={900}
+                height={1200}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center bg-[#f4efe8] px-4 text-center text-sm text-muted-foreground">
+                Product image coming soon
+              </div>
+            )}
           </div>
         </div>
 

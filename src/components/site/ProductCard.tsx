@@ -99,9 +99,15 @@ export function ProductCard({
               aria-label={`Video of ${saree.name}`}
               className={`${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}
             />
-          ) : useCategoryListingVisuals && imageFailed ? (
-            <div className="category-listing-image-fallback" role="img" aria-label={`${saree.name} image unavailable`}>
-              Image unavailable
+          ) : !saree.image || imageFailed ? (
+            <div
+              className={useCategoryListingVisuals
+                ? "category-listing-image-fallback"
+                : `flex ${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full items-center justify-center bg-[#f4efe8] px-4 text-center text-xs text-muted-foreground`}
+              role="img"
+              aria-label={`${saree.name} image unavailable`}
+            >
+              Image coming soon
             </div>
           ) : (
             <img
@@ -111,7 +117,7 @@ export function ProductCard({
               decoding="async"
               width={900}
               height={1200}
-              onError={useCategoryListingVisuals ? () => setImageFailed(true) : undefined}
+              onError={() => setImageFailed(true)}
               className={useCategoryListingVisuals
                 ? "category-listing-product-image"
                 : `${tall ? "aspect-[3/5]" : "aspect-[3/4]"} w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]`}

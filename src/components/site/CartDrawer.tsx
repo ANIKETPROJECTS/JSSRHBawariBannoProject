@@ -255,7 +255,7 @@ function CartDrawer() {
               <div className="divide-y divide-border">
                 {items.map(({ product, quantity }) => (
                   <div key={cartItemKey(product)} className="flex gap-3 py-5 sm:gap-4">
-                    <img src={product.image} alt={product.name} className="aspect-[3/4] w-16 shrink-0 object-cover sm:w-20" />
+                    {product.image ? <img src={product.image} alt={product.name} className="aspect-[3/4] w-16 shrink-0 object-cover sm:w-20" /> : <div role="img" aria-label={`${product.name} image coming soon`} className="flex aspect-[3/4] w-16 shrink-0 items-center justify-center bg-[#f4efe8] px-2 text-center text-[10px] text-muted-foreground sm:w-20">Image coming soon</div>}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2 sm:gap-3">
                         <div>

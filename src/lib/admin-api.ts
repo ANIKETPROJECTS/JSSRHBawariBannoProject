@@ -408,7 +408,6 @@ function normalizeProductVariants(value: unknown, productId: string) {
     if (!color || rawColor === otherColorKey) throw new Error(`Color variant ${index + 1} needs a color name.`);
     if (colors.has(color.toLowerCase())) throw new Error(`Each color variant must be unique. "${color}" is repeated.`);
     if (!productColors.some((option) => option.key === color)) throw new Error(`Choose a color from the approved color palette for variant ${index + 1}.`);
-    if (!image) throw new Error(`Color variant "${color}" needs a cover image.`);
     if (rawImages.filter((item) => item !== image).length > 4) throw new Error(`Color variant "${color}" can have no more than four extra images.`);
     if (!Number.isInteger(stock) || stock < 0) throw new Error(`Color variant "${color}" needs a valid stock quantity.`);
     if (!Number.isInteger(reorderLevel) || reorderLevel < 0) throw new Error(`Color variant "${color}" needs a valid reorder level.`);
@@ -471,7 +470,6 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     const coverImage = String(document.image ?? "").trim();
     const extraImages = Array.isArray(document.images) ? document.images.map(String).map((image) => image.trim()).filter(Boolean) : [];
     const images = [coverImage, ...extraImages.filter((image) => image !== coverImage)].filter(Boolean).slice(0, 5);
-    if (!coverImage && !variants.length) throw new Error("A cover image is required when the product has no color variants.");
     if (extraImages.length > 4) throw new Error("Add no more than four extra product images.");
     document.variants = variants;
     const reorderLevel = Number(document.reorderLevel ?? 3);
@@ -479,8 +477,8 @@ async function save(resource: Resource, id: string | undefined, input: JsonRecor
     document.reorderLevel = reorderLevel;
     document.colors = variants.length ? [...new Set(variants.map((variant) => variant.color))] : colors;
     delete document.color;
-    document.image = coverImage || variants[0]?.image || "";
-    document.images = coverImage ? images : (variants[0]?.images ?? []);
+    document.image = coverImage || images[0] || variants[0]?.image || "";
+    document.images = images.length ? images : (variants[0]?.images ?? []);
     if (variants.length) document.stock = variants.reduce((total, variant) => total + variant.stock, 0);
     const suppliedOriginalPrice = Number(document.originalPrice ?? 0);
     const enteredPrice = Number(document.price ?? 0);

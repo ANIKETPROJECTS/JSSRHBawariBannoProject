@@ -89,7 +89,7 @@ function WishlistContent() {
               <article key={saree.id} className="group relative">
                 <div className="relative overflow-hidden">
                   <Link to="/products/$productId" params={{ productId: saree.id }}>
-                    <img src={saree.image} alt={saree.name} className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                    {saree.image ? <img src={saree.image} alt={saree.name} className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" /> : <div role="img" aria-label={`${saree.name} image coming soon`} className="flex aspect-[3/4] items-center justify-center bg-[#f4efe8] px-3 text-center text-xs text-muted-foreground">Image coming soon</div>}
                   </Link>
                   <button type="button" onClick={() => void remove(saree.id)} aria-label={`Remove ${saree.name} from wishlist`} className="absolute right-2 top-2 flex size-9 items-center justify-center rounded-full bg-background/90 text-red-600 shadow-sm transition-transform hover:scale-105 active:scale-90 sm:right-3 sm:top-3">
                     <Heart className="size-5 fill-current" strokeWidth={1.5} />

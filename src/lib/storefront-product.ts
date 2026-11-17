@@ -11,7 +11,7 @@ export function toStorefrontProduct(value: unknown): StorefrontProduct | null {
   const id = String(record["id"] ?? "").trim();
   const images = Array.isArray(record["images"]) ? record["images"].map(String).filter(Boolean) : [];
   const image = String(record["image"] ?? images[0] ?? "").trim();
-  if (!id || !image || record["published"] === false) return null;
+  if (!id || record["published"] === false) return null;
   const price = Number(record["price"] ?? 0);
   return {
     id,

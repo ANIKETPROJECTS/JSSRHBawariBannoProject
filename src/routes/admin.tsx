@@ -914,8 +914,8 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
     const line = lines[index];
     const name = String(newProduct.name || line?.itemName || "").trim();
     const code = adminSlug(newProduct.code);
-    if (!name || !code || !newProduct.image.trim()) {
-      toast.error("Add a product name, unique product code, and cover image before creating the match.");
+    if (!name || !code) {
+      toast.error("Add a product name and unique product code before creating the match.");
       return;
     }
     try {
@@ -1092,8 +1092,8 @@ function PurchaseInvoiceEditor({ initial, onDone }: { initial: PurchaseInvoiceRe
                 </label>
               </>}
               <div className="text-xs text-muted-foreground sm:col-span-2">
-                <label>Cover image URL
-                  <input required value={newProduct.image} onChange={(event) => setNewProduct({ ...newProduct, image: event.target.value })} placeholder="https://… or upload below" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" />
+                <label>Cover image URL (optional)
+                  <input value={newProduct.image} onChange={(event) => setNewProduct({ ...newProduct, image: event.target.value })} placeholder="https://… or upload below" className="mt-1 w-full border border-border px-3 py-2.5 text-sm" />
                 </label>
                 <label className="mt-2 block">Or upload image
                   <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; if (file) void chooseNewProductImage(file); event.currentTarget.value = ""; }} className="mt-1 block w-full text-xs file:mr-2 file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:text-white" />
@@ -2248,7 +2248,6 @@ function LegacyProductEditor({ initial, categories, onDone }: { initial: RecordI
     event.preventDefault();
     const coverImage = String(form.coverImage ?? "").trim();
     const extraImages = String(form.extraImages ?? "").split(/\r?\n|,/).map((image) => image.trim()).filter(Boolean);
-    if (!coverImage) { toast.error("A cover image is required."); return; }
     if (extraImages.length > 4) { toast.error("Add no more than four extra images."); return; }
     setBusy(true);
     try {
@@ -2339,7 +2338,6 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
         if (!normalizedColor) throw new Error(`Add a color name for variant ${index + 1}.`);
         if (variantColors.has(normalizedColor.toLowerCase())) throw new Error(`Each color variant must be unique. "${normalizedColor}" is repeated.`);
         variantColors.add(normalizedColor.toLowerCase());
-        if (!image) throw new Error(`Add a cover image for the ${normalizedColor} variant.`);
         if (variantImages.length > 5) throw new Error(`The ${normalizedColor} variant can have no more than four extra images.`);
         const stock = Number(variant.stock);
         const reorderLevel = Number(variant.reorderLevel ?? 3);
@@ -2357,7 +2355,6 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
     }
     const originalPrice = Number(form.price ?? 0);
     const discountValue = form.discountValue === "" ? 0 : Number(form.discountValue ?? 0);
-    if (!coverImage && !normalizedVariants.length) { toast.error("A cover image is required when the product has no color variants."); return; }
     if (extraImages.length > 4) { toast.error("Add no more than four extra images."); return; }
     if (!Number.isFinite(originalPrice) || originalPrice < 0) { toast.error("Enter a valid price."); return; }
     if (!Number.isFinite(discountValue) || discountValue < 0 || (form.discountType === "percentage" && discountValue > 100)) { toast.error("Enter a valid discount."); return; }
@@ -2407,8 +2404,8 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
            {variants.length === 0 && <><label className="text-xs text-muted-foreground">Stock quantity<input required type="number" min="0" step="1" value={Number(form.stock ?? 0)} onChange={(event) => set("stock", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /></label><label className="text-xs text-muted-foreground">Reorder level<input required type="number" min="0" step="1" value={Number(form.reorderLevel ?? 3)} onChange={(event) => set("reorderLevel", Number(event.target.value))} className="mt-1 w-full border border-border px-3 py-2.5 text-sm" /><span className="text-[11px] text-muted-foreground">Flag this product when stock reaches this quantity.</span></label></>}
         </section>
         {variants.length === 0 && <section className="border-t border-border pt-5">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">The cover image is required when no color variants are added. Add up to four extra images by URL or upload.</p>
-          <div className="mt-3"><ProductImagePicker value={String(form.coverImage ?? "")} onChange={(value) => set("coverImage", value)} required /></div>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Product gallery</p><p className="mt-1 text-[11px] text-muted-foreground">Images are optional. Add a cover image and up to four extra images by URL or upload.</p>
+          <div className="mt-3"><ProductImagePicker value={String(form.coverImage ?? "")} onChange={(value) => set("coverImage", value)} /></div>
           <ProductExtraImagesPicker value={String(form.extraImages ?? "")} onChange={(value) => set("extraImages", value)} />
         </section>}
         <section className="border-t border-border pt-5">
@@ -2503,7 +2500,7 @@ function SimpleProductEditor({ initial, categories, onDone }: { initial: RecordI
                     </div>
                      <label className="text-xs text-muted-foreground">Variant stock<input required type="number" min="0" step="1" value={variant.stock === "" ? "" : Number(variant.stock)} onChange={(event) => setVariant(index, "stock", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
                      <label className="text-xs text-muted-foreground">Reorder level<input required type="number" min="0" step="1" value={variant.reorderLevel === "" ? "" : Number(variant.reorderLevel ?? 3)} onChange={(event) => setVariant(index, "reorderLevel", event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm" /></label>
-                     <div className="sm:col-span-2"><ProductImagePicker value={variant.image} onChange={(value) => setVariant(index, "image", value)} label="Variant cover image URL" required /></div>
+                     <div className="sm:col-span-2"><ProductImagePicker value={variant.image} onChange={(value) => setVariant(index, "image", value)} label="Variant cover image URL (optional)" /></div>
                     <label className="text-xs text-muted-foreground sm:col-span-2">Variant extra image URLs <span>(optional, maximum 4)</span><textarea value={variant.extraImages} onChange={(event) => setVariant(index, "extraImages", event.target.value)} rows={3} placeholder={"https://…/yellow-detail-1.jpg\nhttps://…/yellow-detail-2.jpg"} className="mt-1 w-full resize-y border border-border bg-white px-3 py-2.5 text-sm" /></label>
                   </div>
                 </article>
