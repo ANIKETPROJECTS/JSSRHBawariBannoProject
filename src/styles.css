@@ -645,19 +645,23 @@ form[class*="max-h-"] {
 .home-new-trends-title {
   display: table;
   margin-inline: auto;
-  padding-bottom: 0.65rem;
+  padding-bottom: 0;
   color: #302526;
   font-weight: 400 !important;
 }
 
 .home-new-trends-title::after {
-  position: absolute;
-  right: 14%;
-  bottom: 0;
-  left: 14%;
-  height: 1px;
-  background: #a86a68;
-  content: "";
+  display: none;
+}
+
+.home-new-trends-heading-art {
+  display: block;
+  width: clamp(12rem, 68vw, 18rem);
+  max-width: 100%;
+  aspect-ratio: 5 / 1;
+  margin-inline: auto;
+  object-fit: cover;
+  object-position: center;
 }
 
 .home-new-trends .section-view-all,
@@ -1192,6 +1196,10 @@ form[class*="max-h-"] {
 
   .home-trends-track {
     grid-auto-columns: calc((100% - 3.5rem) / 5);
+  }
+
+  .home-new-trends-heading-art {
+    width: clamp(18rem, 90vw, 24rem);
   }
 }
 

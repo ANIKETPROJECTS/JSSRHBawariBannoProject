@@ -5,6 +5,7 @@ import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import categoryTitleArt from "../../Bawari Banno (8).svg";
+import newTrendsTitleArt from "../../Bawari Banno (9).svg";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import heroImage from "@/assets/homepage-hero.webp";
 import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
@@ -174,7 +175,7 @@ function ProductRail({
 
   return (
     <section
-      className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "bg-white"}`}
+      className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "w-full bg-[#FFE300]"}`}
     >
       <div className="home-content-container pb-0 pt-8 sm:pt-10">
         <div
@@ -183,7 +184,11 @@ function ProductRail({
           <h2
             className={`home-section-title home-${variant}-title text-center leading-tight`}
           >
-            {title}
+            {variant === "new-trends" ? (
+              <img src={newTrendsTitleArt} alt="New Trends" className="home-new-trends-heading-art" />
+            ) : (
+              title
+            )}
           </h2>
           <Link
             to={viewAllTo}
