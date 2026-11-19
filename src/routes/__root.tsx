@@ -12,7 +12,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import logoImage from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import comingSoonLogoImage from "../../attached_assets/Full_Final-01_1792488092202.png";
 import comingSoonBackgroundImage from "../../attached_assets/pexels-mccutcheon-1450034_1792488431857.jpg";
 import { CartProvider } from "@/components/site/CartDrawer";
@@ -21,32 +20,27 @@ import { ReviewsProvider } from "@/components/site/ReviewsContext";
 import { WishlistProvider } from "@/components/site/WishlistContext";
 import { Toaster } from "@/components/ui/sonner";
 
-type StorefrontMode = "loading" | "storefront" | "coming-soon";
+type StorefrontMode = "storefront" | "coming-soon";
 
 function isAdminPath(pathname: string) {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }
 
 function useStorefrontMode(pathname: string): StorefrontMode {
-  const [mode, setMode] = useState<StorefrontMode>(() => (
-    isAdminPath(pathname) ? "storefront" : "loading"
-  ));
-  const currentMode = useRef(mode);
-  currentMode.current = mode;
+  const [mode, setMode] = useState<StorefrontMode>("storefront");
   const wasAdminPath = useRef(isAdminPath(pathname));
+  const hasLoadedMode = useRef(false);
 
   useEffect(() => {
     if (isAdminPath(pathname)) {
       wasAdminPath.current = true;
-      if (currentMode.current !== "storefront") setMode("storefront");
       return;
     }
 
     let active = true;
-    const shouldLoad = wasAdminPath.current || currentMode.current === "loading";
+    const shouldLoad = wasAdminPath.current || !hasLoadedMode.current;
     wasAdminPath.current = false;
     async function loadMode() {
-      setMode("loading");
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 8000);
       try {
@@ -64,6 +58,7 @@ function useStorefrontMode(pathname: string): StorefrontMode {
         if (active) setMode("storefront");
       } finally {
         window.clearTimeout(timeoutId);
+        if (active) hasLoadedMode.current = true;
       }
     }
     if (shouldLoad) void loadMode();
@@ -79,16 +74,7 @@ function useStorefrontMode(pathname: string): StorefrontMode {
   }, [pathname]);
 
   if (isAdminPath(pathname)) return "storefront";
-  if (wasAdminPath.current) return "loading";
   return mode;
-}
-
-function StorefrontLoading() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-[#ED145B] px-6" aria-busy="true">
-      <img src={logoImage} alt="Bawari Banno" className="h-20 w-72 object-contain" />
-    </main>
-  );
 }
 
 function ComingSoonPage() {
@@ -126,7 +112,6 @@ function ComingSoonPage() {
 function NotFoundComponent() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const storefrontMode = useStorefrontMode(pathname);
-  if (storefrontMode === "loading") return <StorefrontLoading />;
   if (storefrontMode === "coming-soon") return <ComingSoonPage />;
 
   return (
@@ -159,7 +144,6 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
-  if (storefrontMode === "loading") return <StorefrontLoading />;
   if (storefrontMode === "coming-soon") return <ComingSoonPage />;
 
   return (
@@ -241,7 +225,6 @@ function RootComponent() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const storefrontMode = useStorefrontMode(pathname);
 
-  if (storefrontMode === "loading") return <StorefrontLoading />;
   if (storefrontMode === "coming-soon") return <ComingSoonPage />;
 
   return (
