@@ -595,7 +595,7 @@ form[class*="max-h-"] {
 
 .home-category-heading-art {
   display: block;
-  width: clamp(16rem, 82vw, 20rem);
+  width: clamp(18rem, 90vw, 24rem);
   max-width: 100%;
   aspect-ratio: 5 / 1;
   margin-inline: auto;
