@@ -692,28 +692,9 @@ form[class*="max-h-"] {
   min-width: 0;
 }
 
-.home-product-review-badge {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 10;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border: 1px solid #ead8b8;
-  border-radius: 0.25rem;
-  background: rgb(255 255 255 / 96%);
-  padding: 0.28rem 0.45rem;
-  color: #302526;
-  font-size: 0.68rem;
-  font-weight: 500;
-  line-height: 1;
-  box-shadow: 0 1px 4px rgb(48 37 38 / 12%);
-}
-
-.home-product-review-star {
-  color: #c9a45d;
-  font-size: 0.85rem;
+.home-new-trends .home-trends-card .product-card-name {
+  font-size: clamp(0.8125rem, 1.35vw, 1.0625rem) !important;
+  line-height: 1.2 !important;
 }
 
 .home-new-trends .home-trends-card article > div:last-child > div:last-child > div:first-child > p:first-child {

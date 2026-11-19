@@ -59,7 +59,6 @@ export function ProductCard({
   listingVisualStyle = false,
   listingBadge,
   listingRank,
-  showReviewBadge = false,
 }: {
   saree: Saree;
   tall?: boolean;
@@ -70,7 +69,6 @@ export function ProductCard({
   listingVisualStyle?: boolean;
   listingBadge?: "new" | "rank";
   listingRank?: number;
-  showReviewBadge?: boolean;
 }) {
   const { ids, toggle } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
@@ -126,27 +124,6 @@ export function ProductCard({
             />
           )}
         </Link>
-        {showReviewBadge && (
-          <div
-            className="home-product-review-badge"
-            aria-label={
-              reviewSummary.count > 0
-                ? `${reviewSummary.average.toFixed(1)} star rating from ${reviewSummary.count} reviews`
-                : "No reviews yet"
-            }
-          >
-            {reviewSummary.count > 0 ? (
-              <>
-                <span>{reviewSummary.average.toFixed(1)}</span>
-                <span className="home-product-review-star" aria-hidden="true">★</span>
-                <span aria-hidden="true">|</span>
-                <span>{formatReviewCount(reviewSummary.count)}</span>
-              </>
-            ) : (
-              <span>No reviews yet</span>
-            )}
-          </div>
-        )}
         {useCategoryListingVisuals && listingBadge === "new" && (
           <span className="category-listing-product-badge category-listing-new-badge">NEW</span>
         )}
@@ -228,7 +205,7 @@ export function ProductCard({
             {saree.name}
           </h3>
         </Link>
-        {editorial && !useCategoryListingVisuals && !showReviewBadge && (
+        {editorial && !useCategoryListingVisuals && (
           <div
             className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-sm"
             aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}

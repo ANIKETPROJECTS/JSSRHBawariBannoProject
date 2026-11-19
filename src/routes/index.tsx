@@ -171,7 +171,7 @@ function ProductRail({
     <section
       className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "w-full bg-white"}`}
     >
-      <div className="home-content-container pb-0 pt-1 sm:pt-2">
+      <div className="home-content-container home-category-container pb-0 pt-1 sm:pt-2">
         <div
           className={`home-section-heading home-${variant}-heading relative mx-auto mb-3 sm:mb-4`}
         >
@@ -199,7 +199,7 @@ function ProductRail({
             <div className="home-trends-track">
               {products.map((saree) => (
                 <div key={saree.id} className="home-trends-card">
-                  <ProductCard saree={saree} tall editorial showBuyNow showReviewBadge />
+                  <ProductCard saree={saree} tall editorial showBuyNow />
                 </div>
               ))}
             </div>
