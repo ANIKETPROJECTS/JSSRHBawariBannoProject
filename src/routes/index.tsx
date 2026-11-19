@@ -1,12 +1,12 @@
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
-import { ArrowRight } from "lucide-react";
 import categoryTitleArt from "../../Bawari Banno (8).svg";
 import newTrendsTitleArt from "../../Bawari Banno (9).svg";
-import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
+import bestSellersTitleArt from "../../Bawari Banno (10).svg";
+import trendingCollectionTitleArt from "../../Bawari Banno (11).svg";
 import heroImage from "@/assets/homepage-hero.webp";
 import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
 
@@ -40,7 +40,7 @@ function Home() {
   const homepageBestsellers = [
     ...curatedBestsellers,
     ...homepageProducts.filter((saree) => !curatedBestsellerIds.has(saree.id)),
-  ].slice(0, 5);
+  ].slice(0, 6);
   useEffect(() => {
     let active = true;
     void loadStorefrontCatalog()
@@ -129,7 +129,6 @@ function Home() {
 
       <ProductRail
         title="New Trends"
-        viewAllTo="/new-arrival"
         variant="new-trends"
         products={[...homepageProducts]
           .sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")))
@@ -138,15 +137,14 @@ function Home() {
 
       <ProductRail
         title="Best Sellers"
-        viewAllTo="/bestseller"
         variant="best-sellers"
         products={homepageBestsellers}
       />
 
-      <TrendingCollection
+      <ProductRail
         title="Trending Collection"
-        viewAllTo="/trending"
-        products={homepageProducts.slice(0, 5)}
+        variant="trending"
+        products={homepageProducts.slice(0, 6)}
       />
 
     </SiteShell>
@@ -154,209 +152,41 @@ function Home() {
 }
 function ProductRail({
   title,
-  viewAllTo,
   products,
   variant,
 }: {
   title: string;
-  viewAllTo: string;
   products: typeof sarees;
-  variant: "new-trends" | "best-sellers";
+  variant: "new-trends" | "best-sellers" | "trending";
 }) {
+  const titleArt = {
+    "new-trends": newTrendsTitleArt,
+    "best-sellers": bestSellersTitleArt,
+    trending: trendingCollectionTitleArt,
+  }[variant];
+
   return (
-    <section
-      className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "w-full bg-white"}`}
-    >
+    <section className={`home-product-section home-new-trends home-${variant} w-full bg-white`}>
       <div className="home-content-container home-category-container pb-0 pt-1 sm:pt-2">
         <div
-          className={`home-section-heading home-${variant}-heading relative mx-auto mb-3 sm:mb-4`}
+          className="home-section-heading home-new-trends-heading relative mx-auto mb-3 sm:mb-4"
         >
-          <h2
-            className={`home-section-title home-${variant}-title text-center leading-tight`}
-          >
-            {variant === "new-trends" ? (
-              <img src={newTrendsTitleArt} alt="New Trends" className="home-new-trends-heading-art" />
-            ) : (
-              title
-            )}
+          <h2 className="home-section-title home-new-trends-title text-center leading-tight">
+            <img src={titleArt} alt={title} className="home-new-trends-heading-art" />
           </h2>
-          {variant === "best-sellers" && (
-            <Link
-              to={viewAllTo}
-              className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
-            >
-              View all
-            </Link>
-          )}
         </div>
 
-        {variant === "new-trends" ? (
-          <div className="home-trends-grid">
-            <div className="home-trends-track">
-              {products.map((saree) => (
-                <div key={saree.id} className="home-trends-card">
-                  <ProductCard saree={saree} tall editorial showBuyNow ratingBadgeOnImage />
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="home-bestseller-grid grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
-            {products.map((saree, index) => (
-              <div
-                key={saree.id}
-                className="home-bestseller-card relative rounded-2xl border border-[#eadbd2] bg-white p-2 shadow-[0_8px_22px_rgba(83,42,48,0.08)] sm:p-3"
-              >
-                <span className="home-rank-badge absolute left-3 top-3 z-20">#{index + 1}</span>
-                <span className="home-bestseller-ribbon absolute left-2 top-12 z-20">
-                  Bestseller
-                </span>
-                <ProductCard saree={saree} tall editorial showBuyNow />
+        <div className="home-trends-grid">
+          <div className="home-trends-track">
+            {products.map((saree) => (
+              <div key={saree.id} className="home-trends-card">
+                <ProductCard saree={saree} tall editorial showBuyNow ratingBadgeOnImage />
               </div>
             ))}
           </div>
-        )}
-      </div>
-    </section>
-  );
-}
-function TrendingCollection({
-  title,
-  viewAllTo,
-  products,
-}: {
-  title: string;
-  viewAllTo: string;
-  products: typeof sarees;
-}) {
-  const [featured, ...collectionProducts] = products;
-  const productsViewportRef = useRef<HTMLDivElement>(null);
-  const productsTrackRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const viewport = productsViewportRef.current;
-    const track = productsTrackRef.current;
-    if (!viewport || !track || collectionProducts.length < 2) return;
-
-    let pausedUntil = 0;
-    const pauseAutoplay = () => {
-      pausedUntil = Date.now() + 8000;
-    };
-    const touchOptions: AddEventListenerOptions = { passive: true };
-    viewport.addEventListener("pointerdown", pauseAutoplay);
-    viewport.addEventListener("touchstart", pauseAutoplay, touchOptions);
-
-    const timer = window.setInterval(() => {
-      if (
-        document.hidden ||
-        !window.matchMedia("(max-width: 639px)").matches ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-        (window.matchMedia("(hover: hover)").matches && viewport.matches(":hover")) ||
-        viewport.contains(document.activeElement) ||
-        Date.now() < pausedUntil
-      ) {
-        return;
-      }
-
-      const cards = Array.from(track.children) as HTMLElement[];
-      if (cards.length < 2) return;
-
-      const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
-      const step = viewport.clientWidth + gap;
-      const currentIndex = Math.round(viewport.scrollLeft / step);
-      const nextIndex = currentIndex >= cards.length - 1 ? 0 : currentIndex + 1;
-      const nextCard = cards[nextIndex];
-      const left =
-        nextCard.getBoundingClientRect().left -
-        viewport.getBoundingClientRect().left +
-        viewport.scrollLeft;
-
-      viewport.scrollTo({ left, behavior: "smooth" });
-    }, 5200);
-
-    return () => {
-      window.clearInterval(timer);
-      viewport.removeEventListener("pointerdown", pauseAutoplay);
-      viewport.removeEventListener("touchstart", pauseAutoplay, touchOptions);
-    };
-  }, [collectionProducts.length]);
-
-  return (
-    <section className="home-trending-section w-full bg-[#451421] py-6 lg:py-8">
-      <div className="home-content-container home-trending-inner">
-        <div className="home-section-heading home-trending-heading relative mb-5 sm:mb-7">
-          <h2 className="home-section-title home-trending-title text-center">{title}</h2>
-          <Link
-            to={viewAllTo}
-            className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
-          >
-            View all
-          </Link>
         </div>
-        {featured && (
-          <div className="home-trending-layout">
-            <CollectionBanner
-              title={title}
-              to={viewAllTo}
-              image={maroonCollectionImage}
-            />
-            <div
-              ref={productsViewportRef}
-              className="home-trending-products-viewport"
-              aria-label="Trending products"
-            >
-              <div ref={productsTrackRef} className="home-trending-products-track">
-                {collectionProducts.slice(0, 4).map((saree) => (
-                  <div
-                    key={saree.id}
-                    className="home-trending-product min-w-0 border border-[#c9a45d] bg-[#fffaf3] p-2 sm:p-3"
-                  >
-                    <ProductCard saree={saree} tall editorial showBuyNow />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </section>
-  );
-}
-
-function CollectionBanner({
-  title,
-  to,
-  image,
-}: {
-  title: string;
-  to: string;
-  image: string;
-}) {
-  return (
-    <div className="home-collection-banner relative min-w-0 overflow-hidden border border-[#c9a45d]">
-      <img
-        src={image}
-        alt="Model wearing a maroon saree in a heritage setting"
-        loading="lazy"
-        decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      <div className="home-collection-banner-shade absolute inset-0" aria-hidden="true" />
-      <div className="home-collection-banner-content absolute inset-x-0 bottom-0 z-10">
-        <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#e6c777]">
-          The Festive Edit
-        </p>
-        <h3 className="home-collection-banner-title text-2xl leading-tight text-white sm:text-3xl">
-          {title}
-        </h3>
-        <Link
-          to={to}
-          className="mt-4 inline-flex items-center gap-2 border border-[#d3b366] px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#f2d68c] transition hover:bg-[#d3b366] hover:text-[#451421] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          Shop the Collection <ArrowRight className="size-4" aria-hidden="true" />
-        </Link>
-      </div>
-    </div>
   );
 }
 
