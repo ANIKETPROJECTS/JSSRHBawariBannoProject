@@ -2512,6 +2512,8 @@ form[class*="max-h-"] {
 
 @media (max-width: 639px) {
   .site-topbar-inner {
+    position: relative;
+    z-index: 10;
     justify-content: flex-end;
   }
 
@@ -2519,14 +2521,41 @@ form[class*="max-h-"] {
     display: none;
   }
 
+  .site-topbar-link {
+    gap: 0.25rem;
+    padding-inline: 0.125rem;
+  }
+
+  .site-topbar-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .site-topbar-text {
+    font-size: 0.625rem;
+  }
+
+  .site-header-logo {
+    position: absolute !important;
+    top: -2.25rem !important;
+    left: -1.5rem !important;
+    z-index: 5 !important;
+    transform: none !important;
+  }
+
   .site-header-logo img {
-    width: 13rem;
-    height: 4rem;
+    width: 17rem;
+    height: 8rem;
+    object-position: left center;
   }
 
   .site-header-actions > a,
   .site-header-actions > button {
     padding-inline: 0.25rem;
+  }
+
+  .site-mobile-search {
+    padding-left: 11rem;
   }
 
   h1,
@@ -2602,8 +2631,7 @@ form[class*="max-h-"] {
 
 @media (max-width: 359px) {
   .site-header-logo img {
-    width: 10rem;
-    height: 3.5rem;
+    width: 15rem;
   }
 
   .site-header-actions {

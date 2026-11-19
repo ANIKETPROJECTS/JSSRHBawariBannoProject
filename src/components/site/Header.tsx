@@ -172,10 +172,10 @@ export function Header() {
                 key={label}
                 href="#"
                 aria-label={`${label}: @bawaribanno`}
-                className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="site-topbar-link flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <img src={icon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
-                <span className="whitespace-nowrap text-xs font-medium tracking-[0.02em] sm:text-base">
+                <img src={icon} alt="" className="site-topbar-icon size-5 object-contain brightness-0 invert sm:size-6" />
+                <span className="site-topbar-text whitespace-nowrap text-xs font-medium tracking-[0.02em] sm:text-base">
                   @bawaribanno
                 </span>
               </a>
@@ -183,10 +183,10 @@ export function Header() {
             <a
               href="https://wa.me/919167599635"
               aria-label="WhatsApp Bawari Banno at plus 91 91675 99635"
-              className="flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="site-topbar-link flex items-center gap-2 rounded-full px-2 py-1 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <img src={whatsappIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
-              <span className="whitespace-nowrap text-xs font-medium tracking-[0.02em] sm:text-base">
+              <img src={whatsappIcon} alt="" className="site-topbar-icon size-5 object-contain brightness-0 invert sm:size-6" />
+              <span className="site-topbar-text whitespace-nowrap text-xs font-medium tracking-[0.02em] sm:text-base">
                 +91 91675 99635
               </span>
             </a>
@@ -230,7 +230,7 @@ export function Header() {
            />
           </form>
 
-            <div className="site-header-actions relative z-10 flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto lg:gap-1">
+            <div className="site-header-actions relative z-10 ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto lg:gap-1">
           <button
             type="button"
             aria-label="Shopping bag"
@@ -277,7 +277,7 @@ export function Header() {
           </button>
         </div>
         </div>
-        <form onSubmit={submitSearch} role="search" className="flex items-center gap-2 border-t border-white/15 px-4 py-2 lg:hidden">
+        <form onSubmit={submitSearch} role="search" className="site-mobile-search relative z-10 flex items-center gap-2 border-t border-white/15 px-4 py-2 lg:hidden">
           <button
             type="submit"
             aria-label="Search"
