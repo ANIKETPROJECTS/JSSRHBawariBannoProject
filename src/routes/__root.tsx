@@ -47,16 +47,23 @@ function useStorefrontMode(pathname: string): StorefrontMode {
     wasAdminPath.current = false;
     async function loadMode() {
       setMode("loading");
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 8000);
       try {
-        const response = await fetch("/api/storefront-mode", { cache: "no-store" });
+        const response = await fetch("/api/storefront-mode", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
         if (!response.ok) throw new Error("Could not read storefront availability.");
         const result = await response.json() as { comingSoonEnabled?: boolean };
         if (active) {
           setMode(result.comingSoonEnabled ? "coming-soon" : "storefront");
         }
       } catch (error) {
-        console.error("Could not read storefront availability:", error);
-        if (active) setMode("coming-soon");
+        console.warn("Could not read storefront availability; showing the regular storefront:", error);
+        if (active) setMode("storefront");
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     }
     if (shouldLoad) void loadMode();
