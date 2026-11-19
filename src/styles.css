@@ -2385,15 +2385,20 @@ form[class*="max-h-"] {
 .site-primary-nav {
   grid-template-columns: auto auto auto;
   justify-content: center;
-  column-gap: clamp(30px, 3vw, 40px);
+  column-gap: clamp(38px, 3.4vw, 48px);
   border-bottom: 1px solid #eadbc0;
+}
+
+.site-primary-nav .site-nav-link,
+.site-primary-nav .site-nav-trigger {
+  padding-inline: 0.25rem;
 }
 
 .site-primary-nav-group {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 32px;
+  gap: 40px;
 }
 
 .site-primary-nav-end {
@@ -2404,7 +2409,7 @@ form[class*="max-h-"] {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(34px, 3vw, 42px);
+  gap: clamp(40px, 3.4vw, 48px);
 }
 
 .site-primary-nav-tabs .site-collection-tab {

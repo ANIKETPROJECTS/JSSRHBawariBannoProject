@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Menu, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
-import wishlistIcon from "../../../attached_assets/favorite_1787336225274.png";
+import wishlistIcon from "../../../attached_assets/heart_1795066980339.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
@@ -235,7 +235,7 @@ export function Header() {
             type="button"
             aria-label="Shopping bag"
             onClick={openCart}
-               className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2"
+               className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4.25rem] lg:px-3"
           >
               <img src={cartIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
                 <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Cart</span>
@@ -248,7 +248,7 @@ export function Header() {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-                className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2"
+                className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[5.25rem] lg:px-3"
           >
               <img src={wishlistIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
                 <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Wishlist</span>
@@ -261,7 +261,7 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-               className="hidden flex-col items-center gap-0.5 rounded-full px-2 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
+               className="hidden min-w-[4.25rem] flex-col items-center gap-0.5 rounded-full px-3 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
           >
               <img src={profileIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
                <span className="text-[0.6rem] font-medium leading-none sm:text-[0.68rem]">Profile</span>
