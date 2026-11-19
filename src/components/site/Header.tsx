@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronDown, Menu, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
-import wishlistIcon from "../../../attached_assets/heart_1795066980339.png";
+import wishlistIcon from "../../../attached_assets/heart_(1)_1795067376515.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
