@@ -133,7 +133,7 @@ function Home() {
         variant="new-trends"
         products={[...homepageProducts]
           .sort((a, b) => String(b.addedOn ?? "").localeCompare(String(a.addedOn ?? "")))
-          .slice(0, 5)}
+          .slice(0, 6)}
       />
 
       <ProductRail
@@ -195,7 +195,7 @@ function ProductRail({
         </div>
 
         {variant === "new-trends" ? (
-          <div className="home-trends-carousel">
+          <div className="home-trends-grid">
             <div className="home-trends-track">
               {products.map((saree) => (
                 <div key={saree.id} className="home-trends-card">

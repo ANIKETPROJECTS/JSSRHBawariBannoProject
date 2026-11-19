@@ -640,7 +640,7 @@ form[class*="max-h-"] {
 
 .home-product-section.home-new-trends {
   padding-top: 0;
-  padding-bottom: 1rem;
+  padding-bottom: 1.5rem;
 }
 
 .home-section-heading {
@@ -661,7 +661,7 @@ form[class*="max-h-"] {
 
 .home-new-trends-heading-art {
   display: block;
-  width: clamp(18rem, 90vw, 24rem);
+  width: clamp(16rem, 80vw, 22rem);
   max-width: 100%;
   aspect-ratio: 5 / 1;
   margin-inline: auto;
@@ -676,25 +676,20 @@ form[class*="max-h-"] {
 
 .home-trends-track {
   display: grid;
-  grid-auto-columns: calc((100% - 0.875rem) / 2);
-  grid-auto-flow: column;
-  gap: 0.875rem;
-  overflow-x: auto;
-  padding: 0.25rem 0 0.75rem;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .home-new-trends .home-trends-track {
-  grid-auto-columns: min(82vw, 340px);
-  margin-inline: -16px;
-  padding: 0 16px 0.5rem;
+  grid-auto-flow: row;
+}
+
+.home-new-trends .home-trends-card:nth-child(n + 6) {
+  display: none;
 }
 
 .home-trends-card {
   min-width: 0;
-  scroll-snap-align: start;
 }
 
 .home-product-review-badge {
@@ -1183,13 +1178,15 @@ form[class*="max-h-"] {
   }
 
   .home-trends-track {
-    grid-auto-columns: calc((100% - 1.75rem) / 3);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .home-new-trends .home-trends-track {
-    grid-auto-columns: calc((100% - 1.75rem) / 3);
-    margin-inline: -24px;
-    padding-inline: 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .home-new-trends .home-trends-card:nth-child(n + 6) {
+    display: block;
   }
 }
 
@@ -1224,13 +1221,15 @@ form[class*="max-h-"] {
   }
 
   .home-trends-track {
-    grid-auto-columns: calc((100% - 3.5rem) / 5);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .home-new-trends .home-trends-track {
-    grid-auto-columns: calc((100% - 2.625rem) / 4);
-    margin-inline: -40px;
-    padding-inline: 40px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .home-new-trends .home-trends-card:nth-child(n + 6) {
+    display: none;
   }
 }
 
