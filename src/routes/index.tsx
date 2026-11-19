@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import categoryTitleArt from "../../Bawari Banno (8).svg";
 import newTrendsTitleArt from "../../Bawari Banno (9).svg";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
@@ -167,19 +167,13 @@ function ProductRail({
   products: typeof sarees;
   variant: "new-trends" | "best-sellers";
 }) {
-  const railRef = useRef<HTMLDivElement>(null);
-  const scrollRail = (direction: -1 | 1) => {
-    const rail = railRef.current;
-    if (rail) rail.scrollBy({ left: rail.clientWidth * direction * 0.8, behavior: "smooth" });
-  };
-
   return (
     <section
-      className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "w-full bg-[#FFE300]"}`}
+      className={`home-product-section home-${variant} ${variant === "best-sellers" ? "w-full bg-[#fbf3f0]" : "w-full bg-white"}`}
     >
-      <div className="home-content-container pb-0 pt-8 sm:pt-10">
+      <div className="home-content-container pb-0 pt-1 sm:pt-2">
         <div
-          className={`home-section-heading home-${variant}-heading relative mx-auto mb-4 sm:mb-5`}
+          className={`home-section-heading home-${variant}-heading relative mx-auto mb-3 sm:mb-4`}
         >
           <h2
             className={`home-section-title home-${variant}-title text-center leading-tight`}
@@ -190,40 +184,25 @@ function ProductRail({
               title
             )}
           </h2>
-          <Link
-            to={viewAllTo}
-            className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
-          >
-            View all
-          </Link>
+          {variant === "best-sellers" && (
+            <Link
+              to={viewAllTo}
+              className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
+            >
+              View all
+            </Link>
+          )}
         </div>
 
         {variant === "new-trends" ? (
-          <div className="home-trends-carousel relative">
-            <button
-              type="button"
-              aria-label="Show previous new trends"
-              onClick={() => scrollRail(-1)}
-              className="home-carousel-arrow absolute left-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-left-3"
-            >
-              <ChevronLeft className="size-5" aria-hidden="true" />
-            </button>
-            <div ref={railRef} className="home-trends-track">
+          <div className="home-trends-carousel">
+            <div className="home-trends-track">
               {products.map((saree) => (
-                <div key={saree.id} className="home-trends-card relative">
-                  <ProductCard saree={saree} tall editorial showBuyNow />
-                  <span className="home-new-tag absolute left-2 top-2 z-10">New</span>
+                <div key={saree.id} className="home-trends-card">
+                  <ProductCard saree={saree} tall editorial showBuyNow showReviewBadge />
                 </div>
               ))}
             </div>
-            <button
-              type="button"
-              aria-label="Show more new trends"
-              onClick={() => scrollRail(1)}
-              className="home-carousel-arrow absolute right-1 top-[34%] z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e7d7cf] bg-white/95 text-[#70263a] shadow-md transition hover:bg-[#70263a] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#70263a] sm:-right-3"
-            >
-              <ChevronRight className="size-5" aria-hidden="true" />
-            </button>
           </div>
         ) : (
           <div className="home-bestseller-grid grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
