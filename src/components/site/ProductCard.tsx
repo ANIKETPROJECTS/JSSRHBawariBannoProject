@@ -166,7 +166,9 @@ export function ProductCard({
           aria-label={isWishlisted ? `Remove ${saree.name} from wishlist` : `Add ${saree.name} to wishlist`}
           aria-pressed={isWishlisted}
           onClick={() => void toggle(saree.id)}
-          className={`product-card-wishlist-button absolute right-2 top-2 flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors sm:right-3 sm:top-3 ${
+          className={`product-card-wishlist-button absolute right-2 ${
+            ratingBadgeOnImage ? "top-[2px] sm:top-1 sm:right-3" : "top-2 sm:top-3 sm:right-3"
+          } flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors ${
             useCategoryListingVisuals ? "category-listing-wishlist-button" : "bg-transparent"
           } ${
             isWishlisted ? "text-[#ED145B]" : "text-foreground/75 hover:text-[#ED145B]"
