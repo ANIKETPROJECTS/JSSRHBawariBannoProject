@@ -243,7 +243,7 @@ export const categoryEdits = [
   { id: "silk-sarees", title: "Silk Sarees", image: s1 },
   { id: "cotton-sarees", title: "Cotton Sarees", image: s4 },
   { id: "designer-sarees", title: "Designer Sarees", image: s6 },
-  { id: "wedding-collection", title: "Wedding Collection", image: s7 },
+  { id: "wedding-collection", title: "Wedding", image: s7 },
   { id: "kanjivaram", title: "Kanjivaram", image: s1 },
   { id: "banarasi", title: "Banarasi", image: s2 },
   { id: "mysore-silk", title: "Mysore Silk", image: s3 },

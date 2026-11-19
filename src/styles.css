@@ -175,6 +175,10 @@
     font-weight: 500 !important;
   }
 
+  .home-category-title {
+    font-family: var(--font-sans) !important;
+  }
+
   .home-collection-banner-title {
     font-family: var(--font-playfair) !important;
     font-weight: 600 !important;
@@ -245,6 +249,7 @@ h4 {
 
 .category-card-name {
   font-family: var(--font-sans) !important;
+  font-size: clamp(1rem, 1.3vw, 1.3rem) !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
   line-height: 1.2 !important;
@@ -554,6 +559,11 @@ form[class*="max-h-"] {
   padding-inline: 16px;
 }
 
+.home-category-container {
+  max-width: 1760px;
+  padding-inline: clamp(1rem, 2vw, 2rem);
+}
+
 .site-footer-brand-logo {
   display: block;
 }
@@ -580,21 +590,15 @@ form[class*="max-h-"] {
 .home-category-title {
   padding-bottom: 0.65rem;
   color: #33221f;
-  font-size: clamp(1.2rem, 2vw, 1.55rem) !important;
+  font-family: var(--font-sans) !important;
+  font-size: clamp(1.75rem, 3vw, 2.4rem) !important;
   font-weight: 500 !important;
-  letter-spacing: 0.13em !important;
+  letter-spacing: 0.08em !important;
   text-transform: uppercase;
 }
 
 .home-category-title::after {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 3.25rem;
-  height: 2px;
-  background: #b89755;
-  content: "";
-  transform: translateX(-50%);
+  display: none;
 }
 
 .home-trends-track::-webkit-scrollbar {
@@ -608,6 +612,12 @@ form[class*="max-h-"] {
 .home-category-card:focus-visible .home-category-image {
   outline: 2px solid #70263a;
   outline-offset: 3px;
+}
+
+@media (min-width: 1024px) {
+  .home-category-card:nth-child(n + 6) {
+    display: none;
+  }
 }
 
 .home-product-section {

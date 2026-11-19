@@ -57,7 +57,10 @@ function Home() {
           const category = liveCategoryBySlug.get(fallback.id);
           return {
             ...fallback,
-            title: String(category?.label ?? fallback.title),
+            title:
+              fallback.id === "wedding-collection"
+                ? "Wedding"
+                : String(category?.label ?? fallback.title),
             image: String(category?.image || fallback.image),
           };
         });
@@ -87,21 +90,15 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="home-categories-section bg-white pb-0 pt-10 sm:pt-12">
-        <div className="home-content-container">
+      <section className="home-categories-section bg-white pb-0 pt-4 sm:pt-6">
+        <div className="home-content-container home-category-container">
           <div className="home-section-heading home-category-heading relative mx-auto mb-4 sm:mb-5">
             <h2 className="home-section-title home-category-title text-center leading-tight tracking-tight text-primary/90">
-              Our Categories
+              Shop By Categories
             </h2>
-            <Link
-              to="/products"
-              className="section-view-all section-view-all--aligned absolute bottom-0 right-0"
-            >
-              View all
-            </Link>
           </div>
           <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:pb-0">
-            {homepageCategoryEdits.slice(0, 5).map((category) => (
+            {homepageCategoryEdits.slice(0, 6).map((category) => (
               <Link
                 key={category.id}
                 to="/categories/$category"
@@ -116,10 +113,10 @@ function Home() {
                     decoding="async"
                     width={640}
                     height={800}
-                    className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                 </div>
-                <span className="category-card-name flex min-h-10 items-start justify-center px-2 pt-3 text-center text-xs text-primary sm:text-sm">
+                <span className="category-card-name flex min-h-14 items-center justify-center px-2 py-3 text-center text-base text-primary sm:min-h-16 sm:text-lg">
                   {category.title}
                 </span>
               </Link>
