@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
@@ -66,10 +67,10 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-1 lg:grid-cols-3 lg:gap-x-8">
+          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-1 lg:grid-cols-4 lg:gap-x-6">
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Explore</p>
-              <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
+              <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -86,29 +87,38 @@ export function Footer() {
 
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Visit us</p>
-              <address className="mt-3 space-y-2 text-[0.95rem] font-normal not-italic leading-snug text-white">
-              <p className="flex items-start gap-2">
-                <img src="/images/footer-location.png" alt="" className="mt-0.5 size-5 shrink-0 object-contain brightness-0 invert" />
-                <span>
-                  Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor,
-                  <br />
-                  Pokhran Road No. 1, Vartak Nagar, Thane (W), 400606
-                </span>
-              </p>
-              <a href="tel:+918459769859" className="flex items-center gap-2 hover:opacity-70">
-                <img src="/images/footer-phone.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
-                +91 84597 69859
-              </a>
-              <a href="mailto:info@bawaribanno.com" className="flex items-center gap-2 hover:opacity-70">
-                <img src="/images/footer-email.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
-                info@bawaribanno.com
-              </a>
+              <address className="mt-3 space-y-2 text-base font-normal not-italic leading-snug text-white">
+                <p className="flex items-start gap-2 text-justify">
+                  <img src="/images/footer-location.png" alt="" className="mt-0.5 size-5 shrink-0 object-contain brightness-0 invert" />
+                  <span className="text-justify">
+                    Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor,
+                    <br />
+                    Pokhran Road No. 1, Vartak Nagar, Thane (W), 400606
+                  </span>
+                </p>
+                <a href="tel:+918459769859" className="flex items-center gap-2 hover:opacity-70">
+                  <img src="/images/footer-phone.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
+                  +91 84597 69859
+                </a>
+                <a href="mailto:info@bawaribanno.com" className="flex items-center gap-2 hover:opacity-70">
+                  <img src="/images/footer-email.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
+                  info@bawaribanno.com
+                </a>
               </address>
+              <div className="mt-3 overflow-hidden border border-white/30">
+                <iframe
+                  title="Map to Bawari Banno in Thane"
+                  src="https://www.google.com/maps?q=Hubtown+Greenwood+CHS,+Flat+No.+805%2FA+Wing,+8th+Floor,+Pokhran+Road+No.+1,+Vartak+Nagar,+Thane+West,+Maharashtra+400606&output=embed"
+                  className="h-28 w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
             </div>
 
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Policies</p>
-              <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
+              <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -118,6 +128,8 @@ export function Footer() {
               ))}
               </ul>
             </div>
+
+            <NewsletterSignup />
           </div>
         </div>
 
@@ -131,5 +143,61 @@ export function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function NewsletterSignup() {
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setEmail("");
+    setMessage("This signup is a preview; your email address was not saved.");
+  }
+
+  return (
+    <div className="min-w-0">
+      <p className="footer-column-heading font-sans text-base font-semibold uppercase tracking-[0.15em] text-white">Newsletter</p>
+      <p className="mt-3 text-base leading-snug text-white">
+        Get new arrivals and saree stories in your inbox.
+      </p>
+      <form onSubmit={submit} className="mt-3 space-y-2">
+        <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
+        <input
+          id="footer-newsletter-email"
+          type="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="Your email address"
+          className="w-full border border-white/70 bg-white px-3 py-2.5 text-base text-[#171717] outline-none placeholder:text-[#6b6266] focus-visible:ring-2 focus-visible:ring-[#FFE300]"
+        />
+        <div className="flex items-start gap-2 text-sm leading-snug text-white">
+          <input
+            id="footer-newsletter-consent"
+            name="newsletter-consent"
+            type="checkbox"
+            required
+            className="mt-1 size-4 shrink-0 accent-[#FFE300]"
+          />
+          <label htmlFor="footer-newsletter-consent">
+            Email me updates. Unsubscribe anytime by contacting us.
+          </label>
+        </div>
+        <button
+          type="submit"
+          className="w-full bg-[#FFE300] px-4 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#ED145B] transition-opacity hover:opacity-90"
+        >
+          Subscribe
+        </button>
+        {message && (
+          <p role="status" className="text-sm leading-snug text-[#FFE300]">
+            {message}
+          </p>
+        )}
+      </form>
+    </div>
   );
 }
