@@ -4,7 +4,7 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import categoryFlower from "@/assets/shop-by-category-flower.webp";
+import categoryTitleArt from "../../attached_assets/Bawari_Banno_(1)_1795074187536.svg";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import heroImage from "@/assets/homepage-hero.webp";
 import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
@@ -95,11 +95,11 @@ function Home() {
         <div className="home-content-container home-category-container">
           <div className="home-section-heading home-category-heading relative mx-auto mb-4 sm:mb-5">
             <h2 className="home-section-title home-category-title text-center leading-tight tracking-tight text-primary/90">
-              <span className="home-category-title-content">
-                <img src={categoryFlower} alt="" aria-hidden="true" className="home-category-flower" />
-                <span>Shop By Categories</span>
-                <img src={categoryFlower} alt="" aria-hidden="true" className="home-category-flower" />
-              </span>
+              <img
+                src={categoryTitleArt}
+                alt="Our Categories"
+                className="home-category-heading-art"
+              />
             </h2>
           </div>
           <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:pb-0">
