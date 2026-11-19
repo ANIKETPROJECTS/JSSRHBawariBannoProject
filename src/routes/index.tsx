@@ -4,7 +4,7 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import categoryTitleArt from "../../Bawari Banno (3).svg";
+import categoryTitleArt from "../../Bawari Banno (4).svg";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import heroImage from "@/assets/homepage-hero.webp";
 import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
