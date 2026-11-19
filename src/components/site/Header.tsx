@@ -4,7 +4,7 @@ import { ChevronDown, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/heart_(1)_1795067376515.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
-import hamburgerIcon from "../../../attached_assets/hamburger_1795069595983.png";
+import hamburgerIcon from "../../../attached_assets/menu_1795070070440.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
 import searchIcon from "../../../attached_assets/search_(2)_1789284877555.png";
