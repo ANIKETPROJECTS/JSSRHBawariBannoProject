@@ -231,7 +231,7 @@ export function Header() {
            />
           </form>
 
-            <div className="site-header-actions relative z-10 ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto lg:gap-1">
+            <div className="site-header-actions relative z-10 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:ml-auto lg:gap-1.5">
           <button
             type="button"
             aria-label="Shopping bag"
