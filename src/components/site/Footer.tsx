@@ -1,6 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Facebook, Instagram, Mail, MapPin, Phone, Youtube } from "lucide-react";
+import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
+import whatsappIcon from "../../../attached_assets/whatsapp_1789286832089.png";
+
+const facebookIcon = "/images/facebook.png";
 
 const exploreLinks = [
   { label: "All Sarees", to: "/products" },
@@ -25,47 +29,51 @@ const policyLinks = [
 
 export function Footer() {
   return (
-    <footer
-      className="site-footer mt-8 bg-[#ED145B] font-sans text-white"
-    >
+    <footer className="site-footer mt-8 bg-[#ED145B] font-sans text-white">
       <div className="home-content-container">
-        <div className="site-footer-main grid gap-7 border-b border-white/20 py-5 sm:py-6 lg:grid-cols-[minmax(280px,1fr)_minmax(0,2fr)] lg:gap-10">
-          <div className="flex flex-col gap-4 lg:pt-1">
+        <div className="site-footer-main grid gap-x-8 gap-y-9 border-b border-white/20 py-9 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-10 sm:py-11 lg:grid-cols-[minmax(15rem,1.4fr)_repeat(4,minmax(0,1fr))] lg:gap-x-8 lg:py-12">
+          <div className="flex flex-col items-start gap-4 sm:col-span-2 lg:col-span-1">
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="site-footer-brand-logo h-20 w-full max-w-[18rem] object-contain object-left sm:h-36 sm:w-[28rem]"
+              className="site-footer-brand-logo h-20 w-full max-w-[18rem] object-contain object-left sm:h-24"
             />
-            <p className="mt-1 max-w-sm text-base font-normal leading-snug text-white sm:text-lg">
+            <p className="max-w-sm text-base font-normal leading-relaxed text-white sm:text-[1.05rem]">
               Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
-            <div className="mt-3 flex flex-col gap-2">
-            <p className="text-base font-medium uppercase tracking-[0.2em] text-white">
+            <div className="mt-2 flex flex-col gap-3">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white sm:text-sm">
                 Follow the house
               </p>
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
                 {[
-                  { label: "Instagram", Icon: Instagram },
-                  { label: "Facebook", Icon: Facebook },
-                  { label: "YouTube", Icon: Youtube },
-                ].map(({ label, Icon }) => (
+                  { label: "Instagram", href: "https://www.instagram.com/bawaribanno/", icon: instagramIcon },
+                  { label: "WhatsApp", href: "https://wa.me/919167599635", icon: whatsappIcon },
+                  { label: "Facebook", href: "#", icon: facebookIcon },
+                ].map(({ label, href, icon }) => (
                   <a
                     key={label}
-                    href="#"
+                    href={href}
                     aria-label={label}
-                    className="flex size-11 items-center justify-center rounded-full border border-white text-white transition-colors hover:bg-white hover:text-[#ED145B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    target={label === "Facebook" ? undefined : "_blank"}
+                    rel={label === "Facebook" ? undefined : "noreferrer"}
+                    className="flex size-10 items-center justify-center rounded-full border border-white/80 text-white transition-colors hover:bg-white hover:text-[#ED145B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:size-11"
                   >
-                    <Icon className="size-4" strokeWidth={1.7} />
+                    <img
+                      src={icon}
+                      alt=""
+                      className="size-[1.1rem] object-contain brightness-0 invert"
+                    />
                   </a>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="grid gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:items-start">
-            <div>
-            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Explore</p>
-            <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
+          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-9 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 lg:col-span-4 lg:grid-cols-4 lg:gap-x-8">
+            <div className="min-w-0">
+              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Explore</p>
+              <ul className="mt-4 space-y-2.5 text-sm font-normal leading-relaxed sm:text-[0.95rem]">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -73,16 +81,16 @@ export function Footer() {
                     className="inline-flex items-center gap-1 text-white transition-opacity hover:opacity-70"
                   >
                     {item.label}
-                    <ArrowUpRight className="size-3" strokeWidth={1.7} />
+                    <ArrowUpRight className="size-3 shrink-0" strokeWidth={1.7} />
                   </Link>
                 </li>
               ))}
-            </ul>
+              </ul>
             </div>
 
-            <div>
-            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Customer care</p>
-            <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
+            <div className="min-w-0">
+              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Customer care</p>
+              <ul className="mt-4 space-y-2.5 text-sm font-normal leading-relaxed sm:text-[0.95rem]">
               {customerLinks.map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
@@ -90,14 +98,14 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
-            </ul>
+              </ul>
             </div>
 
-            <div>
-            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Visit us</p>
-            <address className="mt-3 space-y-2 text-sm font-normal not-italic leading-snug text-white sm:text-base">
+            <div className="min-w-0">
+              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Visit us</p>
+              <address className="mt-4 space-y-3 text-sm font-normal not-italic leading-relaxed text-white">
               <p className="flex items-start gap-2">
-                <MapPin className="mt-0.5 size-4 shrink-0" strokeWidth={1.7} />
+                <MapPin className="mt-1 size-4 shrink-0" strokeWidth={1.7} />
                 <span>
                   Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor,
                   <br />
@@ -112,12 +120,12 @@ export function Footer() {
                 <Mail className="size-4 shrink-0" strokeWidth={1.7} />
                 info@bawaribanno.com
               </a>
-            </address>
+              </address>
             </div>
 
-            <div>
-            <p className="footer-column-heading text-base font-medium uppercase tracking-[0.2em] text-white">Policies</p>
-            <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
+            <div className="min-w-0">
+              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Policies</p>
+              <ul className="mt-4 space-y-2.5 text-sm font-normal leading-relaxed sm:text-[0.95rem]">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -125,12 +133,12 @@ export function Footer() {
                   </a>
                 </li>
               ))}
-            </ul>
+              </ul>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 py-4 text-sm font-normal text-white">
+        <div className="flex flex-col gap-1.5 py-4 font-sans text-xs font-normal text-white sm:text-sm">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
         </div>
       </div>

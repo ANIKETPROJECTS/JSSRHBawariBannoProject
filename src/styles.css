@@ -169,8 +169,7 @@
   }
 
   .home-section-title,
-  .home-testimonials-title,
-  .footer-column-heading {
+  .home-testimonials-title {
     font-family: var(--font-playfair) !important;
     font-weight: 500 !important;
   }
