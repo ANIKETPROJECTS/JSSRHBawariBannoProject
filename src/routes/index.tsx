@@ -149,13 +149,9 @@ function Home() {
         products={homepageProducts.slice(0, 5)}
       />
 
-      <ClientTestimonials
-        products={homepageProducts.slice(0, 3)}
-      />
     </SiteShell>
   );
 }
-
 function ProductRail({
   title,
   viewAllTo,
@@ -224,7 +220,6 @@ function ProductRail({
     </section>
   );
 }
-
 function TrendingCollection({
   title,
   viewAllTo,
@@ -365,57 +360,3 @@ function CollectionBanner({
   );
 }
 
-function ClientTestimonials({
-  products,
-}: {
-  products: typeof sarees;
-}) {
-  return (
-    <section className="home-testimonials-section w-full">
-      <div className="home-testimonials-inner">
-        <header className="home-testimonials-heading">
-          <h2 className="home-testimonials-title leading-tight text-primary">Client Testimonials</h2>
-          <div className="home-testimonials-ornament" aria-hidden="true"><span /></div>
-          <p className="home-testimonials-subtitle">Loved by women across India</p>
-        </header>
-
-        <div className="home-testimonials-track">
-          {products.map((saree) => (
-            <article key={saree.id} className="home-testimonial-card">
-              <span className="home-testimonial-verified">
-                <svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="m3.2 8.2 3 3 6.6-6.5" />
-                </svg>
-                Verified Buyer <span>(placeholder)</span>
-              </span>
-              <div className="home-testimonial-photo">
-                <img
-                  src={saree.image}
-                  alt="Product image placeholder; customer photo not provided"
-                  loading="lazy"
-                  decoding="async"
-                  width={180}
-                  height={180}
-                />
-                <span className="home-testimonial-photo-note">Photo placeholder</span>
-              </div>
-              <div className="home-testimonial-copy">
-                <span className="home-testimonial-quote-mark" aria-hidden="true">“</span>
-                <p className="home-testimonial-review">
-                  Review text placeholder — add the customer&apos;s quote.
-                </p>
-                <div className="home-testimonial-rating">
-                  <span className="home-testimonial-stars" aria-label="Five-star rating placeholder">☆☆☆☆☆</span>
-                  <span>Rating not provided (placeholder)</span>
-                </div>
-                <p className="home-testimonial-name">Customer name (placeholder)</p>
-                <p className="home-testimonial-city">City (placeholder)</p>
-                <p className="home-testimonial-product">Bought: {saree.name}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
