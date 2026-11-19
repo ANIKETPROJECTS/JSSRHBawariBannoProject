@@ -91,14 +91,14 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="home-categories-section bg-[#ED145B] pb-0 pt-4 sm:pt-6">
+      <section className="home-categories-section bg-[#ED145B] pb-4 pt-1 sm:pt-2">
         <div className="home-content-container home-category-container">
-          <div className="home-section-heading home-category-heading relative mx-auto mb-4 sm:mb-5">
+          <div className="home-section-heading home-category-heading relative mx-auto mb-3 sm:mb-4">
             <h2 className="home-category-title">
               <img src={categoryTitleArt} alt="Our Categories" className="home-category-heading-art" />
             </h2>
           </div>
-          <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:pb-0">
+          <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
             {homepageCategoryEdits.slice(0, 6).map((category) => (
               <Link
                 key={category.id}
