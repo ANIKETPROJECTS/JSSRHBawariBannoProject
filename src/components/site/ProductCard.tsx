@@ -128,13 +128,15 @@ export function ProductCard({
         </Link>
         {ratingBadgeOnImage && (
           <div
-            className="home-new-trends-rating"
+            className="home-new-trends-rating inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-sm"
             aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
           >
             <span>5.0</span>
-            <span aria-hidden="true">★</span>
-            <span aria-hidden="true">|</span>
-            <span>{formatReviewCount(editorialReviewCount(saree.id))}</span>
+            <span className="text-sm leading-none text-[#FFD700]" aria-hidden="true">★</span>
+            <span className="text-slate-400" aria-hidden="true">|</span>
+            <span className="text-[0.68rem] text-slate-700">
+              {formatReviewCount(editorialReviewCount(saree.id))}
+            </span>
           </div>
         )}
         {useCategoryListingVisuals && listingBadge === "new" && (
