@@ -28,7 +28,7 @@ export function Footer() {
   return (
     <footer className="site-footer mt-8 bg-[#ED145B] font-sans text-white">
       <div className="home-content-container">
-        <div className="site-footer-main grid gap-x-8 gap-y-6 border-b border-white/20 py-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:py-9 lg:grid-cols-[minmax(15rem,1.4fr)_minmax(0,3fr)] lg:gap-x-8 lg:py-10">
+        <div className="site-footer-main grid gap-x-8 gap-y-6 border-b border-white/20 py-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:py-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-x-10 lg:py-10">
           <div className="flex flex-col items-start gap-3 sm:col-span-2 lg:col-span-1">
             <img
               src={logoImage}
@@ -65,12 +65,13 @@ export function Footer() {
                 ))}
               </div>
             </div>
+            <NewsletterSignup />
           </div>
 
-          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-1 lg:grid-cols-4 lg:gap-x-6">
+          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-1 lg:grid-cols-2 lg:gap-x-8 xl:grid-cols-3 xl:gap-x-8">
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Explore</p>
-              <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
+              <ul className="mt-3 space-y-2 text-[1.05rem] font-normal leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -85,9 +86,9 @@ export function Footer() {
               </ul>
             </div>
 
-            <div className="min-w-0">
+            <div className="col-span-2 min-w-0 sm:col-span-1">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Visit us</p>
-              <address className="mt-3 space-y-2 text-base font-normal not-italic leading-snug text-white">
+              <address className="mt-3 space-y-2 text-[1.05rem] font-normal not-italic leading-snug text-white">
                 <p className="flex items-start gap-2 text-justify">
                   <img src="/images/footer-location.png" alt="" className="mt-0.5 size-5 shrink-0 object-contain brightness-0 invert" />
                   <span className="text-justify">
@@ -102,23 +103,23 @@ export function Footer() {
                 </a>
                 <a href="mailto:info@bawaribanno.com" className="flex items-center gap-2 hover:opacity-70">
                   <img src="/images/footer-email.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
-                  info@bawaribanno.com
+                  <span className="break-all">info@bawaribanno.com</span>
                 </a>
               </address>
               <div className="mt-3 overflow-hidden border border-white/30">
                 <iframe
                   title="Map to Bawari Banno in Thane"
-                  src="https://www.google.com/maps?q=Hubtown+Greenwood+CHS,+Flat+No.+805%2FA+Wing,+8th+Floor,+Pokhran+Road+No.+1,+Vartak+Nagar,+Thane+West,+Maharashtra+400606&output=embed"
-                  className="h-28 w-full border-0"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=72.9558%2C19.2108%2C72.9626%2C19.2160&layer=mapnik&marker=19.2133767%2C72.9592231"
+                  className="h-36 w-full border-0"
                   loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               </div>
             </div>
 
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Policies</p>
-              <ul className="mt-3 space-y-2 text-base font-normal leading-snug">
+              <ul className="mt-3 space-y-2 text-[1.05rem] font-normal leading-snug">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -128,8 +129,6 @@ export function Footer() {
               ))}
               </ul>
             </div>
-
-            <NewsletterSignup />
           </div>
         </div>
 
@@ -157,7 +156,7 @@ function NewsletterSignup() {
   }
 
   return (
-    <div className="min-w-0">
+    <div className="mt-2 w-full min-w-0">
       <p className="footer-column-heading font-sans text-base font-semibold uppercase tracking-[0.15em] text-white">Newsletter</p>
       <p className="mt-3 text-base leading-snug text-white">
         Get new arrivals and saree stories in your inbox.
