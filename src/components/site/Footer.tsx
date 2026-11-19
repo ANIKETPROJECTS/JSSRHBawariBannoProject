@@ -28,12 +28,12 @@ export function Footer() {
   return (
     <footer className="site-footer mt-8 bg-[#ED145B] font-sans text-white">
       <div className="home-content-container">
-        <div className="site-footer-main grid gap-x-8 gap-y-6 border-b border-white/20 py-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:py-9 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-x-10 lg:py-10">
+        <div className="site-footer-main grid gap-x-8 gap-y-5 border-b border-white/20 py-5 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-x-10 lg:py-7">
           <div className="flex flex-col items-start gap-3 sm:col-span-2 lg:col-span-1">
             <img
               src={logoImage}
               alt="Bawari Banno"
-              className="site-footer-brand-logo h-20 w-full max-w-[18rem] object-contain object-left sm:h-24"
+              className="site-footer-brand-logo h-16 w-full max-w-[18rem] object-contain object-left sm:h-20"
             />
             <p className="max-w-sm text-base font-normal leading-relaxed text-white sm:text-[1.05rem]">
               Sarees chosen for their colour, craft and the stories they carry forward.
@@ -65,13 +65,12 @@ export function Footer() {
                 ))}
               </div>
             </div>
-            <NewsletterSignup />
           </div>
 
-          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-1 lg:grid-cols-2 lg:gap-x-8 xl:grid-cols-3 xl:gap-x-8">
+          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-5 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-6 lg:col-span-1 lg:grid-cols-2 lg:gap-x-8 xl:grid-cols-3 xl:gap-x-8">
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Explore</p>
-              <ul className="mt-3 space-y-2 text-[1.05rem] font-normal leading-snug">
+              <ul className="mt-2.5 space-y-1.5 text-base font-normal leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -88,7 +87,7 @@ export function Footer() {
 
             <div className="col-span-2 min-w-0 sm:col-span-1">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Visit us</p>
-              <address className="mt-3 space-y-2 text-[1.05rem] font-normal not-italic leading-snug text-white">
+              <address className="mt-2.5 space-y-1.5 text-base font-normal not-italic leading-snug text-white">
                 <p className="flex items-start gap-2 text-justify">
                   <img src="/images/footer-location.png" alt="" className="mt-0.5 size-5 shrink-0 object-contain brightness-0 invert" />
                   <span className="text-justify">
@@ -106,11 +105,11 @@ export function Footer() {
                   <span className="break-all">info@bawaribanno.com</span>
                 </a>
               </address>
-              <div className="mt-3 overflow-hidden border border-white/30">
+              <div className="mt-2 overflow-hidden border border-white/30">
                 <iframe
                   title="Map to Bawari Banno in Thane"
                   src="https://www.openstreetmap.org/export/embed.html?bbox=72.9558%2C19.2108%2C72.9626%2C19.2160&layer=mapnik&marker=19.2133767%2C72.9592231"
-                  className="h-36 w-full border-0"
+                  className="h-24 w-full border-0"
                   loading="lazy"
                   referrerPolicy="strict-origin-when-cross-origin"
                 />
@@ -119,7 +118,7 @@ export function Footer() {
 
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Policies</p>
-              <ul className="mt-3 space-y-2 text-[1.05rem] font-normal leading-snug">
+              <ul className="mt-2.5 space-y-1.5 text-base font-normal leading-snug">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -130,6 +129,10 @@ export function Footer() {
               </ul>
             </div>
           </div>
+        </div>
+
+        <div className="border-b border-white/20 py-3">
+          <NewsletterSignup />
         </div>
 
         <div className="grid grid-cols-1 gap-2 py-3 font-sans text-base font-normal text-white sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-0">
@@ -156,12 +159,12 @@ function NewsletterSignup() {
   }
 
   return (
-    <div className="mt-2 w-full min-w-0">
-      <p className="footer-column-heading font-sans text-base font-semibold uppercase tracking-[0.15em] text-white">Newsletter</p>
-      <p className="mt-3 text-base leading-snug text-white">
-        Get new arrivals and saree stories in your inbox.
-      </p>
-      <form onSubmit={submit} className="mt-3 space-y-2">
+    <div className="grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)] sm:items-center sm:gap-8">
+      <div>
+        <p className="footer-column-heading font-sans text-base font-semibold uppercase tracking-[0.15em] text-white">Newsletter</p>
+        <p className="mt-1 text-sm leading-snug text-white">Get new arrivals and saree stories in your inbox.</p>
+      </div>
+      <form onSubmit={submit} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <label htmlFor="footer-newsletter-email" className="sr-only">Email address</label>
         <input
           id="footer-newsletter-email"
@@ -171,9 +174,9 @@ function NewsletterSignup() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="Your email address"
-          className="w-full border border-white/70 bg-white px-3 py-2.5 text-base text-[#171717] outline-none placeholder:text-[#6b6266] focus-visible:ring-2 focus-visible:ring-[#FFE300]"
+          className="w-full min-w-0 border border-white/70 bg-white px-3 py-2 text-sm text-[#171717] outline-none placeholder:text-[#6b6266] focus-visible:ring-2 focus-visible:ring-[#FFE300]"
         />
-        <div className="flex items-start gap-2 text-sm leading-snug text-white">
+        <div className="flex items-start gap-2 text-xs leading-snug text-white sm:col-span-2">
           <input
             id="footer-newsletter-consent"
             name="newsletter-consent"
@@ -187,12 +190,12 @@ function NewsletterSignup() {
         </div>
         <button
           type="submit"
-          className="w-full bg-[#FFE300] px-4 py-2.5 text-sm font-semibold uppercase tracking-[0.12em] text-[#ED145B] transition-opacity hover:opacity-90"
+          className="bg-[#FFE300] px-5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#ED145B] transition-opacity hover:opacity-90 sm:row-start-1 sm:col-start-2"
         >
           Subscribe
         </button>
         {message && (
-          <p role="status" className="text-sm leading-snug text-[#FFE300]">
+          <p role="status" className="text-xs leading-snug text-[#FFE300] sm:col-span-2">
             {message}
           </p>
         )}
