@@ -4,7 +4,7 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { categoryEdits, sarees } from "@/data/sarees";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import categoryHeadingFlower from "@/assets/shop-by-category-flower.webp";
+import categoryTitleArt from "../../Bawari Banno (7).svg";
 import maroonCollectionImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import heroImage from "@/assets/homepage-hero.webp";
 import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
@@ -94,10 +94,8 @@ function Home() {
       <section className="home-categories-section bg-[#ED145B] pb-0 pt-4 sm:pt-6">
         <div className="home-content-container home-category-container">
           <div className="home-section-heading home-category-heading relative mx-auto mb-4 sm:mb-5">
-            <h2 className="home-category-title" aria-label="Our Categories">
-              <span aria-hidden="true">Our Categ</span>
-              <img src={categoryHeadingFlower} alt="" aria-hidden="true" className="home-category-heading-flower" />
-              <span aria-hidden="true">ries</span>
+            <h2 className="home-category-title">
+              <img src={categoryTitleArt} alt="Our Categories" className="home-category-heading-art" />
             </h2>
           </div>
           <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:pb-0">
@@ -108,7 +106,7 @@ function Home() {
                 params={{ category: category.id }}
                 className="home-category-card group block min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2"
               >
-                <div className="home-category-image overflow-hidden rounded-t-full border border-[#eadfd5] bg-[#f8f4ef]">
+                <div className="home-category-image overflow-hidden rounded-t-full bg-[#f8f4ef]">
                   <img
                     src={category.image}
                     alt={category.title}
