@@ -230,12 +230,12 @@ export function Header() {
            />
           </form>
 
-           <div className="relative z-10 flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
+            <div className="relative z-10 flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto lg:gap-1">
           <button
             type="button"
             aria-label="Shopping bag"
             onClick={openCart}
-               className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4.25rem] lg:px-3"
+                className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4rem] lg:gap-1.5 lg:px-2.5"
           >
               <img src={cartIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
                 <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Cart</span>
@@ -248,7 +248,7 @@ export function Header() {
           <Link
             to="/wishlist"
             aria-label="Wishlist"
-                className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[5.25rem] lg:px-3"
+                className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4.75rem] lg:gap-1.5 lg:px-2.5"
           >
               <img src={wishlistIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
                 <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Wishlist</span>
@@ -261,7 +261,7 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-               className="hidden min-w-[4.25rem] flex-col items-center gap-0.5 rounded-full px-3 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
+               className="hidden min-w-[4rem] flex-col items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
           >
               <img src={profileIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
                <span className="text-[0.6rem] font-medium leading-none sm:text-[0.68rem]">Profile</span>

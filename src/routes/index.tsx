@@ -75,7 +75,7 @@ function Home() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="h-[calc(100svh-5.75rem)] w-full overflow-hidden bg-white lg:h-[calc(100svh-10.25rem)]">
+      <section className="home-hero w-full overflow-hidden bg-white">
         <img
           src={heroImage}
           alt="Bawari Banno saree collection"
