@@ -249,7 +249,7 @@ h4 {
 
 .category-card-name {
   font-family: var(--font-sans) !important;
-  font-size: clamp(1rem, 1.3vw, 1.3rem) !important;
+  font-size: clamp(1.0625rem, 1.4vw, 1.35rem) !important;
   font-weight: 500 !important;
   letter-spacing: 0.06em !important;
   line-height: 1.2 !important;
@@ -592,7 +592,7 @@ form[class*="max-h-"] {
   color: #33221f;
   font-family: var(--font-sans) !important;
   font-size: clamp(1.75rem, 3vw, 2.4rem) !important;
-  font-weight: 500 !important;
+  font-weight: 400 !important;
   letter-spacing: 0.08em !important;
   text-transform: uppercase;
 }

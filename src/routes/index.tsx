@@ -116,7 +116,7 @@ function Home() {
                     className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                 </div>
-                <span className="category-card-name flex min-h-14 items-center justify-center px-2 py-3 text-center text-base text-primary sm:min-h-16 sm:text-lg">
+                <span className="category-card-name flex min-h-12 items-center justify-center px-2 py-2 text-center text-base text-primary sm:min-h-14 sm:py-2.5 sm:text-lg">
                   {category.title}
                 </span>
               </Link>
