@@ -478,7 +478,7 @@ form[class*="max-h-"] {
 }
 
 .home-hero {
-  height: clamp(24rem, calc(100svh - 10.5rem), 44rem);
+  height: clamp(24rem, calc(100svh - 9.5rem), 44rem);
 }
 
 .hero-text-gradient {
@@ -2511,6 +2511,24 @@ form[class*="max-h-"] {
 }
 
 @media (max-width: 639px) {
+  .site-topbar-inner {
+    justify-content: flex-end;
+  }
+
+  .site-mobile-collection-tabs {
+    display: none;
+  }
+
+  .site-header-logo img {
+    width: 13rem;
+    height: 4rem;
+  }
+
+  .site-header-actions > a,
+  .site-header-actions > button {
+    padding-inline: 0.25rem;
+  }
+
   h1,
   h2 {
     font-size: clamp(1.75rem, 7vw, 2.3rem) !important;
@@ -2579,6 +2597,17 @@ form[class*="max-h-"] {
 
   .product-recommendations-band {
     padding-block: 32px;
+  }
+}
+
+@media (max-width: 359px) {
+  .site-header-logo img {
+    width: 10rem;
+    height: 3.5rem;
+  }
+
+  .site-header-actions {
+    gap: 0;
   }
 }
 

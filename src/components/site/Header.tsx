@@ -164,7 +164,7 @@ export function Header() {
     <header className="relative sticky top-0 z-40 border-b border-white/20 bg-[#ED145B] text-white backdrop-blur-xl">
       <div className="h-9 border-b border-white/20 bg-[#ED145B]">
         <div
-          className="mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
+          className="site-topbar-inner mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
         >
           <div className="flex min-w-0 items-center">
             {socialLinks.map(({ label, icon }) => (
@@ -194,7 +194,7 @@ export function Header() {
         </div>
       </div>
       <div className="relative">
-       <div className="relative mx-auto flex h-[3.5rem] max-w-[1440px] items-center justify-between gap-2 px-3 sm:h-[4rem] sm:px-7 lg:h-[4.5rem] lg:px-10">
+        <div className="relative mx-auto flex h-[4.5rem] max-w-[1440px] items-center justify-between gap-2 px-3 sm:h-[4rem] sm:px-7 lg:h-[4.5rem] lg:px-10">
         <Link
            to="/"
            onClick={(event) => {
@@ -207,7 +207,7 @@ export function Header() {
             <img
               src={logoImage}
               alt="Bawari Banno"
-                  className="h-11 w-[7.75rem] object-contain sm:h-14 sm:w-44 lg:h-32 lg:w-[25rem]"
+                  className="h-14 w-40 object-contain sm:h-14 sm:w-44 lg:h-32 lg:w-[25rem]"
             />
         </Link>
 
@@ -230,14 +230,14 @@ export function Header() {
            />
           </form>
 
-            <div className="relative z-10 flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto lg:gap-1">
+            <div className="site-header-actions relative z-10 flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto lg:gap-1">
           <button
             type="button"
             aria-label="Shopping bag"
             onClick={openCart}
                 className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4rem] lg:gap-1.5 lg:px-2.5"
           >
-              <img src={cartIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+              <img src={cartIcon} alt="" className="size-6 object-contain brightness-0 invert" />
                 <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Cart</span>
             {itemCount > 0 && (
                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
@@ -250,7 +250,7 @@ export function Header() {
             aria-label="Wishlist"
                 className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4.75rem] lg:gap-1.5 lg:px-2.5"
           >
-              <img src={wishlistIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
+              <img src={wishlistIcon} alt="" className="size-6 object-contain brightness-0 invert" />
                 <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Wishlist</span>
             {wishlistCount > 0 && (
                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
@@ -261,10 +261,10 @@ export function Header() {
           <Link
             to="/profile"
             aria-label="Account"
-               className="hidden min-w-[4rem] flex-col items-center gap-1.5 rounded-full px-2.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:flex"
+            className="relative flex min-w-[2.25rem] flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:min-w-[4rem] lg:gap-1.5 lg:px-2.5"
           >
-              <img src={profileIcon} alt="" className="size-5 object-contain brightness-0 invert sm:size-6" />
-               <span className="text-[0.6rem] font-medium leading-none sm:text-[0.68rem]">Profile</span>
+              <img src={profileIcon} alt="" className="size-6 object-contain brightness-0 invert" />
+               <span className="hidden text-[0.6rem] font-medium leading-none sm:text-[0.68rem] lg:inline">Profile</span>
           </Link>
           <button
             type="button"
