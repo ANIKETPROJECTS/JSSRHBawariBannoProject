@@ -167,7 +167,7 @@ export function Header() {
         <div
           className="site-topbar-inner mx-auto flex h-full max-w-[1440px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-7 lg:px-10"
         >
-          <div className="flex min-w-0 items-center">
+          <div className="site-topbar-links flex min-w-0 items-center">
             {socialLinks.map(({ label, icon }) => (
               <a
                 key={label}

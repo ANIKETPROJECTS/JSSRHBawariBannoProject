@@ -2537,7 +2537,7 @@ form[class*="max-h-"] {
 
   .site-header-logo {
     position: absolute !important;
-    top: -2.25rem !important;
+    top: -2.75rem !important;
     left: -1.5rem !important;
     z-index: 5 !important;
     transform: none !important;
@@ -2555,8 +2555,8 @@ form[class*="max-h-"] {
     padding-inline: 0.25rem;
   }
 
-  .site-mobile-search {
-    padding-left: 11rem;
+  .site-topbar-links {
+    gap: 0.375rem;
   }
 
   h1,
@@ -2640,9 +2640,6 @@ form[class*="max-h-"] {
     gap: 0;
   }
 
-  .site-mobile-search {
-    padding-left: 10.75rem;
-  }
 }
 
 @media (min-width: 1024px) {
