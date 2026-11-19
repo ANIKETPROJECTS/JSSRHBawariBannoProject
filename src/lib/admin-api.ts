@@ -157,7 +157,18 @@ let clientPromise: Promise<MongoClient> | undefined;
 function getClient() {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI is not configured.");
-  clientPromise ??= new MongoClient(uri).connect();
+  if (!clientPromise) {
+    const client = new MongoClient(uri);
+    let pending: Promise<MongoClient>;
+    pending = Promise.resolve()
+      .then(() => client.connect())
+      .catch(async (error: unknown) => {
+        if (clientPromise === pending) clientPromise = undefined;
+        await client.close().catch(() => undefined);
+        throw error;
+      });
+    clientPromise = pending;
+  }
   return clientPromise;
 }
 
