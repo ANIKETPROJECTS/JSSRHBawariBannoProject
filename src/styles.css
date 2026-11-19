@@ -595,14 +595,34 @@ form[class*="max-h-"] {
   line-height: 0 !important;
 }
 
-.home-category-heading-art {
+.home-heading-art {
   display: block;
-  width: clamp(18rem, 90vw, 24rem);
+  width: auto;
   max-width: 100%;
   aspect-ratio: 5 / 1;
   margin-inline: auto;
   object-fit: cover;
   object-position: center;
+}
+
+.home-heading-art--categories {
+  width: 19.25rem;
+  max-width: calc(100vw - 2rem);
+}
+
+.home-heading-art--new-trends {
+  width: 16.75rem;
+  max-width: calc(100vw - 2rem);
+}
+
+.home-heading-art--best-sellers {
+  width: 22.3rem;
+  max-width: calc(100vw - 2rem);
+}
+
+.home-heading-art--trending {
+  width: 22.5rem;
+  max-width: calc(100vw - 2rem);
 }
 
 .home-category-title::after {
@@ -657,16 +677,6 @@ form[class*="max-h-"] {
 
 .home-new-trends-title::after {
   display: none;
-}
-
-.home-new-trends-heading-art {
-  display: block;
-  width: clamp(16rem, 80vw, 22rem);
-  max-width: 100%;
-  aspect-ratio: 5 / 1;
-  margin-inline: auto;
-  object-fit: cover;
-  object-position: center;
 }
 
 .home-new-trends .section-view-all,
@@ -1218,6 +1228,24 @@ form[class*="max-h-"] {
 
   .home-new-trends .home-trends-card:nth-child(n + 6) {
     display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .home-heading-art--categories {
+    width: 25rem;
+  }
+
+  .home-heading-art--new-trends {
+    width: 21.8rem;
+  }
+
+  .home-heading-art--best-sellers {
+    width: 29rem;
+  }
+
+  .home-heading-art--trending {
+    width: 29.25rem;
   }
 }
 

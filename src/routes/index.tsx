@@ -96,7 +96,11 @@ function Home() {
         <div className="home-content-container home-category-container">
           <div className="home-section-heading home-category-heading relative mx-auto mb-3 sm:mb-4">
             <h2 className="home-category-title">
-              <img src={categoryTitleArt} alt="Our Categories" className="home-category-heading-art" />
+              <img
+                src={categoryTitleArt}
+                alt="Our Categories"
+                className="home-heading-art home-heading-art--categories"
+              />
             </h2>
           </div>
           <div className="home-category-list grid grid-cols-2 gap-3 pb-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
@@ -172,7 +176,11 @@ function ProductRail({
           className="home-section-heading home-new-trends-heading relative mx-auto mb-3 sm:mb-4"
         >
           <h2 className="home-section-title home-new-trends-title text-center leading-tight">
-            <img src={titleArt} alt={title} className="home-new-trends-heading-art" />
+            <img
+              src={titleArt}
+              alt={title}
+              className={`home-heading-art home-heading-art--${variant}`}
+            />
           </h2>
         </div>
 
