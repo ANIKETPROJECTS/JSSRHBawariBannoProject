@@ -199,7 +199,7 @@ function ProductRail({
             <div className="home-trends-track">
               {products.map((saree) => (
                 <div key={saree.id} className="home-trends-card">
-                  <ProductCard saree={saree} tall editorial showBuyNow />
+                  <ProductCard saree={saree} tall editorial showBuyNow ratingBadgeOnImage />
                 </div>
               ))}
             </div>

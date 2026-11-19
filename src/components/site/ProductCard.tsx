@@ -59,6 +59,7 @@ export function ProductCard({
   listingVisualStyle = false,
   listingBadge,
   listingRank,
+  ratingBadgeOnImage = false,
 }: {
   saree: Saree;
   tall?: boolean;
@@ -69,6 +70,7 @@ export function ProductCard({
   listingVisualStyle?: boolean;
   listingBadge?: "new" | "rank";
   listingRank?: number;
+  ratingBadgeOnImage?: boolean;
 }) {
   const { ids, toggle } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
@@ -124,6 +126,17 @@ export function ProductCard({
             />
           )}
         </Link>
+        {ratingBadgeOnImage && (
+          <div
+            className="home-new-trends-rating"
+            aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
+          >
+            <span>5.0</span>
+            <span aria-hidden="true">★</span>
+            <span aria-hidden="true">|</span>
+            <span>{formatReviewCount(editorialReviewCount(saree.id))}</span>
+          </div>
+        )}
         {useCategoryListingVisuals && listingBadge === "new" && (
           <span className="category-listing-product-badge category-listing-new-badge">NEW</span>
         )}
@@ -205,7 +218,7 @@ export function ProductCard({
             {saree.name}
           </h3>
         </Link>
-        {editorial && !useCategoryListingVisuals && (
+        {editorial && !useCategoryListingVisuals && !ratingBadgeOnImage && (
           <div
             className="mt-1 inline-flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-xs font-medium text-slate-900 shadow-sm"
             aria-label={`5.0 star rating from ${editorialReviewCount(saree.id)} reviews`}
