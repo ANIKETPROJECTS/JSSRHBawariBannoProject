@@ -1,9 +1,10 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import cartIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistIcon from "../../../attached_assets/heart_(1)_1795067376515.png";
 import profileIcon from "../../../attached_assets/user_(4)_1787337639892.png";
+import hamburgerIcon from "../../../attached_assets/hamburger_1795069595983.png";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
 import searchIcon from "../../../attached_assets/search_(2)_1789284877555.png";
@@ -273,17 +274,17 @@ export function Header() {
             onClick={() => setMobileMenuOpen((open) => !open)}
               className="flex rounded-full p-2 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white lg:hidden"
           >
-            {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <Menu className="size-5" strokeWidth={1.6} />}
+            {mobileMenuOpen ? <X className="size-5" strokeWidth={1.6} /> : <img src={hamburgerIcon} alt="" className="size-6 object-contain brightness-0 invert" />}
           </button>
         </div>
         </div>
-        <form onSubmit={submitSearch} role="search" className="site-mobile-search relative z-10 flex items-center gap-2 border-t border-white/15 px-4 py-2 lg:hidden">
+        <form onSubmit={submitSearch} role="search" className="site-mobile-search relative z-10 flex items-center gap-2 px-4 py-2 lg:hidden">
           <button
             type="submit"
             aria-label="Search"
             className="rounded-full p-1.5 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <img src={searchIcon} alt="" className="size-5 object-contain brightness-0 invert" />
+            <img src={searchIcon} alt="" className="size-6 object-contain brightness-0 invert" />
           </button>
           <input
             ref={mobileSearchInputRef}
@@ -291,7 +292,7 @@ export function Header() {
             aria-label="Search the collection"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search sarees…"
+            placeholder={`${typedPlaceholder}…`}
             className="min-w-0 flex-1 border-b border-white/80 bg-transparent px-1 py-1.5 text-sm text-white outline-none placeholder:text-white/90"
           />
         </form>

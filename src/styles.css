@@ -2527,12 +2527,12 @@ form[class*="max-h-"] {
   }
 
   .site-topbar-icon {
-    width: 0.875rem;
-    height: 0.875rem;
+    width: 1rem;
+    height: 1rem;
   }
 
   .site-topbar-text {
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
   }
 
   .site-header-logo {
@@ -2544,8 +2544,9 @@ form[class*="max-h-"] {
   }
 
   .site-header-logo img {
-    width: 17rem;
-    height: 8rem;
+    width: 21rem;
+    height: 9rem;
+    transform: translateX(-7%);
     object-position: left center;
   }
 
@@ -2631,11 +2632,16 @@ form[class*="max-h-"] {
 
 @media (max-width: 359px) {
   .site-header-logo img {
-    width: 15rem;
+    width: 18rem;
+    transform: translateX(-4%);
   }
 
   .site-header-actions {
     gap: 0;
+  }
+
+  .site-mobile-search {
+    padding-left: 10.75rem;
   }
 }
 
