@@ -12,10 +12,6 @@ const exploreLinks = [
   { label: "Bestsellers", to: "/bestseller" },
   { label: "Our Story", to: "/about" },
   { label: "Contact Us", to: "/contact" },
-];
-
-const customerLinks = [
-  { label: "Contact Us", to: "/contact" },
   { label: "Wishlist", to: "/wishlist" },
   { label: "My Account", to: "/profile" },
 ];
@@ -31,7 +27,7 @@ export function Footer() {
   return (
     <footer className="site-footer mt-8 bg-[#ED145B] font-sans text-white">
       <div className="home-content-container">
-        <div className="site-footer-main grid gap-x-8 gap-y-6 border-b border-white/20 py-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:py-9 lg:grid-cols-[minmax(15rem,1.4fr)_repeat(4,minmax(0,1fr))] lg:gap-x-8 lg:py-10">
+        <div className="site-footer-main grid gap-x-8 gap-y-6 border-b border-white/20 py-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:py-9 lg:grid-cols-[minmax(15rem,1.4fr)_minmax(0,3fr)] lg:gap-x-8 lg:py-10">
           <div className="flex flex-col items-start gap-3 sm:col-span-2 lg:col-span-1">
             <img
               src={logoImage}
@@ -70,7 +66,7 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-4 lg:grid-cols-4 lg:gap-x-8">
+          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-1 lg:grid-cols-3 lg:gap-x-8">
             <div className="min-w-0">
               <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Explore</p>
               <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
@@ -82,19 +78,6 @@ export function Footer() {
                   >
                     {item.label}
                     <ArrowUpRight className="size-3 shrink-0" strokeWidth={1.7} />
-                  </Link>
-                </li>
-              ))}
-              </ul>
-            </div>
-
-            <div className="min-w-0">
-              <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Customer care</p>
-              <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
-              {customerLinks.map((item) => (
-                <li key={item.label}>
-                  <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
-                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -138,13 +121,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 py-3 text-center font-sans text-sm font-normal text-white">
-          <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
-          <span aria-hidden="true" className="text-white/70">·</span>
-          <p className="inline-flex items-center gap-1.5">
-            <img src="/images/india-flag.png" alt="" className="size-5 object-contain" />
+        <div className="grid grid-cols-1 gap-2 py-3 font-sans text-base font-normal text-white sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-0">
+          <p className="text-left">© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
+          <p className="inline-flex items-center justify-center gap-1.5 text-center sm:col-start-2 sm:row-start-1">
+            <img src="/images/india-flag.png" alt="" className="size-6 object-contain" />
             Made in India
-            <span aria-label="with love" className="text-[#FFE300]">♥</span>
+            <span aria-label="with love" className="text-lg text-[#FFE300]">♥</span>
           </p>
         </div>
       </div>
