@@ -254,7 +254,8 @@ h4 {
   letter-spacing: 0.06em !important;
   line-height: 1.2 !important;
   text-transform: uppercase !important;
-  color: #FFE300 !important;
+  color: #ED145B !important;
+  background-color: #FFE300;
 }
 
 .section-view-all {
