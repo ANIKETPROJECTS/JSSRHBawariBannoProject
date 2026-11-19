@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
 import whatsappIcon from "../../../attached_assets/whatsapp_1789286832089.png";
@@ -31,8 +31,8 @@ export function Footer() {
   return (
     <footer className="site-footer mt-8 bg-[#ED145B] font-sans text-white">
       <div className="home-content-container">
-        <div className="site-footer-main grid gap-x-8 gap-y-9 border-b border-white/20 py-9 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-10 sm:py-11 lg:grid-cols-[minmax(15rem,1.4fr)_repeat(4,minmax(0,1fr))] lg:gap-x-8 lg:py-12">
-          <div className="flex flex-col items-start gap-4 sm:col-span-2 lg:col-span-1">
+        <div className="site-footer-main grid gap-x-8 gap-y-6 border-b border-white/20 py-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:py-9 lg:grid-cols-[minmax(15rem,1.4fr)_repeat(4,minmax(0,1fr))] lg:gap-x-8 lg:py-10">
+          <div className="flex flex-col items-start gap-3 sm:col-span-2 lg:col-span-1">
             <img
               src={logoImage}
               alt="Bawari Banno"
@@ -41,11 +41,11 @@ export function Footer() {
             <p className="max-w-sm text-base font-normal leading-relaxed text-white sm:text-[1.05rem]">
               Sarees chosen for their colour, craft and the stories they carry forward.
             </p>
-            <div className="mt-2 flex flex-col gap-3">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-white sm:text-sm">
+            <div className="mt-1 flex flex-col gap-2">
+              <p className="text-sm font-medium uppercase tracking-[0.16em] text-white">
                 Follow the house
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 {[
                   { label: "Instagram", href: "https://www.instagram.com/bawaribanno/", icon: instagramIcon },
                   { label: "WhatsApp", href: "https://wa.me/919167599635", icon: whatsappIcon },
@@ -57,12 +57,12 @@ export function Footer() {
                     aria-label={label}
                     target={label === "Facebook" ? undefined : "_blank"}
                     rel={label === "Facebook" ? undefined : "noreferrer"}
-                    className="flex size-10 items-center justify-center rounded-full border border-white/80 text-white transition-colors hover:bg-white hover:text-[#ED145B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:size-11"
+                    className="flex size-10 items-center justify-center text-white transition-opacity hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     <img
                       src={icon}
                       alt=""
-                      className="size-[1.1rem] object-contain brightness-0 invert"
+                      className="size-7 object-contain brightness-0 invert"
                     />
                   </a>
                 ))}
@@ -70,10 +70,10 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-9 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 lg:col-span-4 lg:grid-cols-4 lg:gap-x-8">
+          <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6 sm:col-span-2 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 lg:col-span-4 lg:grid-cols-4 lg:gap-x-8">
             <div className="min-w-0">
-              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Explore</p>
-              <ul className="mt-4 space-y-2.5 text-sm font-normal leading-relaxed sm:text-[0.95rem]">
+              <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Explore</p>
+              <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
               {exploreLinks.map((item) => (
                 <li key={item.label}>
                   <Link
@@ -89,8 +89,8 @@ export function Footer() {
             </div>
 
             <div className="min-w-0">
-              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Customer care</p>
-              <ul className="mt-4 space-y-2.5 text-sm font-normal leading-relaxed sm:text-[0.95rem]">
+              <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Customer care</p>
+              <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
               {customerLinks.map((item) => (
                 <li key={item.label}>
                   <Link to={item.to} className="text-white transition-opacity hover:opacity-70">
@@ -102,10 +102,10 @@ export function Footer() {
             </div>
 
             <div className="min-w-0">
-              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Visit us</p>
-              <address className="mt-4 space-y-3 text-sm font-normal not-italic leading-relaxed text-white">
+              <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Visit us</p>
+              <address className="mt-3 space-y-2 text-[0.95rem] font-normal not-italic leading-snug text-white">
               <p className="flex items-start gap-2">
-                <MapPin className="mt-1 size-4 shrink-0" strokeWidth={1.7} />
+                <img src="/images/footer-location.png" alt="" className="mt-0.5 size-5 shrink-0 object-contain brightness-0 invert" />
                 <span>
                   Hubtown Greenwood CHS, Flat No. 805/A Wing, 8th Floor,
                   <br />
@@ -113,19 +113,19 @@ export function Footer() {
                 </span>
               </p>
               <a href="tel:+918459769859" className="flex items-center gap-2 hover:opacity-70">
-                <Phone className="size-4 shrink-0" strokeWidth={1.7} />
+                <img src="/images/footer-phone.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
                 +91 84597 69859
               </a>
               <a href="mailto:info@bawaribanno.com" className="flex items-center gap-2 hover:opacity-70">
-                <Mail className="size-4 shrink-0" strokeWidth={1.7} />
+                <img src="/images/footer-email.png" alt="" className="size-5 shrink-0 object-contain brightness-0 invert" />
                 info@bawaribanno.com
               </a>
               </address>
             </div>
 
             <div className="min-w-0">
-              <p className="footer-column-heading font-sans text-xs font-semibold uppercase tracking-[0.17em] text-white sm:text-sm">Policies</p>
-              <ul className="mt-4 space-y-2.5 text-sm font-normal leading-relaxed sm:text-[0.95rem]">
+              <p className="footer-column-heading font-sans text-sm font-semibold uppercase tracking-[0.15em] text-white">Policies</p>
+              <ul className="mt-3 space-y-2 text-[0.95rem] font-normal leading-snug">
               {policyLinks.map((item) => (
                 <li key={item.label}>
                   <a href={item.href} className="text-white transition-opacity hover:opacity-70">
@@ -138,8 +138,14 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5 py-4 font-sans text-xs font-normal text-white sm:text-sm">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 py-3 text-center font-sans text-sm font-normal text-white">
           <p>© {new Date().getFullYear()} Bawari Banno. All rights reserved.</p>
+          <span aria-hidden="true" className="text-white/70">·</span>
+          <p className="inline-flex items-center gap-1.5">
+            <img src="/images/india-flag.png" alt="" className="size-5 object-contain" />
+            Made in India
+            <span aria-label="with love" className="text-[#FFE300]">♥</span>
+          </p>
         </div>
       </div>
     </footer>
