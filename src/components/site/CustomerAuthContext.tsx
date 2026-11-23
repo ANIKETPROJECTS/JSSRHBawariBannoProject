@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ChevronRight, X } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight, X } from "lucide-react";
 import { getCountryCallingCode, type CountryCode } from "libphonenumber-js";
 import { toast } from "sonner";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
@@ -114,10 +114,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
               <X className="size-5" />
             </button>
             <div className="relative flex h-20 items-center justify-center bg-[#ED145B] px-8">
-              <img src={logoImage} alt="Bawari Banno" className="relative z-[1] h-24 w-72 object-contain object-center" />
+              <img src={logoImage} alt="Bawari Banno" className="relative z-[1] h-20 w-64 object-contain object-center" />
             </div>
             <div className="px-6 py-7 sm:px-8 sm:py-8">
-              <div className="mb-6">
+              <div className="mb-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a6678] sm:text-sm">Welcome to Bawari Banno</p>
               </div>
               <AccountAccess onComplete={completeLogin} />
@@ -137,6 +137,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(false);
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
+  const selectedCountry = phoneCountryOptions.find((option) => option.country === country);
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
@@ -175,7 +176,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full">
       <div className="mb-5">
-        <h2 className="whitespace-nowrap font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-base">
+        <h2 className="whitespace-nowrap font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-sm">
           {step === "phone" ? "Enter mobile number" : "Enter verification code"}
         </h2>
         <p className="mt-2 text-base leading-relaxed text-[#70666b]">
@@ -185,22 +186,27 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
       {step === "phone" && (
         <>
           <form onSubmit={sendOtp}>
-            <label className="block text-xs font-semibold text-[#51434a]">
-              Mobile number
+            <div className="block">
+              <span className="sr-only">Mobile number</span>
               <span className="mt-2 flex w-full items-center border border-[#e5d6dc] bg-[#fffafb] transition-colors focus-within:border-[#ED145B] focus-within:ring-2 focus-within:ring-[#ED145B]/15">
-                <select
-                  aria-label="Country calling code"
-                  value={country}
-                  onChange={(event) => {
-                    setCountry(event.target.value as CountryCode);
-                    setPhone("");
-                  }}
-                  className="w-[118px] shrink-0 border-r border-[#e5d6dc] bg-transparent px-2 py-3.5 text-sm font-medium text-[#51434a] outline-none"
-                >
-                  {phoneCountryOptions.map((option) => (
-                    <option key={option.country} value={option.country}>{option.flag} +{option.callingCode} {option.name}</option>
-                  ))}
-                </select>
+                <span className="relative flex h-full w-[112px] shrink-0 items-center gap-1.5 border-r border-[#e5d6dc] px-2 text-[#51434a]">
+                  <span aria-hidden="true" className="text-lg leading-none">{selectedCountry?.flag}</span>
+                  <span aria-hidden="true" className="text-sm font-semibold">+{selectedCountry?.callingCode}</span>
+                  <ChevronDown aria-hidden="true" className="ml-auto size-3.5 shrink-0" />
+                  <select
+                    aria-label={`Country calling code${selectedCountry ? `, ${selectedCountry.name}` : ""}`}
+                    value={country}
+                    onChange={(event) => {
+                      setCountry(event.target.value as CountryCode);
+                      setPhone("");
+                    }}
+                    className="absolute inset-0 size-full cursor-pointer appearance-none opacity-0"
+                  >
+                    {phoneCountryOptions.map((option) => (
+                      <option key={option.country} value={option.country}>{option.flag} +{option.callingCode} {option.name}</option>
+                    ))}
+                  </select>
+                </span>
                 <input
                   required
                   inputMode="tel"
@@ -210,10 +216,10 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
                   onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
                   placeholder="Mobile number"
                   aria-label="Mobile number"
-                  className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-[#21151a] outline-none placeholder:text-[#a99aa1]"
+                  className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-base text-[#21151a] outline-none placeholder:text-[#a99aa1]"
                 />
               </span>
-            </label>
+            </div>
             <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-[#51434a] sm:text-base">
               <input
                 required
@@ -236,7 +242,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
                 hasAcceptedTerms ? "bg-[#ED145B] hover:bg-[#c90f4c]" : "bg-[#979ba1]"
               }`}
             >
-              {busy ? "Sending code…" : "Continue with OTP"} <ArrowRight className="size-4" />
+              {busy ? "Sending code…" : "Login with OTP"} <ArrowRight className="size-4" />
             </button>
           </form>
         </>
