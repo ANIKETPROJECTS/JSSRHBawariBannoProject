@@ -103,7 +103,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
             role="dialog"
             aria-modal="true"
             aria-label="Sign in with your mobile number"
-            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto border border-[#f2dce4] bg-white shadow-[0_24px_80px_rgba(31,12,21,0.28)]"
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto border border-[#f2dce4] bg-white shadow-[0_24px_80px_rgba(31,12,21,0.28)]"
           >
             <button
               type="button"
@@ -176,7 +176,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full">
       <div className="mb-5">
-        <h2 className="whitespace-nowrap font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-sm">
+        <h2 className="font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-xl">
           {step === "phone" ? "Enter mobile number" : "Enter verification code"}
         </h2>
         <p className="mt-2 text-base leading-relaxed text-[#70666b]">
