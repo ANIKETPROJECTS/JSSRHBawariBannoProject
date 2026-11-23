@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, ChevronRight, ShieldCheck, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, ChevronRight, X } from "lucide-react";
 import { getCountryCallingCode, type CountryCode } from "libphonenumber-js";
 import { toast } from "sonner";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
@@ -114,7 +115,6 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
             </button>
             <div className="relative flex h-20 items-center justify-center bg-[#ED145B] px-8">
               <img src={logoImage} alt="Bawari Banno" className="relative z-[1] h-24 w-72 object-contain object-center" />
-              <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 bg-[#FFE300]" />
             </div>
             <div className="px-6 py-7 sm:px-8 sm:py-8">
               <div className="mb-6">
@@ -136,6 +136,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   const [verifiedPhone, setVerifiedPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
@@ -174,7 +175,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full">
       <div className="mb-5">
-        <h2 className="whitespace-nowrap font-display text-2xl font-medium leading-tight text-[#21151a]">
+        <h2 className="whitespace-nowrap font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-base">
           {step === "phone" ? "Enter mobile number" : "Enter verification code"}
         </h2>
         <p className="mt-2 text-base leading-relaxed text-[#70666b]">
@@ -194,7 +195,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
                     setCountry(event.target.value as CountryCode);
                     setPhone("");
                   }}
-                  className="w-[136px] shrink-0 border-r border-[#e5d6dc] bg-transparent px-2 py-3.5 text-xs font-medium text-[#51434a] outline-none"
+                  className="w-[118px] shrink-0 border-r border-[#e5d6dc] bg-transparent px-2 py-3.5 text-sm font-medium text-[#51434a] outline-none"
                 >
                   {phoneCountryOptions.map((option) => (
                     <option key={option.country} value={option.country}>{option.flag} +{option.callingCode} {option.name}</option>
@@ -213,13 +214,30 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
                 />
               </span>
             </label>
-            <button disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 bg-[#ED145B] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#c90f4c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 disabled:opacity-50">
+            <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-[#51434a] sm:text-base">
+              <input
+                required
+                type="checkbox"
+                checked={hasAcceptedTerms}
+                onChange={(event) => setHasAcceptedTerms(event.target.checked)}
+                className="mt-1 size-5 shrink-0 accent-[#ED145B]"
+              />
+              <span>
+                By continuing, I agree to the{" "}
+                <Link to="/terms-and-conditions" className="font-semibold text-[#ED145B] underline underline-offset-2">Terms of Use</Link>
+                {" & "}
+                <Link to="/privacy-policy" className="font-semibold text-[#ED145B] underline underline-offset-2">Privacy Policy</Link>
+                {" and confirm that I am above 18 years old."}
+              </span>
+            </label>
+            <button
+              disabled={busy || !hasAcceptedTerms}
+              className={`mt-5 flex w-full items-center justify-center gap-2 px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 disabled:cursor-not-allowed ${
+                hasAcceptedTerms ? "bg-[#ED145B] hover:bg-[#c90f4c]" : "bg-[#979ba1]"
+              }`}
+            >
               {busy ? "Sending code…" : "Continue with OTP"} <ArrowRight className="size-4" />
             </button>
-            <div className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[#80747a]">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#ED145B]" />
-              <p>Secure sign in. Your number is verified with a one-time WhatsApp code.</p>
-            </div>
           </form>
         </>
       )}
