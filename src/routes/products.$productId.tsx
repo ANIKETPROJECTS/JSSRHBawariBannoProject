@@ -13,6 +13,8 @@ import { formatPrice, sarees, type Saree, type SareeVariant } from "@/data/saree
 import { getProductColor } from "@/data/colors";
 import { getCachedStorefrontCatalog, loadStorefrontCatalog } from "@/lib/storefront-catalog";
 import { cn } from "@/lib/utils";
+import { ProductImage } from "@/components/site/product-detail/ProductImage";
+import "@/components/site/product-detail/product-detail.css";
 
 export const Route = createFileRoute("/products/$productId")({
   loader: ({ params }) => {
@@ -258,7 +260,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const related = [...sameCategoryRelated, ...otherCategoryRelated].slice(0, 4);
 
   return (
-    <>
+    <div className="product-page">
       <div className="product-detail-breadcrumb-wrap">
         <nav className="product-detail-breadcrumbs">
           <Link to="/" className="hover:text-primary">
@@ -281,47 +283,47 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 key={i}
                 type="button"
                 onClick={() => setActive(i)}
+                aria-label={`Show ${saree.name} view ${i + 1}`}
+                aria-pressed={active === i}
                 className={cn(
-                  "w-14 border transition-colors sm:w-16",
-                  active === i ? "border-gold" : "border-border hover:border-gold/50",
+                  "product-detail-gallery-thumb",
+                  active === i && "is-active",
                 )}
               >
-                <img
+                <ProductImage
+                  key={img}
                   src={img}
                   alt={`${saree.name} view ${i + 1}`}
-                  loading="lazy"
-                  width={900}
-                  height={1200}
                   className="aspect-[3/4] w-full object-cover"
                 />
               </button>
             ))}
           </div>}
-          <div className="aspect-[3/4] flex-1 border border-border bg-card">
+          <div className="product-detail-main-image">
             {gallery[active] ? (
-              <img
+              <ProductImage
+                key={gallery[active]}
                 src={gallery[active]}
                 alt={saree.name}
-                width={900}
-                height={1200}
-                className="h-full w-full object-cover"
+                loading="eager"
               />
             ) : (
-              <div className="flex h-full items-center justify-center bg-[#f4efe8] px-4 text-center text-sm text-muted-foreground">
-                Product image coming soon
-              </div>
+              <ProductImage alt={saree.name} />
             )}
           </div>
         </div>
 
         <div className="product-detail-copy">
-          <p className="text-eyebrow text-muted-foreground">{saree.fabric}</p>
+          <p className="product-detail-eyebrow">{saree.fabric}</p>
           <h1 className="product-detail-title page-title-light mt-3 font-display text-primary">{saree.name}</h1>
           <div className="mt-4">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-gold">PRODUCT DESCRIPTION</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{saree.description || "Product description will be added soon."}</p>
+            <p className="product-detail-eyebrow">PRODUCT DESCRIPTION</p>
+            <p className="product-detail-description mt-2">{saree.description || "Product description will be added soon."}</p>
           </div>
-          <p className="mt-4 text-2xl tracking-wide text-foreground">
+          {saree.productDetails?.trim() && (
+            <p className="product-detail-description mt-3">{saree.productDetails}</p>
+          )}
+          <p className="product-detail-price">
             {formatPrice(saree.price)}
           </p>
           {hasDiscount && <div className="flex items-center gap-3"><p className="text-sm text-muted-foreground line-through">{formatPrice(originalPrice)}</p><span className="text-xs font-medium text-red-700">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></div>}
@@ -330,10 +332,30 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
             <ProductRating summary={reviewSummary} />
           </a>
 
+          {(saree.occasion || saree.technique || saree.pattern || saree.borderType || saree.blouse || saree.length || saree.size || saree.weight) && (
+            <div className="product-detail-facts" aria-label="Saree details">
+              {[
+                ["Occasion", saree.occasion],
+                ["Weaving technique", saree.technique],
+                ["Pattern", saree.pattern],
+                ["Border", saree.borderType],
+                ["Length", saree.length],
+                ["Blouse piece", saree.blouse],
+                ["Size", saree.size],
+                ["Weight", saree.weight],
+              ].filter((fact): fact is [string, string] => Boolean(fact[1])).map(([label, value]) => (
+                <div className="product-detail-fact" key={label}>
+                  <span className="product-detail-fact-label">{label}</span>
+                  <span className="product-detail-fact-value">{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {variantOptions.length > 0 && (
             <div className="mt-6">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-gold">Available Colors</p>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <p className="product-detail-color-title">AVAILABLE COLORS</p>
+              <div className="product-detail-color-grid mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {variantOptions.map((variant) => {
                   const isSelected = variant.id === selectedVariant?.id;
                   const isAvailable = variant.stock > 0;
@@ -345,12 +367,17 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                       aria-pressed={isSelected}
                       onClick={() => setSelectedVariantId(variant.id)}
                       className={cn(
-                        "flex items-center gap-2 border p-2 text-left transition-colors",
-                        isSelected ? "border-primary bg-primary/5" : "border-border hover:border-gold",
+                        "product-detail-color-option flex items-center gap-2 border text-left transition-colors",
                         !isAvailable && "opacity-55",
                       )}
                     >
-                      <img src={variant.image} alt="" className="size-10 shrink-0 object-cover" />
+                      <ProductImage
+                        key={variant.image}
+                        src={variant.image}
+                        alt={`${color?.label ?? variant.color} color option`}
+                        fallbackClassName="size-10"
+                        className="size-10 shrink-0 object-cover"
+                      />
                        <span className="min-w-0">
                          <span className="flex items-center gap-1.5 truncate text-xs text-primary">
                            <span className="size-3 shrink-0 rounded-full border border-black/10" style={color ? { backgroundColor: color.hex } : undefined} />
@@ -368,7 +395,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
           <div className="mt-6 h-px bg-border" />
 
           <div className="product-detail-purchase-actions mt-8">
-            <div className="flex items-center border border-border">
+              <div className="product-detail-quantity flex items-center border">
               <button
                 type="button"
                 aria-label="Decrease quantity"
@@ -392,7 +419,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               disabled={availableStock === 0}
               onClick={() => addItem(selectedProduct, qty)}
-              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap bg-primary px-2 text-[0.7rem] tracking-[0.04em] text-primary-foreground transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem] sm:tracking-[0.08em]"
+              className="product-detail-cart-button inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3"
             >
               <ShoppingBag className="size-3.5 shrink-0" strokeWidth={1.6} /> {availableStock === 0 ? "Sold Out" : "Add to Cart"}
             </button>
@@ -404,7 +431,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
                 closeCart();
                 void navigate({ to: "/checkout", search: { coupon: undefined } });
               }}
-              className="inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap border border-primary bg-white px-2 text-[0.7rem] tracking-[0.04em] text-primary transition-colors hover:bg-[#fff6f8] disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3 sm:text-[0.68rem] sm:tracking-[0.08em]"
+              className="product-detail-buy-button inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap border px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3"
             >
               Buy now <ChevronRight className="size-3.5 shrink-0" strokeWidth={1.6} />
             </button>
@@ -416,7 +443,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               aria-pressed={isWishlisted}
               onClick={() => void toggleWishlist(saree.id)}
               className={cn(
-                "inline-flex min-w-0 flex-1 items-center justify-center gap-2 border px-2.5 py-3 text-[0.7rem] transition-colors sm:flex-none sm:px-5 sm:text-eyebrow",
+                "product-detail-secondary-action inline-flex min-w-0 flex-1 items-center justify-center gap-2 border px-2.5 py-3 transition-colors sm:flex-none sm:px-5 sm:text-eyebrow",
                 isWishlisted
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border text-primary hover:border-gold hover:bg-gold/5",
@@ -433,7 +460,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               onClick={() => void shareProduct()}
               disabled={sharing}
-              className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 border border-border px-2.5 py-3 text-[0.7rem] text-primary transition-colors hover:border-gold hover:bg-gold/5 disabled:cursor-wait disabled:opacity-60 sm:flex-none sm:px-5 sm:text-eyebrow"
+              className="product-detail-secondary-action inline-flex min-w-0 flex-1 items-center justify-center gap-2 border px-2.5 py-3 transition-colors disabled:cursor-wait disabled:opacity-60 sm:flex-none sm:px-5 sm:text-eyebrow"
             >
               <Share2 className="size-4" strokeWidth={1.6} />
               {sharing ? "Sharing…" : "Share Product"}
@@ -462,6 +489,6 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }
