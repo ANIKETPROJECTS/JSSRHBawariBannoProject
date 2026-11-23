@@ -118,7 +118,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
             </div>
             <div className="px-6 py-7 sm:px-8 sm:py-8">
               <div className="mb-6">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a6678]">Welcome to Bawari Banno</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a6678] sm:text-sm">Welcome to Bawari Banno</p>
               </div>
               <AccountAccess onComplete={completeLogin} />
             </div>
@@ -174,10 +174,10 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full">
       <div className="mb-5">
-        <h2 className="font-display text-3xl font-medium leading-tight text-[#21151a]">
+        <h2 className="whitespace-nowrap font-display text-2xl font-medium leading-tight text-[#21151a]">
           {step === "phone" ? "Enter mobile number" : "Enter verification code"}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-[#70666b]">
+        <p className="mt-2 text-base leading-relaxed text-[#70666b]">
           {step === "phone" ? "We'll send you a verification code on WhatsApp." : `Enter the code sent to ${formatCustomerPhone(verifiedPhone)}.`}
         </p>
       </div>
@@ -197,7 +197,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
                   className="w-[136px] shrink-0 border-r border-[#e5d6dc] bg-transparent px-2 py-3.5 text-xs font-medium text-[#51434a] outline-none"
                 >
                   {phoneCountryOptions.map((option) => (
-                    <option key={option.country} value={option.country}>+{option.callingCode} {option.name}</option>
+                    <option key={option.country} value={option.country}>{option.flag} +{option.callingCode} {option.name}</option>
                   ))}
                 </select>
                 <input

@@ -7,9 +7,14 @@ import {
 
 const countryNames = new Intl.DisplayNames(["en"], { type: "region" });
 
+function countryFlagEmoji(country: CountryCode) {
+  return String.fromCodePoint(...Array.from(country, (letter) => letter.charCodeAt(0) + 127397));
+}
+
 export const phoneCountryOptions = getCountries()
   .map((country) => ({
     country,
+    flag: countryFlagEmoji(country),
     name: countryNames.of(country) ?? country,
     callingCode: getCountryCallingCode(country),
   }))
