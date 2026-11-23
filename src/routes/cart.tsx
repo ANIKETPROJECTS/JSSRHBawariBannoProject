@@ -15,6 +15,7 @@ import "@/components/site/cart-checkout.css";
 export const Route = createFileRoute("/cart")({
   validateSearch: (search: Record<string, unknown>) => ({
     coupon: typeof search.coupon === "string" ? search.coupon : undefined,
+    payment: search.payment === "failed" ? "failed" as const : undefined,
   }),
   head: () => ({ meta: [{ title: "Shopping Cart | Bawari Banno" }] }),
   component: CartPage,
@@ -27,7 +28,7 @@ type StoreCoupon = {
 
 function CartPage() {
   const navigate = useNavigate();
-  const { coupon: initialCoupon } = Route.useSearch();
+  const { coupon: initialCoupon, payment } = Route.useSearch();
   const { items, updateQuantity, removeItem } = useCart();
   const [coupon, setCoupon] = useState(initialCoupon ?? "");
   const [appliedCoupon, setAppliedCoupon] = useState("");
@@ -125,6 +126,15 @@ function CartPage() {
         <div className="mb-6">
           <h1 className="cart-page-title">Shopping Cart <span>({itemCount} {itemCount === 1 ? "item" : "items"})</span></h1>
         </div>
+        {payment === "failed" && (
+          <div role="alert" className="mb-5 flex items-start gap-3 rounded-lg border border-[#f1c5cc] bg-[#fff5f6] px-4 py-3.5 text-[#a72b42]">
+            <span aria-hidden="true" className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-current text-xs font-semibold">!</span>
+            <div>
+              <p className="text-sm font-semibold">Payment failed</p>
+              <p className="mt-0.5 text-sm">Your cart is saved. Please try your payment again.</p>
+            </div>
+          </div>
+        )}
         {!items.length ? (
           <section className="flex min-h-[300px] flex-col items-center justify-center rounded-xl bg-[#f6f6f6] px-5 py-12 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-white"><img src={cartIcon} alt="" className="size-8 object-contain brightness-0 saturate-100" /></div>
@@ -191,7 +201,7 @@ function CartPage() {
                 <p className="text-xs text-[#777078]">Inclusive of all taxes</p>
               </dl>
               <button type="button" onClick={() => void navigate({ to: "/checkout", search: { coupon: appliedCoupon || undefined } })} className="flex w-full items-center justify-center gap-2 rounded-md bg-[#ed145b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]">
-                Proceed to Checkout
+                {payment === "failed" ? "Try payment again" : "Proceed to Checkout"}
               </button>
               <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-[#777078]"><img src={insuranceIcon} alt="" className="size-4 object-contain mix-blend-multiply" />100% Secure Safe Payments</p>
             </aside>

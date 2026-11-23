@@ -56,7 +56,6 @@ function PaymentReturn() {
   const [state, setState] = useState<PaymentState | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [pendingCoupon, setPendingCoupon] = useState("");
   const transactionId =
     new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get(
       "transactionId",
@@ -78,7 +77,6 @@ function PaymentReturn() {
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error ?? "We could not read the payment status.");
         if (cancelled) return;
-        setState(result);
         const paymentStatus = String(result.paymentStatus ?? "").toLowerCase();
         if (paymentStatus === "paid") {
           clearCart();
@@ -86,8 +84,14 @@ function PaymentReturn() {
         } else if (paymentStatus === "failed") {
           const snapshot = readPendingCartSnapshot();
           if (snapshot.items.length) restoreItems(snapshot.items);
-          setPendingCoupon(snapshot.coupon);
+          window.sessionStorage.removeItem(pendingPaymentCartStorageKey);
+          await navigate({
+            to: "/cart",
+            search: { coupon: snapshot.coupon || undefined, payment: "failed" },
+          });
+          return;
         }
+        setState(result);
         if (paymentStatus === "pending" && attempt < 5) {
           timer = setTimeout(() => setAttempt((value) => value + 1), 1800);
         }
@@ -105,7 +109,7 @@ function PaymentReturn() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [attempt, clearCart, restoreItems, transactionId]);
+  }, [attempt, clearCart, navigate, restoreItems, transactionId]);
 
   const paymentStatus = String(state?.paymentStatus ?? "").toLowerCase();
   const paid = paymentStatus === "paid";
@@ -176,13 +180,7 @@ function PaymentReturn() {
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
               {failed ? (
                 <>
-                  <Link
-                    to="/cart"
-                    search={{ coupon: pendingCoupon || undefined }}
-                    className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#ed145b] px-6 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]"
-                  >
-                    Return to cart
-                  </Link>
+                  <Link to="/cart" search={{ coupon: undefined, payment: "failed" }} className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#ed145b] px-6 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]">Return to cart</Link>
                   <Link
                     to="/products"
                     className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#ded9db] px-6 py-3 text-sm font-medium text-[#51474c] hover:border-[#ed145b]"
