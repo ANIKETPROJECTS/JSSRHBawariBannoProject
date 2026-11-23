@@ -106,6 +106,18 @@
   --sidebar-border: #6f3a18;
 }
 
+.customer-auth-title {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+@media (min-width: 640px) {
+  .customer-auth-title {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
