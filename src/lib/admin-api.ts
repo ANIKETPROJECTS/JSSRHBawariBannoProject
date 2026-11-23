@@ -3362,7 +3362,6 @@ async function handleAuth(request: Request, path: string) {
     const input = await body(request);
     const phone = normalizeIndianPhone(input.phone);
     const otp = String(input.otp ?? "");
-    const mode = input.mode === "login" ? "login" : "signup";
     if (!phone || !/^\d{6}$/.test(otp)) return fail("Enter a valid mobile number and 6-digit OTP.");
 
     const challenges = database.collection("customer_otp_challenges");
@@ -3382,9 +3381,6 @@ async function handleAuth(request: Request, path: string) {
       return fail(attempts >= 5 ? "Too many incorrect attempts. Request a new code." : "Incorrect OTP.", attempts >= 5 ? 429 : 401);
     }
     let customer = await database.collection("customers").findOne({ phone });
-    if (!customer && mode === "login") {
-      return fail("No account was found for this number. Create an account instead.", 404);
-    }
 
     const consumed = await challenges.deleteOne({ _id: phone, otpHash: challenge.otpHash, expiresAt: { $gt: new Date() } });
     if (!consumed.deletedCount) return fail("This OTP has expired. Request a new code.", 401);

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Check, ChevronRight, X } from "lucide-react";
+import { ArrowRight, ChevronRight, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 
@@ -99,26 +99,33 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
           <section
             role="dialog"
             aria-modal="true"
-            aria-label="Sign in or create an account"
-            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto border border-border bg-white p-6 shadow-2xl sm:p-9"
+            aria-label="Sign in with your mobile number"
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto border border-[#f2dce4] bg-white shadow-[0_24px_80px_rgba(31,12,21,0.28)]"
           >
             <button
               type="button"
               aria-label="Close sign in"
               onClick={dismissAuth}
-              className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground hover:bg-secondary hover:text-primary"
+              className="absolute right-4 top-4 z-10 rounded-full bg-white/15 p-2 text-white transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FFE300]"
             >
               <X className="size-5" />
             </button>
-            <div className="mb-6 pr-8">
-              <div className="flex w-full justify-center rounded-sm bg-[#5b1728] px-4 py-4">
-                <div className="inline-flex rounded-sm bg-[#ED145B] px-3 py-1.5">
-                  <img src={logoImage} alt="Bawari Banno" className="h-12 w-48 object-contain object-center" />
-                </div>
-              </div>
-              <p className="mt-4 text-sm text-muted-foreground">Sign in or create an account to continue with your purchase.</p>
+            <div className="relative flex min-h-28 items-center justify-center bg-[#ED145B] px-8 py-5">
+              <img src={logoImage} alt="Bawari Banno" className="h-16 w-56 object-contain object-center" />
+              <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 bg-[#FFE300]" />
             </div>
-            <AccountAccess onComplete={completeLogin} />
+            <div className="px-6 py-7 sm:px-8 sm:py-8">
+              <div className="mb-6">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a6678]">Customer sign in</p>
+                <h2 className="mt-2 font-display text-3xl font-medium leading-tight text-[#21151a]">
+                  Sign in with your mobile
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#70666b]">
+                  {`Enter your number and we'll send a one-time code on WhatsApp. New customers are set up automatically—no separate registration.`}
+                </p>
+              </div>
+              <AccountAccess onComplete={completeLogin} />
+            </div>
           </section>
         </div>
       )}
@@ -127,21 +134,16 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 }
 
 function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => void }) {
-  const [mode, setMode] = useState<"signup" | "login">("signup");
-  const [step, setStep] = useState<"phone" | "otp" | "details">("phone");
+  const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const stepNumber = step === "details" ? 2 : 1;
-  const totalSteps = mode === "signup" ? 2 : 1;
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     try {
-      await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone, mode }) });
+      await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone }) });
       setStep("otp");
       toast.success("OTP sent to your WhatsApp number.");
     } catch (error) {
@@ -155,9 +157,9 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     event.preventDefault();
     setBusy(true);
     try {
-      const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone, otp, mode }) });
-      if (mode === "login" || (result.customer?.name && result.customer?.email)) onComplete(result.customer);
-      else setStep("details");
+      const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone, otp }) });
+      if (!result.customer?.phone) throw new Error("Sign in could not be completed. Please try again.");
+      onComplete(result.customer);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Verification failed.");
     } finally {
@@ -165,70 +167,52 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     }
   }
 
-  async function saveDetails(event: React.FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    try {
-      const customer = await authApi("/api/auth/profile", { method: "PUT", body: JSON.stringify({ name, email }) });
-      toast.success("Your account has been created.");
-      onComplete(customer);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save your details.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between">
-        <p className="text-eyebrow text-muted-foreground">{mode === "signup" ? "Create your account" : "Customer login"}</p>
-        <span className="text-xs text-muted-foreground">{stepNumber}/{totalSteps}</span>
-      </div>
-      <h2 className="mt-4 font-display text-3xl text-primary md:text-4xl">{step === "phone" ? (mode === "signup" ? "Create your account" : "Log in to your account") : step === "otp" ? "Verify your number" : "Complete your details"}</h2>
-      <div className="mt-6 flex gap-1">
-        {Array.from({ length: totalSteps }, (_, index) => index + 1).map((item) => <div key={item} className={`h-1 flex-1 ${item <= stepNumber ? "bg-primary" : "bg-border"}`} />)}
-      </div>
       {step === "phone" && (
         <>
-          <div className="mt-7 grid grid-cols-2 border-b border-border" role="tablist" aria-label="Account access">
-            <button type="button" role="tab" aria-selected={mode === "signup"} onClick={() => setMode("signup")} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs transition-colors sm:px-3 sm:text-sm ${mode === "signup" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Create account</button>
-            <button type="button" role="tab" aria-selected={mode === "login"} onClick={() => setMode("login")} className={`whitespace-nowrap border-b-2 px-1 py-3 text-xs transition-colors sm:px-3 sm:text-sm ${mode === "login" ? "border-primary font-medium text-primary" : "border-transparent text-muted-foreground"}`}>Log in</button>
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            {mode === "signup"
-              ? "Already have an account? Choose Log in and enter the WhatsApp number registered with Bawari Banno."
-              : "Enter the WhatsApp number registered with your account to receive a login code."}
-          </p>
           <form onSubmit={sendOtp}>
-            <label className="mt-7 block text-eyebrow text-muted-foreground">
+            <label className="block text-xs font-semibold text-[#51434a]">
               Mobile number
-              <span className="mt-3 flex w-full items-center border-b border-border focus-within:border-gold">
-                <span className="border-r border-border py-3 pr-3 text-sm font-medium text-primary" aria-hidden="true">+91</span>
-                <input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" aria-label="10-digit Indian mobile number" className="min-w-0 flex-1 px-3 py-3 text-sm outline-none" />
+              <span className="mt-2 flex w-full items-center border border-[#e5d6dc] bg-[#fffafb] transition-colors focus-within:border-[#ED145B] focus-within:ring-2 focus-within:ring-[#ED145B]/15">
+                <span className="border-r border-[#e5d6dc] px-4 py-3.5 text-sm font-medium text-[#51434a]" aria-hidden="true">+91</span>
+                <input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" aria-label="10-digit Indian mobile number" className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-[#21151a] outline-none placeholder:text-[#a99aa1]" />
               </span>
             </label>
-            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">We’ll send a one-time password to your WhatsApp number. No password required.</p>
-            <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Sending…" : mode === "signup" ? "Continue" : "Send login code"} <ArrowRight className="size-3.5" /></button>
+            <button disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 bg-[#ED145B] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#c90f4c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 disabled:opacity-50">
+              {busy ? "Sending code…" : "Continue with OTP"} <ArrowRight className="size-4" />
+            </button>
+            <div className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-[#80747a]">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#ED145B]" />
+              <p>Secure sign in. Your number is verified with a one-time WhatsApp code.</p>
+            </div>
           </form>
         </>
       )}
       {step === "otp" && (
         <form onSubmit={verify}>
-          <label className="mt-9 block text-eyebrow text-muted-foreground">One-time password<input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} placeholder="123456" className="mt-3 w-full border-b border-border px-0 py-3 text-sm tracking-[0.4em] outline-none focus:border-gold" /></label>
-          <p className="mt-4 text-xs text-muted-foreground">Enter the 6-digit code sent to your WhatsApp number.</p>
-          <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Verifying…" : "Verify and continue"} <ChevronRight className="size-3.5" /></button>
-          <div className="mt-5 flex flex-wrap justify-between gap-3 text-xs">
-            <button type="button" onClick={() => { setStep("phone"); setOtp(""); }} className="text-muted-foreground underline underline-offset-4">Change number</button>
-            {mode === "login" && <button type="button" onClick={() => setMode("signup")} className="text-primary underline underline-offset-4">Create an account instead</button>}
-          </div>
-        </form>
-      )}
-      {step === "details" && (
-        <form onSubmit={saveDetails}>
-          <label className="mt-8 block text-eyebrow text-muted-foreground">Your name<input required autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} className="mt-3 w-full border-b border-border px-0 py-3 text-sm outline-none focus:border-gold" /></label>
-          <label className="mt-6 block text-eyebrow text-muted-foreground">Email address<input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className="mt-3 w-full border-b border-border px-0 py-3 text-sm outline-none focus:border-gold" /></label>
-          <button disabled={busy} className="mt-8 flex w-full items-center justify-center gap-2 bg-primary px-5 py-4 text-eyebrow text-white transition-colors hover:bg-ink disabled:opacity-50">{busy ? "Saving…" : "Create account"} <Check className="size-3.5" /></button>
+          <p className="text-sm leading-relaxed text-[#665b61]">
+            Enter the 6-digit code sent to <span className="font-semibold text-[#21151a]">+91 {phone}</span>.
+          </p>
+          <label className="mt-5 block text-xs font-semibold text-[#51434a]" htmlFor="customer-auth-otp">One-time password</label>
+          <input
+            id="customer-auth-otp"
+            required
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            autoComplete="one-time-code"
+            value={otp}
+            onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="••••••"
+            className="mt-2 w-full border border-[#e5d6dc] bg-[#fffafb] px-4 py-3.5 text-center text-xl tracking-[0.5em] text-[#21151a] outline-none transition-colors focus:border-[#ED145B] focus:ring-2 focus:ring-[#ED145B]/15"
+          />
+          <button disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 bg-[#ED145B] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#c90f4c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 disabled:opacity-50">
+            {busy ? "Verifying…" : "Verify and sign in"} <ChevronRight className="size-4" />
+          </button>
+          <button type="button" onClick={() => { setStep("phone"); setOtp(""); }} className="mt-4 w-full text-center text-xs font-medium text-[#8a707b] underline underline-offset-4 transition-colors hover:text-[#ED145B]">
+            Change mobile number
+          </button>
         </form>
       )}
     </div>

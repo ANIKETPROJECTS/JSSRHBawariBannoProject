@@ -36,7 +36,7 @@ export const Route = createFileRoute("/profile")({
       { title: "My Profile | Bawari Banno" },
       {
         name: "description",
-        content: "Register with OTP and manage your Bawari Banno profile, orders and addresses.",
+        content: "Sign in with your mobile number to manage your Bawari Banno profile, orders and saved addresses.",
       },
     ],
   }),
