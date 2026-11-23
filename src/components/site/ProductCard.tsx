@@ -243,7 +243,7 @@ export function ProductCard({
           aria-label={`Buy ${saree.name} now`}
           className="mt-1.5 flex min-h-8 w-full items-center justify-center gap-1.5 rounded-sm border border-[#ed145b]/50 bg-white px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-[#ed145b] transition-colors hover:bg-[#fff4f7] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ed145b] focus-visible:ring-offset-2 sm:hidden"
         >
-          <ShoppingCart aria-hidden="true" className="size-3.5" />
+          <img src={buyNowIcon} alt="" aria-hidden="true" className="size-4 object-contain brightness-0" />
           <span>Buy Now</span>
         </button>
       )}
