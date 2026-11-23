@@ -176,7 +176,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full min-w-0 text-left">
       <div className="mb-5">
-        <h2 className="w-full min-w-0 font-display text-xl font-medium leading-tight text-[#21151a] sm:text-base sm:whitespace-nowrap">
+        <h2 className="w-full min-w-0 font-display text-lg font-medium leading-tight text-[#21151a] sm:text-sm sm:whitespace-nowrap">
           {step === "phone" ? "Enter Mobile Number" : "Enter verification code"}
         </h2>
         <p className="mt-2 text-base leading-relaxed text-[#70666b]">
