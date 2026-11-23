@@ -1,0 +1,27 @@
+.cart-page h1,
+.checkout-page h1 {
+  margin: 0;
+  font-size: clamp(1.55rem, 2.6vw, 2rem) !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+}
+
+.cart-page h2,
+.checkout-page h2 {
+  font-size: 1.125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+.cart-page h3,
+.checkout-page h3 {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+}
+
+.cart-page-title span {
+  color: #777078;
+  font-size: 0.7em;
+  font-weight: 400;
+}
