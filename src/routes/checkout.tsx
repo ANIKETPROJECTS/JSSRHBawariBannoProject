@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
-import { useCart } from "@/components/site/CartContext";
+import { pendingPaymentCartStorageKey, useCart } from "@/components/site/CartContext";
 import { CartProductImage } from "@/components/site/CartProductImage";
 import { useCustomerAuth } from "@/components/site/CustomerAuthContext";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
@@ -39,7 +39,7 @@ function Checkout() {
   const navigate = useNavigate();
   const { coupon: initialCoupon } = Route.useSearch();
   const { customer, checking, openAuth } = useCustomerAuth();
-  const { items, clearCart } = useCart();
+  const { items } = useCart();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -199,7 +199,10 @@ function Checkout() {
   async function placeOrder() {
     if (!selectedId || !items.length) return;
     setBusy(true);
+    let cartSnapshotSaved = false;
     try {
+      sessionStorage.setItem(pendingPaymentCartStorageKey, JSON.stringify({ items, coupon }));
+      cartSnapshotSaved = true;
       const response = await fetch("/api/inventory/purchase", {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ items: items.map(({ product, quantity }) => ({ productId: product.id, variantId: product.selectedVariantId, quantity })), addressId: selectedId, couponCode: coupon || undefined }),
@@ -207,9 +210,11 @@ function Checkout() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Checkout could not be completed.");
       if (!result.redirectUrl) throw new Error("PhonePe did not return a payment URL.");
-      clearCart();
       window.location.assign(result.redirectUrl);
-    } catch (error) { toast.error(error instanceof Error ? error.message : "Checkout could not be completed."); }
+    } catch (error) {
+      if (cartSnapshotSaved) sessionStorage.removeItem(pendingPaymentCartStorageKey);
+      toast.error(error instanceof Error ? error.message : "Checkout could not be completed.");
+    }
     finally { setBusy(false); }
   }
 

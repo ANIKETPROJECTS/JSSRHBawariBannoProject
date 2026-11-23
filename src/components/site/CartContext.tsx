@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import type { Saree } from "@/data/sarees";
@@ -7,6 +7,8 @@ export type CartItem = {
   product: Saree;
   quantity: number;
 };
+
+export const pendingPaymentCartStorageKey = "bb-phonepe-pending-cart-v1";
 
 type AddItemOptions = {
   showToast?: boolean;
@@ -18,6 +20,7 @@ type CartContextValue = {
   updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   removeItem: (productId: string, variantId?: string) => void;
   clearCart: () => void;
+  restoreItems: (items: CartItem[]) => void;
   openCart: () => void;
 };
 
@@ -30,6 +33,8 @@ function cartItemKey(product: Saree) {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const navigate = useNavigate();
+  const clearCart = useCallback(() => setItems([]), []);
+  const restoreItems = useCallback((nextItems: CartItem[]) => setItems(nextItems), []);
 
   const addItem = (product: Saree, quantity = 1, options: AddItemOptions = {}) => {
     if (product.variants?.length && !product.selectedVariantId) {
@@ -71,12 +76,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           current.filter((item) => !(item.product.id === productId && (item.product.selectedVariantId ?? "") === (variantId ?? ""))),
         );
       },
-      clearCart: () => setItems([]),
+      clearCart,
+      restoreItems,
       openCart: () => {
         void navigate({ to: "/cart" });
       },
     }),
-    [items, navigate],
+    [items, navigate, clearCart, restoreItems],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
