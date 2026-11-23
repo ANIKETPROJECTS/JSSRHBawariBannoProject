@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { MapPin, ShieldCheck, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useCart } from "@/components/site/CartContext";
+import { CartProductImage } from "@/components/site/CartProductImage";
 import { useCustomerAuth } from "@/components/site/CustomerAuthContext";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
 import { formatPrice } from "@/data/sarees";
 import { formatCustomerPhone } from "@/lib/customer-phone";
+import locationIcon from "../../attached_assets/location_(1)_1795455962716.png";
+import securityIcon from "../../attached_assets/security_1795456066348.png";
+import shoppingBagIcon from "../../attached_assets/shopping-bag_1795456111574.png";
+import insuranceIcon from "../../attached_assets/insurance_1795456279777.png";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/checkout")({
@@ -166,7 +170,7 @@ function Checkout() {
               <section className="rounded-xl bg-[#f6f6f6] p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <MapPin className="size-5 text-[#ed145b]" />
+                    <img src={locationIcon} alt="" className="size-5 object-contain mix-blend-multiply" />
                     <h2 className="text-[#302a30]">Delivery Address</h2>
                   </div>
                   <button type="button" onClick={() => setShowAddressForm((open) => !open)} className="rounded-md border border-[#d9d4d6] bg-white px-3 py-2 text-sm font-medium text-[#51474c] hover:border-[#ed145b] hover:text-[#ed145b]">
@@ -224,26 +228,25 @@ function Checkout() {
 
               <section className="rounded-xl bg-[#f6f6f6] p-4 sm:p-5">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="size-5 text-[#ed145b]" />
+                  <img src={securityIcon} alt="" className="size-5 object-contain mix-blend-multiply" />
                   <h2 className="text-[#302a30]">Payment Method</h2>
                 </div>
                 <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#ed145b]/35 bg-white p-4">
                   <span className="flex size-5 items-center justify-center rounded-full border border-[#ed145b]"><span className="size-2.5 rounded-full bg-[#ed145b]" /></span>
-                  <span className="text-sm font-medium text-[#302a30]">PhonePe / UPI / Cards / Net Banking</span>
+                  <span className="text-sm font-medium text-[#302a30]">UPI / Cards / Net Banking</span>
                 </div>
-                <p className="mt-3 text-sm text-[#6f666c]">Secure payment will open through PhonePe when you place the order.</p>
               </section>
             </div>
 
             <aside className="h-fit rounded-xl bg-[#f6f6f6] p-4 sm:p-5 lg:sticky lg:top-5">
               <div className="flex items-center gap-2">
-                <ShoppingBag className="size-5 text-[#ed145b]" />
+                <img src={shoppingBagIcon} alt="" className="size-5 object-contain mix-blend-multiply" />
                 <h2 className="text-[#302a30]">Order Summary</h2>
               </div>
               <div className="mt-4 divide-y divide-[#e4dfe1] border-y border-[#e4dfe1]">
                 {items.map(({ product, quantity }) => (
                   <div key={`${product.id}-${product.selectedVariantId ?? ""}`} className="flex gap-3 py-3">
-                    {product.image ? <img src={product.image} alt="" className="size-16 rounded-md object-cover" /> : <div role="img" aria-label={`${product.name} image unavailable`} className="flex size-16 shrink-0 items-center justify-center rounded-md bg-white px-1 text-center text-xs text-[#777078]">Image unavailable</div>}
+                    <CartProductImage product={product} className="size-16 rounded-md" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-[#302a30]">{product.name}</p>
                       {product.selectedVariantColor && <p className="mt-0.5 text-sm text-[#777078]">{product.selectedVariantColor}</p>}
@@ -267,7 +270,7 @@ function Checkout() {
               <button type="button" disabled={!selectedId || showAddressForm || !items.length || busy} onClick={() => void placeOrder()} className="mt-4 w-full rounded-md bg-[#ed145b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#bd104a] disabled:cursor-not-allowed disabled:opacity-50">
                 {busy ? "Starting secure payment…" : "Place Order"}
               </button>
-              <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[#6f666c]"><ShieldCheck className="size-4 text-emerald-600" /> Secure checkout · Safe payments</p>
+              <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[#6f666c]"><img src={insuranceIcon} alt="" className="size-5 object-contain mix-blend-multiply" /> 100% Secure</p>
             </aside>
           </div>
         )}
