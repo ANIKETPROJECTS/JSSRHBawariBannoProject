@@ -52,6 +52,7 @@ const profileLinks = [
   { label: "Wishlist", icon: Heart },
   { label: "Saved addresses", icon: MapPin },
 ];
+const customerProfileSectionIds = ["account-overview", "account-details", "orders", "wishlist", "saved-addresses"];
 
 const orders = [
   { id: "BB-2408-019", date: "12 August 2026", status: "Delivered", item: sarees[0] },
@@ -282,8 +283,48 @@ function formatOrderDate(value: string | undefined) {
 
 function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wishlistLoading, editing, saving, onSave, onEditing, onSignOut }: { customer: { name: string; email: string; phone: string }; orders: CustomerOrder[]; saved: StorefrontProduct[]; ordersLoading: boolean; wishlistLoading: boolean; editing: boolean; saving: boolean; onSave: (event: React.FormEvent<HTMLFormElement>) => void; onEditing: () => void; onSignOut: () => void }) {
   const initials = customer.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "BB";
+  const [activeSection, setActiveSection] = useState("account-overview");
+
+  useEffect(() => {
+    const initialSection = window.location.hash.slice(1);
+    if (customerProfileSectionIds.includes(initialSection)) {
+      setActiveSection(initialSection);
+      window.requestAnimationFrame(() => document.getElementById(initialSection)?.scrollIntoView({ block: "start" }));
+    }
+    if (!("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visibleSections = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((first, second) => first.boundingClientRect.top - second.boundingClientRect.top);
+      if (visibleSections[0]) setActiveSection(visibleSections[0].target.id);
+    }, { rootMargin: "-120px 0px -65% 0px", threshold: 0 });
+    customerProfileSectionIds.forEach((id) => {
+      const section = document.getElementById(id);
+      if (section) observer.observe(section);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  function navigateToSection(event: React.MouseEvent<HTMLAnchorElement>, sectionId: string) {
+    event.preventDefault();
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    setActiveSection(sectionId);
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#${sectionId}`);
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function sectionLinkClass(sectionId: string) {
+    const active = activeSection === sectionId;
+    return `block border-l-2 px-3 py-2 text-sm transition-colors ${
+      active
+        ? "border-[#ED145B] bg-[#fff8fa] font-medium text-[#ED145B]"
+        : "border-transparent text-primary hover:bg-[#fff8fa] hover:text-[#ED145B]"
+    }`;
+  }
+
   return <>
-    <section className="border-b border-[#f0dce3] bg-[#fff8fa]">
+    <section id="account-overview" className="scroll-mt-24 border-b border-[#f0dce3] bg-[#fff8fa]">
       <div className="mx-auto max-w-6xl px-5 py-7 sm:py-8">
         <p className="text-eyebrow text-[#ED145B]">My account</p>
         <h1 className="account-page-title mt-2 font-display font-medium text-[#21151a]">Welcome back, {customer.name || "to your account"}</h1>
@@ -299,20 +340,20 @@ function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wis
           </div>
           <div className="mt-4 flex items-center gap-2 border-t border-border pt-3 text-xs text-emerald-deep"><Check className="size-3.5" /> Mobile verified</div>
         </div>
-        <nav aria-label="Account sections" className="border border-[#eadde1] bg-white p-3">
-          <a href="#account-overview" className="block px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Overview</a>
-          <div className="mt-2 border-t border-[#f0e5e9] pt-3">
+        <nav aria-label="Account sections" className="grid grid-cols-2 items-start gap-x-2 border border-[#eadde1] bg-white p-3 lg:grid-cols-1">
+          <a href="#account-overview" aria-current={activeSection === "account-overview" ? "location" : undefined} onClick={(event) => navigateToSection(event, "account-overview")} className={sectionLinkClass("account-overview")}>Overview</a>
+          <div className="min-w-0 border-t border-[#f0e5e9] pt-2 lg:mt-2 lg:pt-3">
             <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Orders</p>
-            <a href="#orders" className="mt-1 block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">My orders</a>
+            <a href="#orders" aria-current={activeSection === "orders" ? "location" : undefined} onClick={(event) => navigateToSection(event, "orders")} className={sectionLinkClass("orders")}>My orders</a>
           </div>
-          <div className="mt-2 border-t border-[#f0e5e9] pt-3">
+          <div className="min-w-0 border-t border-[#f0e5e9] pt-2 lg:mt-2 lg:pt-3">
             <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Saved</p>
-            <a href="#wishlist" className="mt-1 block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Wishlist</a>
+            <a href="#wishlist" aria-current={activeSection === "wishlist" ? "location" : undefined} onClick={(event) => navigateToSection(event, "wishlist")} className={sectionLinkClass("wishlist")}>Wishlist</a>
           </div>
-          <div className="mt-2 border-t border-[#f0e5e9] pt-3">
+          <div className="min-w-0 border-t border-[#f0e5e9] pt-2 lg:mt-2 lg:pt-3">
             <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Account</p>
-            <a href="#account-details" className="mt-1 block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Profile</a>
-            <a href="#saved-addresses" className="block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Addresses</a>
+            <a href="#account-details" aria-current={activeSection === "account-details" ? "location" : undefined} onClick={(event) => navigateToSection(event, "account-details")} className={sectionLinkClass("account-details")}>Profile</a>
+            <a href="#saved-addresses" aria-current={activeSection === "saved-addresses" ? "location" : undefined} onClick={(event) => navigateToSection(event, "saved-addresses")} className={sectionLinkClass("saved-addresses")}>Addresses</a>
           </div>
         </nav>
         <button type="button" onClick={onSignOut} className="flex w-full items-center gap-2 border border-[#eadde1] bg-white px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#ED145B] hover:text-[#ED145B]"><LogOut className="size-4" /> Sign out</button>
@@ -330,7 +371,7 @@ function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wis
             {editing && <button disabled={saving} className="w-fit self-end bg-primary px-6 py-2.5 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}
           </form>
         </section>
-        <div id="account-overview" className="scroll-mt-24 grid grid-cols-2 divide-x divide-[#eadde1] border border-[#eadde1] bg-white">
+        <div className="grid grid-cols-2 divide-x divide-[#eadde1] border border-[#eadde1] bg-white">
           <div className="px-4 py-3"><p className="account-summary-value font-display text-primary">{ordersLoading ? "—" : orders.length}</p><p className="mt-0.5 text-sm text-muted-foreground">Orders</p></div>
           <Link to="/wishlist" className="px-4 py-3 transition-colors hover:bg-[#fff8fa]"><p className="account-summary-value font-display text-primary">{wishlistLoading ? "—" : saved.length}</p><p className="mt-0.5 text-sm text-muted-foreground">Saved favourites <span className="text-[#ED145B]">→</span></p></Link>
         </div>
