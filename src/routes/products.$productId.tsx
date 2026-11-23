@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronRight, Heart, Minus, Plus, Share2, ShoppingBag } from "lucide-react";
+import { Check, ChevronRight, Heart, Minus, Plus, Share2, ShoppingBag, Star } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -314,77 +314,61 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
         </div>
 
         <div className="product-detail-copy">
-          <p className="product-detail-eyebrow">{saree.fabric}</p>
-          <h1 className="product-detail-title page-title-light mt-3 font-display text-primary">{saree.name}</h1>
-          <div className="mt-4">
-            <p className="product-detail-eyebrow">PRODUCT DESCRIPTION</p>
-            <p className="product-detail-description mt-2">{saree.description || "Product description will be added soon."}</p>
-          </div>
-          {saree.productDetails?.trim() && (
-            <p className="product-detail-description mt-3">{saree.productDetails}</p>
-          )}
-          <p className="product-detail-price">
-            {formatPrice(saree.price)}
-          </p>
-          {hasDiscount && <div className="flex items-center gap-3"><p className="text-sm text-muted-foreground line-through">{formatPrice(originalPrice)}</p><span className="text-xs font-medium text-red-700">{saree.discountType === "fixed" ? `${formatPrice(Number(saree.discountValue))} OFF` : `${Number(saree.discountValue)}% OFF`}</span></div>}
-          <p className="text-xs text-muted-foreground">Inclusive of all taxes</p>
-          <a href="#reviews" className="mt-3 inline-flex hover:opacity-80">
+          <p className="product-detail-brand">BAWARI BANNO</p>
+          <h1 className="product-detail-title page-title-light mt-2 font-display text-primary">{saree.name}</h1>
+          <p className="product-detail-fabric">{saree.fabric}</p>
+          <a href="#reviews" className="product-detail-rating mt-4 hover:border-primary/40">
+            <Star className="size-4 fill-[#14958f] text-[#14958f]" aria-hidden="true" />
             <ProductRating summary={reviewSummary} />
           </a>
 
-          {(saree.occasion || saree.technique || saree.pattern || saree.borderType || saree.blouse || saree.length || saree.size || saree.weight) && (
-            <div className="product-detail-facts" aria-label="Saree details">
-              {[
-                ["Occasion", saree.occasion],
-                ["Weaving technique", saree.technique],
-                ["Pattern", saree.pattern],
-                ["Border", saree.borderType],
-                ["Length", saree.length],
-                ["Blouse piece", saree.blouse],
-                ["Size", saree.size],
-                ["Weight", saree.weight],
-              ].filter((fact): fact is [string, string] => Boolean(fact[1])).map(([label, value]) => (
-                <div className="product-detail-fact" key={label}>
-                  <span className="product-detail-fact-label">{label}</span>
-                  <span className="product-detail-fact-value">{value}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="product-detail-divider" />
+
+          <div className="product-detail-price-block">
+            <p className="product-detail-price">{formatPrice(saree.price)}</p>
+            {hasDiscount && (
+              <div className="product-detail-price-note">
+                <span className="line-through">{formatPrice(originalPrice)}</span>
+                <span className="product-detail-discount">
+                  {saree.discountType === "fixed"
+                    ? `${formatPrice(Number(saree.discountValue))} OFF`
+                    : `${Number(saree.discountValue)}% OFF`}
+                </span>
+              </div>
+            )}
+            <p className="product-detail-tax-note">Inclusive of all taxes</p>
+          </div>
 
           {variantOptions.length > 0 && (
-            <div className="mt-6">
-              <p className="product-detail-color-title">AVAILABLE COLORS</p>
-              <div className="product-detail-color-grid mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="product-detail-colors mt-6">
+              <p className="product-detail-color-title">MORE COLORS</p>
+              <div className="product-detail-color-grid mt-3">
                 {variantOptions.map((variant) => {
                   const isSelected = variant.id === selectedVariant?.id;
                   const isAvailable = variant.stock > 0;
                   const color = getProductColor(variant.color);
+                  const colorLabel = color?.label ?? variant.color;
                   return (
                     <button
                       key={variant.id}
                       type="button"
+                      aria-label={`${colorLabel}${isAvailable ? "" : ", sold out"}`}
                       aria-pressed={isSelected}
                       onClick={() => setSelectedVariantId(variant.id)}
                       className={cn(
-                        "product-detail-color-option flex items-center gap-2 border text-left transition-colors",
+                        "product-detail-color-option",
+                        isSelected && "is-selected",
                         !isAvailable && "opacity-55",
                       )}
                     >
                       <ProductImage
                         key={variant.image}
                         src={variant.image}
-                        alt={`${color?.label ?? variant.color} color option`}
-                        fallbackClassName="size-10"
-                        className="size-10 shrink-0 object-cover"
+                        alt=""
+                        fallbackClassName="size-full"
+                        className="size-full object-cover"
                       />
-                       <span className="min-w-0">
-                         <span className="flex items-center gap-1.5 truncate text-xs text-primary">
-                           <span className="size-3 shrink-0 rounded-full border border-black/10" style={color ? { backgroundColor: color.hex } : undefined} />
-                           {color?.label ?? variant.color}
-                         </span>
-                        <span className="mt-0.5 block text-[10px] text-muted-foreground">{isAvailable ? `${variant.stock} available` : "Sold out"}</span>
-                      </span>
+                      <span className="product-detail-color-name">{colorLabel}</span>
                     </button>
                   );
                 })}
@@ -392,7 +376,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
             </div>
           )}
 
-          <div className="mt-6 h-px bg-border" />
+          <div className="product-detail-divider mt-6" />
 
           <div className="product-detail-purchase-actions mt-8">
               <div className="product-detail-quantity flex items-center border">
@@ -465,6 +449,11 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               <Share2 className="size-4" strokeWidth={1.6} />
               {sharing ? "Sharing…" : "Share Product"}
             </button>
+          </div>
+
+          <div className="product-detail-delivery-note">
+            <p className="product-detail-color-title">DELIVERY &amp; RETURNS</p>
+            <p>Dispatch in 1–2 business days. Delivery and return details are available below.</p>
           </div>
 
           <ProductPolicies saree={saree} />

@@ -55,7 +55,7 @@ type ProductAccordionSection =
   | { id: string; title: string; kind: "points"; points: string[] };
 
 export function ProductPolicies({ saree }: { saree: Saree }) {
-  const [openSection, setOpenSection] = useState("details");
+  const [openSection, setOpenSection] = useState("");
   const categoryLabel = categories.find((category) => category.id === saree.category)?.label
     ?? saree.category.replaceAll("-", " ").replace(/\b\w/g, (character) => character.toUpperCase());
   const sections: ProductAccordionSection[] = [
@@ -66,7 +66,6 @@ export function ProductPolicies({ saree }: { saree: Saree }) {
       rows: [
         ["Fabric", saree.fabric],
         ["Category", categoryLabel],
-        ["Length", saree.length],
       ].filter(([, value]) => Boolean(value)),
     },
     {
@@ -80,7 +79,6 @@ export function ProductPolicies({ saree }: { saree: Saree }) {
       title: "PRODUCT SPECIFICATION",
       kind: "rows",
       rows: [
-        ["Weight", saree.weight ?? ""],
         ["Care Instructions", saree.care],
         ["Country of Origin", saree.countryOfOrigin || "India"],
         ...(saree.productSpecification?.trim()
