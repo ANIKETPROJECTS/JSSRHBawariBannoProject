@@ -176,8 +176,8 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   return (
     <div className="w-full">
       <div className="mb-5">
-        <h2 className="font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-xl">
-          {step === "phone" ? "Enter mobile number" : "Enter verification code"}
+        <h2 className="font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-base sm:whitespace-nowrap">
+          {step === "phone" ? "Enter Mobile Number" : "Enter verification code"}
         </h2>
         <p className="mt-2 text-base leading-relaxed text-[#70666b]">
           {step === "phone" ? "We'll send you a verification code on WhatsApp." : `Enter the code sent to ${formatCustomerPhone(verifiedPhone)}.`}
@@ -189,10 +189,10 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
             <div className="block">
               <span className="sr-only">Mobile number</span>
               <span className="mt-2 flex w-full items-center border border-[#e5d6dc] bg-[#fffafb] transition-colors focus-within:border-[#ED145B] focus-within:ring-2 focus-within:ring-[#ED145B]/15">
-                <span className="relative flex h-full w-[112px] shrink-0 items-center gap-1.5 border-r border-[#e5d6dc] px-2 text-[#51434a]">
+                <span className="relative flex h-full w-[92px] shrink-0 items-center gap-1 border-r border-[#e5d6dc] px-1.5 text-[#51434a]">
                   <span aria-hidden="true" className="text-lg leading-none">{selectedCountry?.flag}</span>
                   <span aria-hidden="true" className="text-sm font-semibold">+{selectedCountry?.callingCode}</span>
-                  <ChevronDown aria-hidden="true" className="ml-auto size-3.5 shrink-0" />
+                  <ChevronDown aria-hidden="true" className="size-3.5 shrink-0" />
                   <select
                     aria-label={`Country calling code${selectedCountry ? `, ${selectedCountry.name}` : ""}`}
                     value={country}
