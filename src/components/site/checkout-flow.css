@@ -1,0 +1,14 @@
+.checkout-flow-page h1 {
+  font-size: clamp(1.7rem, 3vw, 2rem) !important;
+  line-height: 1.2 !important;
+}
+
+.checkout-flow-page h2 {
+  font-size: clamp(1.25rem, 2.4vw, 1.5rem) !important;
+  line-height: 1.3 !important;
+}
+
+.checkout-flow-page h3 {
+  font-size: 1.125rem !important;
+  line-height: 1.35 !important;
+}

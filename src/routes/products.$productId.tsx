@@ -6,7 +6,7 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { ProductCard } from "@/components/site/ProductCard";
 import { ProductRating, ProductReviews } from "@/components/site/ProductReviews";
 import { ProductPolicies, ProductTrustStrip } from "@/components/site/ProductPolicies";
-import { useCart } from "@/components/site/CartDrawer";
+import { useCart } from "@/components/site/CartContext";
 import { useReviewSummary } from "@/components/site/ReviewsContext";
 import { useWishlist } from "@/components/site/WishlistContext";
 import { formatPrice, sarees, type Saree, type SareeVariant } from "@/data/sarees";
@@ -181,7 +181,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(saree.variants?.[0]?.id ?? "");
-  const { addItem, closeCart } = useCart();
+  const { addItem } = useCart();
   const navigate = useNavigate();
   const { ids: wishlistIds, toggle: toggleWishlist } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
@@ -411,8 +411,7 @@ function ProductDetailContent({ saree }: { saree: (typeof sarees)[number] }) {
               type="button"
               disabled={availableStock === 0}
               onClick={() => {
-                addItem(selectedProduct, qty, { openCart: false, showToast: false });
-                closeCart();
+                addItem(selectedProduct, qty, { showToast: false });
                 void navigate({ to: "/checkout", search: { coupon: undefined } });
               }}
               className="product-detail-buy-button inline-flex h-12 min-w-0 items-center justify-center gap-1 whitespace-nowrap border px-2 transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:h-14 sm:gap-2 sm:px-3"

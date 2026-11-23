@@ -4,7 +4,7 @@ import { useReviewSummary } from "./ReviewsContext";
 import { Link } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { formatPrice, type Saree } from "@/data/sarees";
-import { useCart } from "./CartDrawer";
+import { useCart } from "./CartContext";
 import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 

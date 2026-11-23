@@ -7,7 +7,7 @@ import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transpar
 import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
 import searchIcon from "../../../attached_assets/search_(2)_1789284877555.png";
 import whatsappIcon from "../../../attached_assets/whatsapp_1789286832089.png";
-import { useCart } from "./CartDrawer";
+import { useCart } from "./CartContext";
 import { useWishlist } from "./WishlistContext";
 import { loadStorefrontCatalog } from "@/lib/storefront-catalog";
 
