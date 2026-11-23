@@ -239,13 +239,15 @@ export function Header() {
             onClick={openCart}
                 className="relative flex flex-col items-center gap-0.5 rounded-full px-1.5 py-1 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:px-2 lg:min-w-[4rem] lg:gap-1.5 lg:px-2.5"
           >
-              <img src={cartIcon} alt="" className="size-6 object-contain brightness-0 invert" />
-                <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Cart</span>
-            {itemCount > 0 && (
-               <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-black/25 text-[0.6rem] text-white">
-                {itemCount}
+              <span className="relative inline-flex size-6">
+                <img src={cartIcon} alt="" className="size-6 object-contain brightness-0 invert" />
+                {itemCount > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border border-[#ed145b] bg-white px-1 text-[0.68rem] font-semibold leading-none text-[#ed145b] shadow-sm">
+                    {itemCount}
+                  </span>
+                )}
               </span>
-            )}
+                <span className="hidden text-[0.6rem] font-medium leading-none sm:inline sm:text-[0.68rem]">Cart</span>
           </button>
           <Link
             to="/wishlist"

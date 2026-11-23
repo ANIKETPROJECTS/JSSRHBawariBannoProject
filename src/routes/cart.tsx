@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Minus, Plus, Tag, Trash2 } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Minus, Plus, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useCart } from "@/components/site/CartContext";
 import { calculateShippingCharge, isSinglePhonePeTestItem } from "@/lib/phonepe-test-shipping";
-import { formatPrice } from "@/data/sarees";
+import { formatPrice, type Saree } from "@/data/sarees";
+import binIcon from "../../attached_assets/bin_(2)_1795455427948.png";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/cart")({
@@ -20,6 +21,33 @@ type StoreCoupon = {
   code: string;
   label?: string;
 };
+
+function CartProductImage({ product }: { product: Saree }) {
+  const selectedVariant = product.variants?.find((variant) => variant.id === product.selectedVariantId);
+  const sources = [...new Set([
+    selectedVariant?.image,
+    ...(selectedVariant?.images ?? []),
+    product.image,
+    ...(product.images ?? []),
+  ].filter((source): source is string => Boolean(source?.trim())))];
+  const sourceKey = sources.join("\n");
+  const [failedSources, setFailedSources] = useState<string[]>([]);
+  useEffect(() => setFailedSources([]), [sourceKey]);
+  const source = sources.find((candidate) => !failedSources.includes(candidate));
+
+  if (!source) {
+    return <div role="img" aria-label={`${product.name} image unavailable`} className="aspect-[3/4] w-24 shrink-0 rounded-md bg-white sm:w-28" />;
+  }
+
+  return (
+    <img
+      src={source}
+      alt={product.name}
+      className="aspect-[3/4] w-24 shrink-0 rounded-md bg-white object-cover sm:w-28"
+      onError={() => setFailedSources((current) => [...current, source])}
+    />
+  );
+}
 
 function CartPage() {
   const navigate = useNavigate();
@@ -118,16 +146,14 @@ function CartPage() {
   return (
     <SiteShell>
       <main className="cart-page mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div className="mb-6">
           <h1 className="cart-page-title">Shopping Cart <span>({itemCount} {itemCount === 1 ? "item" : "items"})</span></h1>
-          {items.length > 0 && <Link to="/products" className="inline-flex items-center gap-2 text-sm text-[#51474c] hover:text-[#ed145b]"><ArrowLeft className="size-4" /> Continue shopping</Link>}
         </div>
         {!items.length ? (
           <section className="flex min-h-[300px] flex-col items-center justify-center rounded-xl bg-[#f6f6f6] px-5 py-12 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-white text-[#ed145b]"><Tag className="size-6" strokeWidth={1.5} /></div>
             <h2 className="mt-4 text-[#25212a]">Your bag is empty</h2>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-[#777078]">Explore the collection and add a saree to continue.</p>
-            <Link to="/products" className="mt-5 rounded-md bg-[#ed145b] px-6 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]">Continue shopping</Link>
           </section>
         ) : (
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,0.85fr)] lg:gap-6">
@@ -145,9 +171,7 @@ function CartPage() {
               <div className="space-y-3">
                 {items.map(({ product, quantity }) => (
                   <article key={`${product.id}-${product.selectedVariantId ?? ""}`} className="flex gap-3 rounded-xl bg-[#f6f6f6] p-3 sm:gap-4 sm:p-4">
-                    {product.image
-                      ? <img src={product.image} alt={product.name} className="aspect-[3/4] w-20 shrink-0 rounded-md object-cover sm:w-24" />
-                      : <div role="img" aria-label={`${product.name} image unavailable`} className="flex aspect-[3/4] w-20 shrink-0 items-center justify-center rounded-md bg-white px-2 text-center text-xs text-[#777078] sm:w-24">Image unavailable</div>}
+                    <CartProductImage product={product} />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -155,7 +179,9 @@ function CartPage() {
                           <h2 className="mt-1 text-base font-medium leading-snug text-[#28232a]">{product.name}</h2>
                           {product.selectedVariantColor && <p className="mt-1 text-sm text-[#6f666c]">{product.selectedVariantColor}</p>}
                         </div>
-                        <button type="button" onClick={() => removeItem(product.id, product.selectedVariantId)} aria-label={`Remove ${product.name}`} className="shrink-0 p-1 text-[#766d72] hover:text-[#ed145b]"><Trash2 className="size-4" strokeWidth={1.6} /></button>
+                        <button type="button" onClick={() => removeItem(product.id, product.selectedVariantId)} aria-label={`Remove ${product.name}`} title="Remove item" className="shrink-0 rounded bg-white p-1.5 transition-opacity hover:opacity-70">
+                          <img src={binIcon} alt="" className="size-[18px] object-contain" />
+                        </button>
                       </div>
                       <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
                         <div className="inline-flex h-9 items-center rounded-md bg-white">
