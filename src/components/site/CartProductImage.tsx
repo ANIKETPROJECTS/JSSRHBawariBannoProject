@@ -3,12 +3,17 @@ import type { Saree } from "@/data/sarees";
 
 export function CartProductImage({ product, className = "" }: { product: Saree; className?: string }) {
   const selectedVariant = product.variants?.find((variant) => variant.id === product.selectedVariantId);
-  const sources = [...new Set([
+  const productSources = [
     selectedVariant?.image,
     ...(selectedVariant?.images ?? []),
     product.image,
     ...(product.images ?? []),
-  ].filter((source): source is string => Boolean(source?.trim())))];
+  ].filter((source): source is string => Boolean(source?.trim()));
+  const sources = [...new Set(productSources.flatMap((source) => (
+    source.startsWith("/allimages/")
+      ? [source, new URL(source, "https://bawaribanno.com").href]
+      : [source]
+  )))];
   const sourceKey = sources.join("\n");
   const [failedSources, setFailedSources] = useState<string[]>([]);
   useEffect(() => setFailedSources([]), [sourceKey]);

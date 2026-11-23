@@ -12,7 +12,7 @@ import locationIcon from "../../attached_assets/location_(1)_1795455962716.png";
 import securityIcon from "../../attached_assets/security_1795456066348.png";
 import shoppingBagIcon from "../../attached_assets/shopping-bag_1795456111574.png";
 import insuranceIcon from "../../attached_assets/insurance_1795456279777.png";
-import editIcon from "../../attached_assets/edit_(1)_1795456750496.png";
+import editIcon from "../../attached_assets/edit_(2)_1795457116937.png";
 import binIcon from "../../attached_assets/bin_(2)_1795455427948.png";
 import "@/components/site/cart-checkout.css";
 
@@ -322,7 +322,7 @@ function Checkout() {
               <div className="mt-4 divide-y divide-[#e4dfe1] border-y border-[#e4dfe1]">
                 {items.map(({ product, quantity }) => (
                   <div key={`${product.id}-${product.selectedVariantId ?? ""}`} className="flex gap-3 py-3">
-                    <CartProductImage product={product} className="size-16 rounded-md" />
+                    <CartProductImage product={product} className="w-16 aspect-[3/4] rounded-md" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-[#302a30]">{product.name}</p>
                       {product.selectedVariantColor && <p className="mt-0.5 text-sm text-[#777078]">{product.selectedVariantColor}</p>}
