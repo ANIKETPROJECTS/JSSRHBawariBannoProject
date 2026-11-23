@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Minus, Plus, ShoppingBag, Tag } from "lucide-react";
+import { Minus, Plus, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useCart } from "@/components/site/CartContext";
@@ -8,6 +8,8 @@ import { CartProductImage } from "@/components/site/CartProductImage";
 import { calculateShippingCharge, isSinglePhonePeTestItem } from "@/lib/phonepe-test-shipping";
 import { formatPrice } from "@/data/sarees";
 import binIcon from "../../attached_assets/bin_(2)_1795455427948.png";
+import insuranceIcon from "../../attached_assets/insurance_1795456279777.png";
+import cartIcon from "../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/cart")({
@@ -125,7 +127,7 @@ function CartPage() {
         </div>
         {!items.length ? (
           <section className="flex min-h-[300px] flex-col items-center justify-center rounded-xl bg-[#f6f6f6] px-5 py-12 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-white text-[#ed145b]"><ShoppingBag className="size-6" strokeWidth={1.5} /></div>
+            <div className="flex size-14 items-center justify-center rounded-full bg-white"><img src={cartIcon} alt="" className="size-8 object-contain brightness-0 saturate-100" /></div>
             <h2 className="mt-4 text-[#25212a]">Your bag is empty</h2>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-[#777078]">Explore the collection and add a saree to continue.</p>
           </section>
@@ -191,7 +193,7 @@ function CartPage() {
               <button type="button" onClick={() => void navigate({ to: "/checkout", search: { coupon: appliedCoupon || undefined } })} className="flex w-full items-center justify-center gap-2 rounded-md bg-[#ed145b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]">
                 Proceed to Checkout
               </button>
-              <p className="mt-2 text-center text-xs text-[#777078]">100% Secure Safe Payments</p>
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-[#777078]"><img src={insuranceIcon} alt="" className="size-4 object-contain mix-blend-multiply" />100% Secure Safe Payments</p>
             </aside>
           </div>
         )}

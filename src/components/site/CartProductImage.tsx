@@ -20,14 +20,14 @@ export function CartProductImage({ product, className = "" }: { product: Saree; 
   const source = sources.find((candidate) => !failedSources.includes(candidate));
 
   if (!source) {
-    return <div role="img" aria-label={`${product.name} image unavailable`} className={`shrink-0 bg-white ${className}`} />;
+    return <div role="img" aria-label={`${product.name} image unavailable`} className={`shrink-0 bg-transparent ${className}`} />;
   }
 
   return (
     <img
       src={source}
       alt={product.name}
-      className={`shrink-0 bg-white object-contain ${className}`}
+      className={`shrink-0 bg-transparent object-contain ${className}`}
       onError={() => setFailedSources((current) => [...current, source])}
     />
   );
