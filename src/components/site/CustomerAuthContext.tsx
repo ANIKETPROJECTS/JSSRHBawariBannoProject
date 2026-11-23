@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, ChevronRight, ShieldCheck, X } from "lucide-react";
+import { getCountryCallingCode, type CountryCode } from "libphonenumber-js";
 import { toast } from "sonner";
 import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+import { formatCustomerPhone, parsePhoneForCountry, phoneCountryOptions } from "@/lib/customer-phone";
 
 export type Customer = { _id?: string; phone: string; name?: string; email?: string; wishlist?: string[] };
 
@@ -110,19 +112,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
             >
               <X className="size-5" />
             </button>
-            <div className="relative flex min-h-28 items-center justify-center bg-[#ED145B] px-8 py-5">
-              <img src={logoImage} alt="Bawari Banno" className="h-16 w-56 object-contain object-center" />
+            <div className="relative flex h-20 items-center justify-center bg-[#ED145B] px-8">
+              <img src={logoImage} alt="Bawari Banno" className="relative z-[1] h-24 w-72 object-contain object-center" />
               <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 bg-[#FFE300]" />
             </div>
             <div className="px-6 py-7 sm:px-8 sm:py-8">
               <div className="mb-6">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a6678]">Customer sign in</p>
-                <h2 className="mt-2 font-display text-3xl font-medium leading-tight text-[#21151a]">
-                  Sign in with your mobile
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#70666b]">
-                  {`Enter your number and we'll send a one-time code on WhatsApp. New customers are set up automatically—no separate registration.`}
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9a6678]">Welcome to Bawari Banno</p>
               </div>
               <AccountAccess onComplete={completeLogin} />
             </div>
@@ -135,15 +131,23 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
 function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => void }) {
   const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [country, setCountry] = useState<CountryCode>("IN");
   const [phone, setPhone] = useState("");
+  const [verifiedPhone, setVerifiedPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function sendOtp(event: React.FormEvent) {
     event.preventDefault();
+    const normalizedPhone = parsePhoneForCountry(phone, country);
+    if (!normalizedPhone) {
+      toast.error("Enter a valid mobile number for the selected country.");
+      return;
+    }
     setBusy(true);
     try {
-      await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone }) });
+      await authApi("/api/auth/send-otp", { method: "POST", body: JSON.stringify({ phone: normalizedPhone }) });
+      setVerifiedPhone(normalizedPhone);
       setStep("otp");
       toast.success("OTP sent to your WhatsApp number.");
     } catch (error) {
@@ -157,7 +161,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
     event.preventDefault();
     setBusy(true);
     try {
-      const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone, otp }) });
+      const result = await authApi("/api/auth/verify", { method: "POST", body: JSON.stringify({ phone: verifiedPhone, otp }) });
       if (!result.customer?.phone) throw new Error("Sign in could not be completed. Please try again.");
       onComplete(result.customer);
     } catch (error) {
@@ -169,14 +173,44 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
 
   return (
     <div className="w-full">
+      <div className="mb-5">
+        <h2 className="font-display text-3xl font-medium leading-tight text-[#21151a]">
+          {step === "phone" ? "Enter mobile number" : "Enter verification code"}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-[#70666b]">
+          {step === "phone" ? "We'll send you a verification code on WhatsApp." : `Enter the code sent to ${formatCustomerPhone(verifiedPhone)}.`}
+        </p>
+      </div>
       {step === "phone" && (
         <>
           <form onSubmit={sendOtp}>
             <label className="block text-xs font-semibold text-[#51434a]">
               Mobile number
               <span className="mt-2 flex w-full items-center border border-[#e5d6dc] bg-[#fffafb] transition-colors focus-within:border-[#ED145B] focus-within:ring-2 focus-within:ring-[#ED145B]/15">
-                <span className="border-r border-[#e5d6dc] px-4 py-3.5 text-sm font-medium text-[#51434a]" aria-hidden="true">+91</span>
-                <input required inputMode="numeric" pattern="[0-9]{10}" maxLength={10} autoComplete="tel-national" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile number" aria-label="10-digit Indian mobile number" className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-[#21151a] outline-none placeholder:text-[#a99aa1]" />
+                <select
+                  aria-label="Country calling code"
+                  value={country}
+                  onChange={(event) => {
+                    setCountry(event.target.value as CountryCode);
+                    setPhone("");
+                  }}
+                  className="w-[136px] shrink-0 border-r border-[#e5d6dc] bg-transparent px-2 py-3.5 text-xs font-medium text-[#51434a] outline-none"
+                >
+                  {phoneCountryOptions.map((option) => (
+                    <option key={option.country} value={option.country}>+{option.callingCode} {option.name}</option>
+                  ))}
+                </select>
+                <input
+                  required
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  maxLength={Math.max(4, 15 - getCountryCallingCode(country).length)}
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
+                  placeholder="Mobile number"
+                  aria-label="Mobile number"
+                  className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-[#21151a] outline-none placeholder:text-[#a99aa1]"
+                />
               </span>
             </label>
             <button disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 bg-[#ED145B] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#c90f4c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 disabled:opacity-50">
@@ -191,9 +225,6 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
       )}
       {step === "otp" && (
         <form onSubmit={verify}>
-          <p className="text-sm leading-relaxed text-[#665b61]">
-            Enter the 6-digit code sent to <span className="font-semibold text-[#21151a]">+91 {phone}</span>.
-          </p>
           <label className="mt-5 block text-xs font-semibold text-[#51434a]" htmlFor="customer-auth-otp">One-time password</label>
           <input
             id="customer-auth-otp"
@@ -210,7 +241,7 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
           <button disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 bg-[#ED145B] px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#c90f4c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 disabled:opacity-50">
             {busy ? "Verifying…" : "Verify and sign in"} <ChevronRight className="size-4" />
           </button>
-          <button type="button" onClick={() => { setStep("phone"); setOtp(""); }} className="mt-4 w-full text-center text-xs font-medium text-[#8a707b] underline underline-offset-4 transition-colors hover:text-[#ED145B]">
+          <button type="button" onClick={() => { setStep("phone"); setOtp(""); setVerifiedPhone(""); }} className="mt-4 w-full text-center text-xs font-medium text-[#8a707b] underline underline-offset-4 transition-colors hover:text-[#ED145B]">
             Change mobile number
           </button>
         </form>

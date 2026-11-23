@@ -53,6 +53,24 @@ describe("AtWassup OTP helpers", () => {
     expect(payload).not.toHaveProperty("apiKey");
   });
 
+  test("sends international E.164 recipients without forcing the Indian code", async () => {
+    let requestedInit: RequestInit | undefined;
+
+    await sendAtWassupOtp({
+      apiKey: "test-api-key",
+      phoneNumberId: "phone-id-123",
+      phone: "+442070313000",
+      otp: "123456",
+      fetchImpl: async (_input, init) => {
+        requestedInit = init;
+        return Response.json({ ok: true, status: "SENT" });
+      },
+    });
+
+    const payload = JSON.parse(String(requestedInit?.body));
+    expect(payload.to).toBe("+442070313000");
+  });
+
   test("reports provider credit errors without leaking provider response data", async () => {
     await expect(sendAtWassupOtp({
       apiKey: "test-api-key",

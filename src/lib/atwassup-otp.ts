@@ -46,7 +46,7 @@ export async function sendAtWassupOtp({
     },
     body: JSON.stringify({
       phoneNumberId,
-      to: `+91${phone}`,
+      to: phone.startsWith("+") ? phone : `+91${phone}`,
       templateName: "website_otp",
       languageCode: "en_US",
       clientMessageId: randomUUID(),

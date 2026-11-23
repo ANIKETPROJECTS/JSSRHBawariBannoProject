@@ -25,6 +25,7 @@ import { formatPrice, sarees } from "@/data/sarees";
 import { toStorefrontProduct, type StorefrontProduct } from "@/lib/storefront-product";
 import { getCachedStorefrontCatalog, loadStorefrontCatalog } from "@/lib/storefront-catalog";
 import { isSuccessfulPayment } from "@/lib/order-payment";
+import { formatCustomerPhone } from "@/lib/customer-phone";
 
 export const Route = createFileRoute("/profile")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -211,11 +212,11 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
     setFormOpen(true);
   }
   return <section className="mx-auto mt-8 max-w-7xl px-5 pb-10"><div className="border border-border bg-card p-6 sm:p-8"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-2 font-display text-3xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => { setFormOpen(!formOpen); setEditingAddress(null); }} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {formOpen ? "Cancel" : "Add address"}</button></div>
-      {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">+91 {address.phone}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setAddressToDelete(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{formatSavedAddress(address)}</p></article>)}</div>}
+      {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">{formatCustomerPhone(address.phone)}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setAddressToDelete(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{formatSavedAddress(address)}</p></article>)}</div>}
     {addresses.length === 0 && !formOpen && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
     {formOpen && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
       <label className="text-xs text-muted-foreground">Full name<input name="name" defaultValue={editingAddress?.name ?? customer.name} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
-      <label className="text-xs text-muted-foreground">Phone number<input value={`+91 ${customer.phone}`} readOnly className="mt-1 w-full border border-border bg-[#f8f6f3] px-3 py-2.5 text-sm text-foreground" /></label>
+      <label className="text-xs text-muted-foreground">Phone number<input value={formatCustomerPhone(customer.phone)} readOnly className="mt-1 w-full border border-border bg-[#f8f6f3] px-3 py-2.5 text-sm text-foreground" /></label>
       <label className="text-xs text-muted-foreground sm:col-span-2">Address<input name="addressLine" defaultValue={editingAddress?.addressLine ?? ""} required placeholder="House, street, building" className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
       <label className="text-xs text-muted-foreground">Locality<input name="locality" defaultValue={editingAddress?.locality ?? ""} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
       <label className="text-xs text-muted-foreground">Pincode<input name="pincode" defaultValue={editingAddress?.pincode ?? ""} inputMode="numeric" pattern="[0-9]{6}" maxLength={6} required className="mt-1 w-full border border-border bg-white px-3 py-2.5 text-sm text-foreground" /></label>
@@ -294,7 +295,7 @@ function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wis
         <div className="border border-border bg-card p-6">
           <div className="flex items-center gap-4">
             <div className="flex size-16 items-center justify-center rounded-full bg-primary text-2xl text-white">{initials}</div>
-            <div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">+91 {customer.phone}</p></div>
+            <div className="min-w-0"><p className="font-display text-2xl text-primary">{customer.name || "Bawari customer"}</p><p className="mt-1 truncate text-xs text-muted-foreground">{formatCustomerPhone(customer.phone)}</p></div>
           </div>
           <div className="mt-6 border-t border-border pt-5"><p className="text-eyebrow text-muted-foreground">Verified mobile</p><p className="mt-1 flex items-center gap-1 text-sm text-emerald-deep"><Check className="size-3.5" /> OTP verified</p></div>
         </div>
@@ -309,7 +310,7 @@ function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wis
           <form onSubmit={onSave} className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <label><span className="text-eyebrow text-muted-foreground">Full name</span><input name="name" defaultValue={customer.name} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label>
             <label><span className="text-eyebrow text-muted-foreground">Email address</span><input name="email" type="email" defaultValue={customer.email} readOnly={!editing} required className={`mt-2 w-full border-b bg-transparent py-2 text-sm outline-none ${editing ? "border-gold" : "border-border"}`} /></label>
-            <label><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={`+91 ${customer.phone}`} readOnly className="mt-2 w-full border-b border-border bg-transparent py-2 text-sm outline-none" /></label>
+            <label><span className="text-eyebrow text-muted-foreground">Phone number</span><input value={formatCustomerPhone(customer.phone)} readOnly className="mt-2 w-full border-b border-border bg-transparent py-2 text-sm outline-none" /></label>
             {editing && <button disabled={saving} className="w-fit bg-primary px-7 py-3 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}
           </form>
         </section>

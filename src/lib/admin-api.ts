@@ -13,7 +13,8 @@ import { purchaseInvoiceDeletionPolicy } from "@/lib/purchase-invoice-policy";
 import { phonePeShaWebhookAuthorized } from "@/lib/phonepe-webhook-auth";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
 import { countableOrder, isSuccessfulPayment, recognizedOrderRevenue } from "@/lib/order-payment";
-import { customerOtpMatches, generateCustomerOtp, hashCustomerOtp, normalizeIndianPhone, sendAtWassupOtp } from "@/lib/atwassup-otp";
+import { customerOtpMatches, generateCustomerOtp, hashCustomerOtp, sendAtWassupOtp } from "@/lib/atwassup-otp";
+import { customerPhoneAliases, legacyIndianPhoneFromE164, normalizeAdminCustomerPhone, normalizeCustomerPhone, phonePeIndianMobile } from "@/lib/customer-phone";
 import maroonHeroImage from "@/assets/hero-editorial-maroon-wide.jpg";
 import tealHeroImage from "@/assets/hero-editorial-teal-wide.jpg";
 import emeraldHeroImage from "@/assets/hero-editorial-emerald-wide.jpg";
@@ -841,7 +842,7 @@ async function createPhonePeCheckout(request: Request) {
         redirectUrl,
         redirectMode: "REDIRECT",
         callbackUrl,
-        mobileNumber: String(customer.phone ?? ""),
+          ...(phonePeIndianMobile(customer.phone) ? { mobileNumber: phonePeIndianMobile(customer.phone) } : {}),
         paymentInstrument: { type: "PAY_PAGE" },
       };
       const encodedPayload = Buffer.from(JSON.stringify(paymentPayload)).toString("base64");
@@ -2348,7 +2349,7 @@ async function ordersHistory(request: Request) {
   const database = await db();
   const orderRows = await database.collection("orders").find(query).sort(sort).limit(500).toArray();
   const customerIds = orderRows.map((order) => order.customerId).filter(Boolean);
-  const customerPhones = orderRows.map((order) => order.customerPhone).filter(Boolean);
+  const customerPhones = [...new Set(orderRows.flatMap((order) => customerPhoneAliases(order.customerPhone)))];
   const customerMatch = [
     ...(customerIds.length ? [{ _id: { $in: customerIds } }] : []),
     ...(customerPhones.length ? [{ phone: { $in: customerPhones } }] : []),
@@ -2357,7 +2358,7 @@ async function ordersHistory(request: Request) {
     ? await database.collection("customers").find({ $or: customerMatch }).toArray()
     : [];
   const customersById = new Map(customers.map((customer) => [String(customer._id), customer]));
-  const customersByPhone = new Map(customers.map((customer) => [String(customer.phone), customer]));
+  const customersByPhone = new Map(customers.flatMap((customer) => customerPhoneAliases(customer.phone).map((phone) => [phone, customer] as const)));
   const productIds = orderRows.flatMap((order) => Array.isArray(order.items) ? order.items.map((item: JsonRecord) => item.productId).filter(Boolean) : []);
   const catalogProducts = await database.collection("products").find({ id: { $in: [...new Set(productIds)] } }).toArray();
   const productsById = new Map(catalogProducts.map((product) => [String(product.id), product]));
@@ -2514,10 +2515,13 @@ async function adminOrders(request: Request, orderId?: string) {
     if (existing && String(existing.status ?? "pending") !== status) {
       statusHistory.push({ status, changedAt: now });
     }
+    const rawCustomerPhone = String(source.customerPhone ?? "").trim();
+    const customerPhone = normalizeAdminCustomerPhone(rawCustomerPhone);
+    if (rawCustomerPhone && !customerPhone) return fail("Enter a valid mobile number with its country code.");
     const document = {
       orderId: String(source.orderId ?? "").trim().slice(0, 80),
       customerName: String(source.customerName ?? "").trim().slice(0, 120),
-      customerPhone: String(source.customerPhone ?? "").replace(/\D/g, "").slice(-10),
+      customerPhone: customerPhone ?? "",
       customerEmail: String(source.customerEmail ?? "").trim().slice(0, 160),
       status,
       statusHistory,
@@ -2583,13 +2587,13 @@ async function updateOrder(request: Request, id: string) {
 
 function customerOrdersFilter(customer: JsonRecord) {
   const customerId = customer._id;
-  const phone = String(customer.phone ?? "");
+  const phones = customerPhoneAliases(customer.phone);
   const email = String(customer.email ?? "");
   return {
     $or: [
       { customerId },
       { customerId: String(customerId) },
-      ...(phone ? [{ customerPhone: phone }] : []),
+      ...phones.map((phone) => ({ customerPhone: phone })),
       ...(email ? [{ customerEmail: email }] : []),
     ],
   };
@@ -2682,13 +2686,13 @@ async function customersHistory(request: Request, customerId?: string) {
   }
   if (request.method === "POST" || (customerId && (request.method === "PUT" || request.method === "PATCH"))) {
     const input = await body(request);
-    const phone = String(input.phone ?? "").replace(/\D/g, "").slice(-10);
+    const phone = normalizeAdminCustomerPhone(input.phone);
     const name = String(input.name ?? "").trim().slice(0, 120);
     const email = String(input.email ?? "").trim().slice(0, 160);
-    if (phone.length !== 10) return fail("Enter a valid 10-digit mobile number.");
+    if (!phone) return fail("Enter a valid mobile number with its country code.");
     if (!name) return fail("Customer name is required.");
     if (!email.includes("@")) return fail("Enter a valid customer email.");
-    const duplicate = await collection.findOne({ phone, ...(customerId ? { _id: { $ne: new ObjectId(customerId) } } : {}) });
+    const duplicate = await collection.findOne({ phone: { $in: customerPhoneAliases(phone) }, ...(customerId ? { _id: { $ne: new ObjectId(customerId) } } : {}) });
     if (duplicate) return fail("A customer with this mobile number already exists.", 409);
     if (customerId) {
       const updated = await collection.findOneAndUpdate({ _id: new ObjectId(customerId) }, { $set: { name, email, phone, updatedAt: new Date() } }, { returnDocument: "after" });
@@ -2737,7 +2741,7 @@ async function customersHistory(request: Request, customerId?: string) {
   const query = search ? { $or: [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }, { phone: { $regex: search, $options: "i" } }] } : {};
   const customers = await database.collection("customers").find(query).sort({ createdAt: -1 }).limit(500).toArray();
   const customerIds = customers.map((customer) => customer._id);
-  const customerPhones = customers.map((customer) => customer.phone).filter(Boolean);
+  const customerPhones = [...new Set(customers.flatMap((customer) => customerPhoneAliases(customer.phone)))];
   const customerEmails = customers.map((customer) => customer.email).filter(Boolean);
   const orderMatch = [
     ...(customerIds.length ? [{ customerId: { $in: [...customerIds, ...customerIds.map(String)] } }] : []),
@@ -2757,7 +2761,7 @@ async function customersHistory(request: Request, customerId?: string) {
   };
   const customerForOrder = (order: JsonRecord) => customers.find((customer) =>
     (order.customerId != null && (String(order.customerId) === String(customer._id) || String(order.customerId) === String(customer._id))) ||
-    (customer.phone && String(order.customerPhone ?? "") === String(customer.phone)) ||
+    customerPhoneAliases(customer.phone).includes(String(order.customerPhone ?? "")) ||
     (customer.email && String(order.customerEmail ?? "").toLowerCase() === String(customer.email).toLowerCase()),
   );
   for (const order of orders) {
@@ -3316,8 +3320,8 @@ async function storefrontMode(request: Request) {
 async function handleAuth(request: Request, path: string) {
   if (path === "/api/auth/send-otp" && request.method === "POST") {
     const input = await body(request);
-    const phone = normalizeIndianPhone(input.phone);
-    if (!phone) return fail("Enter a valid 10-digit mobile number.");
+    const phone = normalizeCustomerPhone(input.phone);
+    if (!phone) return fail("Enter a valid mobile number with its country code.");
 
     const apiKey = process.env.ATWASSUP_API_KEY?.trim();
     const phoneNumberId = process.env.ATWASSUP_PHONE_NUMBER_ID?.trim();
@@ -3360,9 +3364,9 @@ async function handleAuth(request: Request, path: string) {
   const database = await db();
   if (path === "/api/auth/verify" && request.method === "POST") {
     const input = await body(request);
-    const phone = normalizeIndianPhone(input.phone);
+    const phone = normalizeCustomerPhone(input.phone);
     const otp = String(input.otp ?? "");
-    if (!phone || !/^\d{6}$/.test(otp)) return fail("Enter a valid mobile number and 6-digit OTP.");
+    if (!phone || !/^\d{6}$/.test(otp)) return fail("Enter a valid mobile number with its country code and 6-digit OTP.");
 
     const challenges = database.collection("customer_otp_challenges");
     const challenge = await challenges.findOne({ _id: phone });
@@ -3381,6 +3385,10 @@ async function handleAuth(request: Request, path: string) {
       return fail(attempts >= 5 ? "Too many incorrect attempts. Request a new code." : "Incorrect OTP.", attempts >= 5 ? 429 : 401);
     }
     let customer = await database.collection("customers").findOne({ phone });
+    if (!customer) {
+      const legacyPhone = legacyIndianPhoneFromE164(phone);
+      if (legacyPhone) customer = await database.collection("customers").findOne({ phone: legacyPhone });
+    }
 
     const consumed = await challenges.deleteOne({ _id: phone, otpHash: challenge.otpHash, expiresAt: { $gt: new Date() } });
     if (!consumed.deletedCount) return fail("This OTP has expired. Request a new code.", 401);
@@ -3507,7 +3515,7 @@ async function handleAuth(request: Request, path: string) {
     const customer = await customerFromRequest(request);
     if (!customer) return fail("Customer login required.", 401);
     const orders = await database.collection("orders").find({
-      $or: [{ customerId: customer._id }, { customerId: String(customer._id) }, { customerPhone: customer.phone }, ...(customer.email ? [{ customerEmail: customer.email }] : [])],
+      $or: [{ customerId: customer._id }, { customerId: String(customer._id) }, ...customerPhoneAliases(customer.phone).map((phone) => ({ customerPhone: phone })), ...(customer.email ? [{ customerEmail: customer.email }] : [])],
     }).sort({ createdAt: -1 }).limit(100).toArray();
     return json({ orders: orders.filter((order) => isSuccessfulPayment(order.paymentStatus)) });
   }

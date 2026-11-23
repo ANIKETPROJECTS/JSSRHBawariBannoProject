@@ -7,6 +7,7 @@ import { useCart } from "@/components/site/CartDrawer";
 import { useCustomerAuth } from "@/components/site/CustomerAuthContext";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
 import { formatPrice } from "@/data/sarees";
+import { formatCustomerPhone } from "@/lib/customer-phone";
 
 export const Route = createFileRoute("/checkout")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -152,7 +153,7 @@ function Checkout() {
         <div className="space-y-6">
           <section className="border border-border bg-card p-5 sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><MapPin className="size-4 text-primary" /><h2 className="font-display text-2xl text-primary">Delivery address</h2></div>{addresses.length > 0 && <button type="button" onClick={() => setShowAddressForm((open) => !open)} className="text-xs text-primary underline underline-offset-4">{showAddressForm ? "Cancel" : "Add address"}</button>}</div>
-            {addresses.length > 0 && <div className="mt-5 space-y-3">{addresses.map((address) => <label key={address.id} className={`flex cursor-pointer gap-3 border p-4 transition-colors ${selectedId === address.id ? "border-primary bg-[#fff6f8]" : "border-border hover:border-gold"}`}><input type="radio" name="delivery-address" checked={selectedId === address.id} onChange={() => setSelectedId(address.id)} className="mt-1 accent-[#ed145b]" /><span className="min-w-0"><span className="block font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ed145b]">Default</span>}</span><span className="mt-1 block text-xs text-muted-foreground">+91 {address.phone}</span><span className="mt-2 block text-sm leading-relaxed">{formatAddress(address)}</span></span></label>)}</div>}
+            {addresses.length > 0 && <div className="mt-5 space-y-3">{addresses.map((address) => <label key={address.id} className={`flex cursor-pointer gap-3 border p-4 transition-colors ${selectedId === address.id ? "border-primary bg-[#fff6f8]" : "border-border hover:border-gold"}`}><input type="radio" name="delivery-address" checked={selectedId === address.id} onChange={() => setSelectedId(address.id)} className="mt-1 accent-[#ed145b]" /><span className="min-w-0"><span className="block font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ed145b]">Default</span>}</span><span className="mt-1 block text-xs text-muted-foreground">{formatCustomerPhone(address.phone)}</span><span className="mt-2 block text-sm leading-relaxed">{formatAddress(address)}</span></span></label>)}</div>}
             {showAddressForm && <div className="mt-5 border border-border bg-[#fbf9f6] p-4 sm:p-5"><h3 className="font-medium text-primary">{addresses.length ? "Add another address" : "Add your delivery address"}</h3><p className="mt-1 text-xs text-muted-foreground">This address will also be saved to your profile.</p><div className="mt-4 grid gap-3 sm:grid-cols-2">
               {([
                 ["name", "Full name", "text"],
@@ -163,7 +164,7 @@ function Checkout() {
                 ["state", "State", "text"],
                 ["landmark", "Landmark (optional)", "text"],
               ] as const).map(([field, label, type]) => <label key={field} className={field === "addressLine" ? "sm:col-span-2" : ""}><span className="mb-1.5 block text-xs text-muted-foreground">{label}</span><input value={addressForm[field]} onChange={(event) => setAddressForm((current) => ({ ...current, [field]: field === "pincode" ? event.target.value.replace(/\D/g, "").slice(0, 6) : event.target.value }))} inputMode={type === "numeric" ? "numeric" : undefined} maxLength={field === "pincode" ? 6 : undefined} required={field !== "landmark"} className="w-full border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-gold" /></label>)}
-            </div><p className="mt-3 text-xs text-muted-foreground">Phone number: +91 {customer?.phone ?? ""}</p><button type="button" disabled={savingAddress} onClick={() => void saveAddress()} className="mt-4 bg-primary px-5 py-3 text-eyebrow text-white disabled:opacity-50">{savingAddress ? "Saving address…" : "Save and continue"}</button></div>}
+            </div><p className="mt-3 text-xs text-muted-foreground">Phone number: {formatCustomerPhone(customer?.phone)}</p><button type="button" disabled={savingAddress} onClick={() => void saveAddress()} className="mt-4 bg-primary px-5 py-3 text-eyebrow text-white disabled:opacity-50">{savingAddress ? "Saving address…" : "Save and continue"}</button></div>}
           </section>
           <section className="border border-border bg-card p-5 sm:p-7"><p className="text-eyebrow text-muted-foreground">Payment method</p><div className="mt-4 flex items-center gap-3 border border-[#ed145b]/30 bg-[#fff6f8] p-4"><span className="flex size-5 items-center justify-center rounded-full border border-[#ed145b]"><span className="size-2.5 rounded-full bg-[#ed145b]" /></span><span className="text-sm text-primary">PhonePe · UPI, cards and net banking</span></div></section>
         </div>
