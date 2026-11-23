@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CheckCircle2, Clock3, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3 } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
-import { pendingPaymentCartStorageKey, useCart, type CartItem } from "@/components/site/CartContext";
+import { pendingPaymentCartStorageKey, readPendingPaymentCartSnapshot, useCart } from "@/components/site/CartContext";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/payment-return")({
@@ -22,37 +22,9 @@ type PaymentState = {
   total?: number;
 };
 
-function readPendingCartSnapshot() {
-  try {
-    const raw = window.sessionStorage.getItem(pendingPaymentCartStorageKey);
-    if (!raw) return { items: [] as CartItem[], coupon: "" };
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return { items: [] as CartItem[], coupon: "" };
-    const record = parsed as { items?: unknown; coupon?: unknown };
-    const items = Array.isArray(record.items)
-      ? record.items.filter((entry): entry is CartItem => {
-          if (!entry || typeof entry !== "object") return false;
-          const item = entry as Partial<CartItem>;
-          const product = item.product;
-          return Boolean(
-            product
-            && typeof product.id === "string"
-            && typeof product.name === "string"
-            && Number.isFinite(Number(product.price))
-            && Number.isFinite(Number(item.quantity))
-            && Number(item.quantity) > 0,
-          );
-        })
-      : [];
-    return { items, coupon: typeof record.coupon === "string" ? record.coupon : "" };
-  } catch {
-    return { items: [] as CartItem[], coupon: "" };
-  }
-}
-
 function PaymentReturn() {
   const navigate = useNavigate();
-  const { clearCart, restoreItems } = useCart();
+  const { clearCart } = useCart();
   const [state, setState] = useState<PaymentState | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -82,13 +54,11 @@ function PaymentReturn() {
           clearCart();
           window.sessionStorage.removeItem(pendingPaymentCartStorageKey);
         } else if (paymentStatus === "failed") {
-          const snapshot = readPendingCartSnapshot();
-          if (snapshot.items.length) restoreItems(snapshot.items);
-          window.sessionStorage.removeItem(pendingPaymentCartStorageKey);
-          await navigate({
-            to: "/cart",
-            search: { coupon: snapshot.coupon || undefined, payment: "failed" },
-          });
+          const snapshot = readPendingPaymentCartSnapshot();
+          const cartUrl = new URL("/cart", window.location.origin);
+          cartUrl.searchParams.set("payment", "failed");
+          if (snapshot.coupon) cartUrl.searchParams.set("coupon", snapshot.coupon);
+          window.location.replace(cartUrl.toString());
           return;
         }
         setState(result);
@@ -109,13 +79,11 @@ function PaymentReturn() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [attempt, clearCart, navigate, restoreItems, transactionId]);
+  }, [attempt, clearCart, navigate, transactionId]);
 
   const paymentStatus = String(state?.paymentStatus ?? "").toLowerCase();
   const paid = paymentStatus === "paid";
-  const failed = paymentStatus === "failed";
-  const pending = !paid && !failed;
-  const Icon = paid ? CheckCircle2 : failed ? XCircle : Clock3;
+  const Icon = paid ? CheckCircle2 : Clock3;
 
   useEffect(() => {
     if (!paid) return;
@@ -129,8 +97,8 @@ function PaymentReturn() {
     <SiteShell>
       <main className="payment-return-page mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
         <section className="payment-return-card overflow-hidden rounded-xl border border-[#eee6e8] bg-white shadow-sm">
-          <div className={`flex justify-center border-b border-[#eee6e8] py-7 ${paid ? "bg-[#f1faf5]" : failed ? "bg-[#fff5f6]" : "bg-[#fffaf0]"}`}>
-            <div className={`flex size-16 items-center justify-center rounded-full bg-white ${paid ? "text-emerald-700" : failed ? "text-[#c43045]" : "text-[#a78338]"}`}>
+          <div className={`flex justify-center border-b border-[#eee6e8] py-7 ${paid ? "bg-[#f1faf5]" : "bg-[#fffaf0]"}`}>
+            <div className={`flex size-16 items-center justify-center rounded-full bg-white ${paid ? "text-emerald-700" : "text-[#a78338]"}`}>
               <Icon className="size-9" strokeWidth={1.7} />
             </div>
           </div>
@@ -141,17 +109,13 @@ function PaymentReturn() {
                 ? "Payment status unavailable"
                 : paid
                   ? "Payment received"
-                  : failed
-                    ? "Payment was not completed"
-                    : "Confirming your payment"}
+                  : "Confirming your payment"}
             </h1>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[#6f666c]">
               {error ||
                 (paid
                   ? "Your order is confirmed. We’re taking you to your order details."
-                  : failed
-                    ? "Your cart is safe and no stock was deducted. Return to your cart to review your items and try again."
-                    : "PhonePe is confirming your payment. Please wait here while we check the result.")}
+                  : "PhonePe is confirming your payment. Please wait here while we check the result.")}
             </p>
 
             {(state?.orderId || state?.total !== undefined || !error) && (
@@ -178,31 +142,19 @@ function PaymentReturn() {
             )}
 
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              {failed ? (
-                <>
-                  <Link to="/cart" search={{ coupon: undefined, payment: "failed" }} className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#ed145b] px-6 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]">Return to cart</Link>
-                  <Link
-                    to="/products"
-                    className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#ded9db] px-6 py-3 text-sm font-medium text-[#51474c] hover:border-[#ed145b]"
-                  >
-                    Continue shopping
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/profile"
-                    className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#ed145b] px-6 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]"
-                  >
-                    View my orders
-                  </Link>
-                  <Link
-                    to="/products"
-                    className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#ded9db] px-6 py-3 text-sm font-medium text-[#51474c] hover:border-[#ed145b]"
-                  >
-                    Continue shopping
-                  </Link>
-                </>
+              <Link
+                to={paid ? "/profile" : "/products"}
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#ed145b] px-6 py-3 text-sm font-semibold text-white hover:bg-[#bd104a]"
+              >
+                {paid ? "View my orders" : "Continue shopping"}
+              </Link>
+              {paid && (
+                <Link
+                  to="/products"
+                  className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#ded9db] px-6 py-3 text-sm font-medium text-[#51474c] hover:border-[#ed145b]"
+                >
+                  Continue shopping
+                </Link>
               )}
             </div>
           </div>

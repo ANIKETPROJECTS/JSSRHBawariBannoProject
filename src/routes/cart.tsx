@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Minus, Plus, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
-import { useCart } from "@/components/site/CartContext";
+import { pendingPaymentCartStorageKey, readPendingPaymentCartSnapshot, useCart } from "@/components/site/CartContext";
 import { CartProductImage } from "@/components/site/CartProductImage";
 import { calculateShippingCharge, isSinglePhonePeTestItem } from "@/lib/phonepe-test-shipping";
 import { formatPrice } from "@/data/sarees";
@@ -29,7 +29,8 @@ type StoreCoupon = {
 function CartPage() {
   const navigate = useNavigate();
   const { coupon: initialCoupon, payment } = Route.useSearch();
-  const { items, updateQuantity, removeItem } = useCart();
+  const { items, updateQuantity, removeItem, restoreItems } = useCart();
+  const [restoringPaymentCart, setRestoringPaymentCart] = useState(payment === "failed");
   const [coupon, setCoupon] = useState(initialCoupon ?? "");
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [availableCoupons, setAvailableCoupons] = useState<StoreCoupon[]>([]);
@@ -55,6 +56,14 @@ function CartPage() {
   const freeShippingProgress = shippingSettings.freeShippingThreshold === 0
     ? 100
     : Math.min(100, (subtotal / shippingSettings.freeShippingThreshold) * 100);
+
+  useEffect(() => {
+    if (payment !== "failed") return;
+    const snapshot = readPendingPaymentCartSnapshot();
+    if (snapshot.items.length) restoreItems(snapshot.items);
+    window.sessionStorage.removeItem(pendingPaymentCartStorageKey);
+    setRestoringPaymentCart(false);
+  }, [payment, restoreItems]);
 
   useEffect(() => {
     fetch("/api/store-config")
@@ -135,7 +144,9 @@ function CartPage() {
             </div>
           </div>
         )}
-        {!items.length ? (
+        {restoringPaymentCart ? (
+          <p role="status" className="rounded-lg bg-[#f6f6f6] px-4 py-5 text-sm text-[#6f666c]">Returning to your cart…</p>
+        ) : !items.length ? (
           <section className="flex min-h-[300px] flex-col items-center justify-center rounded-xl bg-[#f6f6f6] px-5 py-12 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-white"><img src={cartIcon} alt="" className="size-8 object-contain brightness-0 saturate-100" /></div>
             <h2 className="mt-4 text-[#25212a]">Your bag is empty</h2>

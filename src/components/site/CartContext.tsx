@@ -10,6 +10,35 @@ export type CartItem = {
 
 export const pendingPaymentCartStorageKey = "bb-phonepe-pending-cart-v1";
 
+export function readPendingPaymentCartSnapshot() {
+  try {
+    if (typeof window === "undefined") return { items: [] as CartItem[], coupon: "" };
+    const raw = window.sessionStorage.getItem(pendingPaymentCartStorageKey);
+    if (!raw) return { items: [] as CartItem[], coupon: "" };
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return { items: [] as CartItem[], coupon: "" };
+    const record = parsed as { items?: unknown; coupon?: unknown };
+    const items = Array.isArray(record.items)
+      ? record.items.filter((entry): entry is CartItem => {
+          if (!entry || typeof entry !== "object") return false;
+          const item = entry as Partial<CartItem>;
+          const product = item.product;
+          return Boolean(
+            product
+            && typeof product.id === "string"
+            && typeof product.name === "string"
+            && Number.isFinite(Number(product.price))
+            && Number.isFinite(Number(item.quantity))
+            && Number(item.quantity) > 0,
+          );
+        })
+      : [];
+    return { items, coupon: typeof record.coupon === "string" ? record.coupon : "" };
+  } catch {
+    return { items: [] as CartItem[], coupon: "" };
+  }
+}
+
 type AddItemOptions = {
   showToast?: boolean;
 };

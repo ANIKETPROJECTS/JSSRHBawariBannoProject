@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useWishlist } from "./WishlistContext";
 import { useReviewSummary } from "./ReviewsContext";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { useCart } from "./CartContext";
+import { toast } from "sonner";
 import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
 import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
 
@@ -74,6 +75,8 @@ export function ProductCard({
 }) {
   const { ids, toggle } = useWishlist();
   const reviewSummary = useReviewSummary(saree.id);
+  const { addItem } = useCart();
+  const navigate = useNavigate();
   const [imageFailed, setImageFailed] = useState(false);
   const isWishlisted = ids.includes(saree.id);
   const useCategoryListingVisuals = categoryListingStyle || listingVisualStyle;
@@ -85,6 +88,30 @@ export function ProductCard({
     : hasDiscount
       ? `${Math.round(((originalPrice - saree.price) / originalPrice) * 100)}% OFF`
       : null;
+
+  function buyNow() {
+    if (saree.stock === 0) {
+      toast.error("This saree is currently out of stock.");
+      return;
+    }
+    const variant = saree.variants?.find((option) => option.stock > 0);
+    if (saree.variants?.length && !variant) {
+      toast.error("This saree is currently out of stock.");
+      return;
+    }
+    const productToAdd = variant
+      ? {
+          ...saree,
+          image: variant.image,
+          images: variant.images?.length ? variant.images : [variant.image],
+          stock: variant.stock,
+          selectedVariantId: variant.id,
+          selectedVariantColor: variant.color,
+        }
+      : saree;
+    addItem(productToAdd, 1, { showToast: false });
+    void navigate({ to: "/cart" });
+  }
 
   return (
     <article className={`group block${useCategoryListingVisuals ? " category-listing-product-card" : ""}`}>
@@ -149,16 +176,16 @@ export function ProductCard({
           <span className="category-listing-product-badge">{categoryBadge}</span>
         )}
         {showCardActions && (
-          <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-0 flex-col transition-transform duration-300 sm:translate-y-full sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0">
-            <Link
-              to="/products/$productId"
-              params={{ productId: saree.id }}
+          <div className="absolute inset-x-0 bottom-0 z-10 hidden flex-col transition-transform duration-300 sm:flex sm:translate-y-full sm:group-hover:translate-y-0 sm:group-focus-within:translate-y-0">
+            <button
+              type="button"
+              onClick={buyNow}
               aria-label={`Buy ${saree.name} now`}
               className="flex min-h-10 w-full flex-none cursor-pointer items-center justify-center gap-1.5 bg-[#ED145B] px-2 py-2 text-[0.6rem] font-semibold uppercase tracking-[0.08em] text-white transition-transform active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset sm:gap-2 sm:text-[0.68rem]"
             >
               <img src={buyNowIcon} alt="" aria-hidden="true" className="size-5 object-contain brightness-0 invert sm:size-6" />
               <span>Buy Now</span>
-            </Link>
+            </button>
           </div>
         )}
         <button
@@ -267,6 +294,17 @@ export function ProductCard({
           </div>
           {categoryListingStyle && <CategoryListingCartAction saree={saree} />}
         </div>
+        {showCardActions && (
+          <button
+            type="button"
+            onClick={buyNow}
+            aria-label={`Buy ${saree.name} now`}
+            className="mt-2 flex min-h-9 w-full items-center justify-center gap-1.5 bg-[#ED145B] px-2 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#c90f4e] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ED145B] focus-visible:ring-offset-2 sm:hidden"
+          >
+            <img src={buyNowIcon} alt="" aria-hidden="true" className="size-4 object-contain brightness-0 invert" />
+            <span>Buy Now</span>
+          </button>
+        )}
       </div>
     </article>
   );
