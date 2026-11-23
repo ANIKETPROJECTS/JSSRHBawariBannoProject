@@ -116,7 +116,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
             <div className="relative flex h-20 items-center justify-center bg-[#ED145B] px-8">
               <img src={logoImage} alt="Bawari Banno" className="relative z-[1] h-20 w-64 object-contain object-center" />
             </div>
-            <div className="px-6 py-7 sm:px-8 sm:py-8">
+            <div className="w-full px-6 py-7 text-left sm:px-8 sm:py-8">
               <div className="mb-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a6678] sm:text-sm">Welcome to Bawari Banno</p>
               </div>
@@ -174,9 +174,9 @@ function AccountAccess({ onComplete }: { onComplete: (customer: Customer) => voi
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0 text-left">
       <div className="mb-5">
-        <h2 className="font-display text-2xl font-medium leading-tight text-[#21151a] sm:text-base sm:whitespace-nowrap">
+        <h2 className="w-full min-w-0 font-display text-xl font-medium leading-tight text-[#21151a] sm:text-base sm:whitespace-nowrap">
           {step === "phone" ? "Enter Mobile Number" : "Enter verification code"}
         </h2>
         <p className="mt-2 text-base leading-relaxed text-[#70666b]">
