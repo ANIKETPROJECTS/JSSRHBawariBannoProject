@@ -211,7 +211,7 @@ function SavedAddresses({ customer, returnToCheckout, coupon }: { customer: { na
     setEditingAddress(address);
     setFormOpen(true);
   }
-  return <section className="mx-auto mt-5 max-w-6xl px-5 pb-8"><div className="border border-border bg-card p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-1.5 font-display text-2xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => { setFormOpen(!formOpen); setEditingAddress(null); }} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {formOpen ? "Cancel" : "Add address"}</button></div>
+  return <section id="saved-addresses" className="mx-auto mt-5 max-w-6xl scroll-mt-24 px-5 pb-8"><div className="border border-border bg-card p-5 sm:p-6"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Delivery details</p><h2 className="mt-1.5 font-display text-2xl font-light text-primary">Saved addresses</h2></div><button type="button" onClick={() => { setFormOpen(!formOpen); setEditingAddress(null); }} className="inline-flex items-center gap-2 border border-primary px-4 py-2.5 text-eyebrow text-primary hover:bg-primary hover:text-white"><Plus className="size-4" /> {formOpen ? "Cancel" : "Add address"}</button></div>
       {addresses.length > 0 && <div className="mt-6 grid gap-3 sm:grid-cols-2">{addresses.map((address) => <article key={address.id} className="border border-border p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-primary">{address.name} {address.isDefault && <span className="ml-2 text-xs text-[#ED145B]">Default</span>}</p><p className="mt-1 text-xs text-muted-foreground">{formatCustomerPhone(address.phone)}</p></div><div className="flex shrink-0 gap-3"><button type="button" onClick={() => startEdit(address)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline"><Pencil className="size-3" /> Edit</button><button type="button" onClick={() => setAddressToDelete(address)} className="inline-flex items-center gap-1 text-xs text-red-700 hover:underline"><Trash2 className="size-3" /> Delete</button></div></div><p className="mt-2 text-sm leading-relaxed">{formatSavedAddress(address)}</p></article>)}</div>}
     {addresses.length === 0 && !formOpen && <p className="mt-6 text-sm text-muted-foreground">No saved delivery addresses yet.</p>}
     {formOpen && <form onSubmit={save} className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -299,10 +299,26 @@ function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wis
           </div>
           <div className="mt-4 flex items-center gap-2 border-t border-border pt-3 text-xs text-emerald-deep"><Check className="size-3.5" /> Mobile verified</div>
         </div>
+        <nav aria-label="Account sections" className="border border-[#eadde1] bg-white p-3">
+          <a href="#account-overview" className="block px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Overview</a>
+          <div className="mt-2 border-t border-[#f0e5e9] pt-3">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Orders</p>
+            <a href="#orders" className="mt-1 block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">My orders</a>
+          </div>
+          <div className="mt-2 border-t border-[#f0e5e9] pt-3">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Saved</p>
+            <a href="#wishlist" className="mt-1 block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Wishlist</a>
+          </div>
+          <div className="mt-2 border-t border-[#f0e5e9] pt-3">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Account</p>
+            <a href="#account-details" className="mt-1 block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Profile</a>
+            <a href="#saved-addresses" className="block px-3 py-2 text-sm text-primary transition-colors hover:bg-[#fff8fa] hover:text-[#ED145B]">Addresses</a>
+          </div>
+        </nav>
         <button type="button" onClick={onSignOut} className="flex w-full items-center gap-2 border border-[#eadde1] bg-white px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#ED145B] hover:text-[#ED145B]"><LogOut className="size-4" /> Sign out</button>
       </aside>
       <div className="min-w-0 space-y-5">
-        <section className="border border-[#eadde1] bg-card p-5 sm:p-6">
+        <section id="account-details" className="scroll-mt-24 border border-[#eadde1] bg-card p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div><p className="text-eyebrow text-muted-foreground">Personal details</p><h2 className="mt-1.5 font-display text-2xl font-medium text-primary">Account details</h2></div>
             <button type="button" onClick={onEditing} className="inline-flex items-center gap-2 border border-[#eadde1] px-3 py-2 text-sm text-primary transition-colors hover:border-[#ED145B] hover:text-[#ED145B]"><Pencil className="size-3.5" />{editing ? "Cancel" : "Edit details"}</button>
@@ -314,18 +330,18 @@ function CustomerProfileNoWishlist({ customer, orders, saved, ordersLoading, wis
             {editing && <button disabled={saving} className="w-fit self-end bg-primary px-6 py-2.5 text-eyebrow text-white disabled:opacity-50">{saving ? "Saving…" : "Save changes"}</button>}
           </form>
         </section>
-        <div className="grid grid-cols-2 divide-x divide-[#eadde1] border border-[#eadde1] bg-white">
+        <div id="account-overview" className="scroll-mt-24 grid grid-cols-2 divide-x divide-[#eadde1] border border-[#eadde1] bg-white">
           <div className="px-4 py-3"><p className="font-display text-2xl text-primary">{ordersLoading ? "—" : orders.length}</p><p className="mt-0.5 text-xs text-muted-foreground">Orders</p></div>
           <Link to="/wishlist" className="px-4 py-3 transition-colors hover:bg-[#fff8fa]"><p className="font-display text-2xl text-primary">{wishlistLoading ? "—" : saved.length}</p><p className="mt-0.5 text-xs text-muted-foreground">Saved favourites <span className="text-[#ED145B]">→</span></p></Link>
         </div>
-        <section className="border border-[#eadde1] bg-card p-5 sm:p-6">
+        <section id="orders" className="scroll-mt-24 border border-[#eadde1] bg-card p-5 sm:p-6">
           <div className="flex items-end justify-between gap-4">
             <div><p className="text-eyebrow text-muted-foreground">Your purchases</p><h2 className="mt-1.5 font-display text-2xl font-medium text-primary">Order history</h2></div>
             <span className="text-sm text-muted-foreground">{ordersLoading ? "Loading…" : `${orders.length} order${orders.length === 1 ? "" : "s"}`}</span>
           </div>
           {ordersLoading ? <div className="mt-6 space-y-3" role="status" aria-label="Loading orders">{[0, 1].map((item) => <div key={item} className="h-24 animate-pulse border border-border bg-secondary/30" />)}</div> : orders.length === 0 ? <p className="mt-6 border-t border-border pt-6 text-sm text-muted-foreground">Your order details will appear here after checkout.</p> : <div className="mt-6 space-y-4">{orders.map((order) => <article key={order._id ?? order.orderId} className="border border-border p-5"><div className="flex flex-wrap items-center gap-4"><div className="min-w-40 flex-1"><p className="font-medium text-primary">{order.orderId ?? "Order"}</p><p className="mt-1 text-xs text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "Date unavailable"}</p><p className="mt-1 text-xs text-muted-foreground">{order.items?.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0) ?? 0} item(s) · {order.paymentMethod ?? "Demo payment"}</p></div><div className="text-right"><p className="font-medium text-primary">₹{Number(order.total ?? 0).toLocaleString("en-IN")}</p><p className="mt-1 text-xs capitalize text-emerald-deep">{titleCaseOrderStatus(order.status ?? "pending")} · {order.paymentStatus ?? "pending"}</p></div></div><CustomerOrderTimeline order={order} />{!!order.items?.length && <div className="mt-4 border-t border-border pt-4"><p className="text-eyebrow text-muted-foreground">Purchased sarees</p><div className="mt-2 space-y-2">{order.items.map((item, index) => item.productId ? <div key={`${item.productId}-${index}`} className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="text-primary">{item.name || "Purchased saree"} × {item.quantity}</span><Link to="/products/$productId" params={{ productId: item.productId }} hash="reviews" className="text-xs text-primary underline underline-offset-4 hover:text-gold">Review this saree</Link></div> : null)}</div></div>}</article>)}</div>}
         </section>
-        <section className="border border-[#eadde1] bg-card p-5 sm:p-6">
+        <section id="wishlist" className="scroll-mt-24 border border-[#eadde1] bg-card p-5 sm:p-6">
           <div className="flex items-end justify-between gap-4"><div><p className="text-eyebrow text-muted-foreground">Your saved edit</p><h2 className="mt-1.5 font-display text-2xl font-medium text-primary">Wishlist</h2></div><span className="text-sm text-muted-foreground">{wishlistLoading ? "Loading…" : `${saved.length} item${saved.length === 1 ? "" : "s"}`}</span></div>
           {wishlistLoading ? <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3" role="status" aria-label="Loading wishlist">{[0, 1, 2].map((item) => <div key={item}><div className="aspect-[3/4] animate-pulse bg-secondary/40" /><div className="mt-2 h-4 w-3/4 animate-pulse bg-secondary/40" /></div>)}</div> : saved.length === 0 ? <p className="mt-6 text-sm text-muted-foreground">Your wishlist is empty. Tap the heart on any saree to save it here.</p> : <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">{saved.map((saree) => <Link key={saree.id} to="/products/$productId" params={{ productId: saree.id }} className="group"><img src={saree.image} alt={saree.name} loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover" /><p className="mt-2 text-sm text-primary">{saree.name}</p><p className="mt-1 text-sm">{formatPrice(saree.price)}</p></Link>)}</div>}
         </section>
