@@ -12,6 +12,8 @@ import locationIcon from "../../attached_assets/location_(1)_1795455962716.png";
 import securityIcon from "../../attached_assets/security_1795456066348.png";
 import shoppingBagIcon from "../../attached_assets/shopping-bag_1795456111574.png";
 import insuranceIcon from "../../attached_assets/insurance_1795456279777.png";
+import editIcon from "../../attached_assets/edit_(1)_1795456750496.png";
+import binIcon from "../../attached_assets/bin_(2)_1795455427948.png";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/checkout")({
@@ -40,6 +42,9 @@ function Checkout() {
   const { items, clearCart } = useCart();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedId, setSelectedId] = useState("");
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [addressToDelete, setAddressToDelete] = useState<Address | null>(null);
+  const [deletingAddress, setDeletingAddress] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [addressForm, setAddressForm] = useState({ name: customer?.name ?? "", addressLine: "", locality: "", pincode: "", city: "", state: "", landmark: "" });
@@ -107,23 +112,77 @@ function Checkout() {
   async function saveAddress() {
     setSavingAddress(true);
     try {
-      const response = await fetch("/api/auth/addresses", {
-        method: "POST",
+      const addressUrl = editingAddress
+        ? `/api/auth/addresses/${encodeURIComponent(editingAddress.id)}`
+        : "/api/auth/addresses";
+      const response = await fetch(addressUrl, {
+        method: editingAddress ? "PUT" : "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(addressForm),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error ?? "Address could not be saved.");
-      const savedAddress = result.address as Address | undefined;
-      if (!savedAddress?.id) throw new Error("Address was saved but could not be selected. Please reload checkout.");
-      setAddresses(Array.isArray(result.addresses) ? result.addresses : [savedAddress]);
-      setSelectedId(savedAddress.id);
-      setShowAddressForm(false);
-      toast.success("Delivery address saved.");
+
+      if (editingAddress) {
+        const nextAddresses = Array.isArray(result.addresses) ? result.addresses as Address[] : [];
+        if (!nextAddresses.some((address) => address.id === editingAddress.id)) {
+          throw new Error("Address was updated but could not be refreshed. Please reload checkout.");
+        }
+        setAddresses(nextAddresses);
+        setEditingAddress(null);
+        setShowAddressForm(false);
+        toast.success("Delivery address updated.");
+      } else {
+        const savedAddress = result.address as Address | undefined;
+        if (!savedAddress?.id) throw new Error("Address was saved but could not be selected. Please reload checkout.");
+        setAddresses(Array.isArray(result.addresses) ? result.addresses : [savedAddress]);
+        setSelectedId(savedAddress.id);
+        setShowAddressForm(false);
+        toast.success("Delivery address saved.");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Address could not be saved.");
     } finally {
       setSavingAddress(false);
+    }
+  }
+
+  function startEditAddress(address: Address) {
+    setEditingAddress(address);
+    setAddressForm({
+      name: address.name,
+      addressLine: address.addressLine,
+      locality: address.locality,
+      pincode: address.pincode,
+      city: address.city,
+      state: address.state,
+      landmark: address.landmark ?? "",
+    });
+    setShowAddressForm(true);
+  }
+
+  async function deleteAddress(address: Address) {
+    setDeletingAddress(true);
+    try {
+      const response = await fetch(`/api/auth/addresses/${encodeURIComponent(address.id)}`, { method: "DELETE" });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error ?? "Address could not be deleted.");
+      const nextAddresses = Array.isArray(result.addresses) ? result.addresses as Address[] : [];
+      setAddresses(nextAddresses);
+      if (selectedId === address.id) {
+        setSelectedId(nextAddresses.find((candidate) => candidate.isDefault)?.id ?? nextAddresses[0]?.id ?? "");
+      }
+      if (editingAddress?.id === address.id) {
+        setEditingAddress(null);
+        setShowAddressForm(false);
+      }
+      if (!nextAddresses.length) setShowAddressForm(true);
+      setAddressToDelete(null);
+      toast.success("Delivery address deleted.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Address could not be deleted.");
+    } finally {
+      setDeletingAddress(false);
     }
   }
 
@@ -173,30 +232,47 @@ function Checkout() {
                     <img src={locationIcon} alt="" className="size-5 object-contain mix-blend-multiply" />
                     <h2 className="text-[#302a30]">Delivery Address</h2>
                   </div>
-                  <button type="button" onClick={() => setShowAddressForm((open) => !open)} className="rounded-md border border-[#d9d4d6] bg-white px-3 py-2 text-sm font-medium text-[#51474c] hover:border-[#ed145b] hover:text-[#ed145b]">
-                    {showAddressForm && addresses.length > 0 ? "Cancel" : "+ Add New Address"}
+                  <button type="button" onClick={() => {
+                    if (showAddressForm) {
+                      setEditingAddress(null);
+                      setShowAddressForm(false);
+                    } else {
+                      setEditingAddress(null);
+                      setAddressForm({ name: customer?.name ?? "", addressLine: "", locality: "", pincode: "", city: "", state: "", landmark: "" });
+                      setShowAddressForm(true);
+                    }
+                  }} className="rounded-md border border-[#d9d4d6] bg-white px-3 py-2 text-sm font-medium text-[#51474c] hover:border-[#ed145b] hover:text-[#ed145b]">
+                    {showAddressForm ? "Cancel" : "+ Add New Address"}
                   </button>
                 </div>
                 {addresses.length > 0 && (
                   <div className="mt-4 space-y-3">
                     {addresses.map((address) => (
-                      <label key={address.id} className={`flex cursor-pointer gap-3 rounded-lg border bg-white p-4 transition-colors ${selectedId === address.id ? "border-[#ed145b] ring-1 ring-[#ed145b]" : "border-[#e4dfe1] hover:border-[#d9a7b7]"}`}>
-                        <input type="radio" name="delivery-address" checked={selectedId === address.id} onChange={() => setSelectedId(address.id)} className="mt-1 accent-[#ed145b]" />
-                        <span className="min-w-0 flex-1">
+                      <div key={address.id} className={`flex gap-3 rounded-lg border bg-white p-4 transition-colors ${selectedId === address.id ? "border-[#ed145b] ring-1 ring-[#ed145b]" : "border-[#e4dfe1] hover:border-[#d9a7b7]"}`}>
+                        <input id={`delivery-address-${address.id}`} type="radio" name="delivery-address" checked={selectedId === address.id} onChange={() => setSelectedId(address.id)} className="mt-1 accent-[#ed145b]" />
+                        <label htmlFor={`delivery-address-${address.id}`} className="min-w-0 flex-1 cursor-pointer">
                           <span className="flex flex-wrap items-center gap-2 font-medium text-[#302a30]">
                             {address.name}
                             {address.isDefault && <span className="text-xs font-semibold uppercase tracking-wider text-[#ed145b]">Default</span>}
                           </span>
                           <span className="mt-1 block text-sm text-[#6f666c]">{formatCustomerPhone(address.phone)}</span>
                           <span className="mt-2 block text-sm leading-relaxed text-[#51474c]">{formatAddress(address)}</span>
-                        </span>
-                      </label>
+                        </label>
+                        <div className="flex shrink-0 items-start gap-2">
+                          <button type="button" onClick={() => startEditAddress(address)} aria-label={`Edit address for ${address.name}`} title="Edit address" className="rounded p-1.5 hover:bg-[#f6f6f6]">
+                            <img src={editIcon} alt="" className="size-4 object-contain mix-blend-multiply" />
+                          </button>
+                          <button type="button" onClick={() => setAddressToDelete(address)} aria-label={`Delete address for ${address.name}`} title="Delete address" className="rounded p-1.5 hover:bg-[#f6f6f6]">
+                            <img src={binIcon} alt="" className="size-4 object-contain mix-blend-multiply" />
+                          </button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
                 {showAddressForm && (
                   <div className="mt-4 rounded-lg border border-[#e4dfe1] bg-white p-4 sm:p-5">
-                    <h3 className="font-semibold text-[#302a30]">{addresses.length ? "New delivery address" : "Add your delivery address"}</h3>
+                    <h3 className="font-semibold text-[#302a30]">{editingAddress ? "Edit delivery address" : addresses.length ? "New delivery address" : "Add your delivery address"}</h3>
                     <p className="mt-1 text-sm text-[#777078]">Your phone number is {formatCustomerPhone(customer?.phone)}.</p>
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       {([
@@ -221,7 +297,7 @@ function Checkout() {
                         </label>
                       ))}
                     </div>
-                    <button type="button" disabled={savingAddress} onClick={() => void saveAddress()} className="mt-4 rounded-md bg-[#ed145b] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#bd104a] disabled:opacity-50">{savingAddress ? "Saving…" : "Save Address"}</button>
+                    <button type="button" disabled={savingAddress} onClick={() => void saveAddress()} className="mt-4 rounded-md bg-[#ed145b] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#bd104a] disabled:opacity-50">{savingAddress ? (editingAddress ? "Updating…" : "Saving…") : editingAddress ? "Update Address" : "Save Address"}</button>
                   </div>
                 )}
               </section>
@@ -270,11 +346,25 @@ function Checkout() {
               <button type="button" disabled={!selectedId || showAddressForm || !items.length || busy} onClick={() => void placeOrder()} className="mt-4 w-full rounded-md bg-[#ed145b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#bd104a] disabled:cursor-not-allowed disabled:opacity-50">
                 {busy ? "Starting secure payment…" : "Place Order"}
               </button>
-              <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[#6f666c]"><img src={insuranceIcon} alt="" className="size-5 object-contain mix-blend-multiply" /> 100% Secure</p>
+              <p className="mt-3 flex items-center justify-center gap-2 text-sm text-[#6f666c]"><img src={insuranceIcon} alt="" className="size-5 object-contain mix-blend-multiply" /> 100% Secure Safe Payments</p>
             </aside>
           </div>
         )}
       </main>
+      {addressToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !deletingAddress) setAddressToDelete(null);
+        }}>
+          <section role="alertdialog" aria-modal="true" aria-labelledby="checkout-delete-address-title" aria-describedby="checkout-delete-address-description" className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
+            <h2 id="checkout-delete-address-title" className="text-[#302a30]">Delete this address?</h2>
+            <p id="checkout-delete-address-description" className="mt-2 text-sm leading-relaxed text-[#6f666c]">This will remove the saved address for {addressToDelete.name}. This can’t be undone.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" disabled={deletingAddress} onClick={() => setAddressToDelete(null)} className="rounded-md border border-[#ded9db] px-4 py-2.5 text-sm text-[#51474c] disabled:opacity-50">Keep Address</button>
+              <button type="button" disabled={deletingAddress} onClick={() => void deleteAddress(addressToDelete)} className="rounded-md bg-[#ed145b] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{deletingAddress ? "Deleting…" : "Delete Address"}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </SiteShell>
   );
 }
