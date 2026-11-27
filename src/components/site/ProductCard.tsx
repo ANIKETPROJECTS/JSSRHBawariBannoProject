@@ -6,8 +6,8 @@ import { ShoppingCart } from "lucide-react";
 import { formatPrice, type Saree } from "@/data/sarees";
 import { useCart } from "./CartContext";
 import { toast } from "sonner";
-import buyNowIcon from "../../../attached_assets/shopping-bag_(3)_1787337643766.png";
-import wishlistHeart from "../../../attached_assets/favorite_1787336225274.png";
+const buyNowIcon = "/images/shopping-bag_(3)_1787337643766.png";
+const wishlistHeart = "/images/favorite_1787336225274.png";
 
 function formatReviewCount(count: number) {
   if (count >= 1000) {

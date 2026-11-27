@@ -7,9 +7,9 @@ import { pendingPaymentCartStorageKey, readPendingPaymentCartSnapshot, useCart }
 import { CartProductImage } from "@/components/site/CartProductImage";
 import { calculateShippingCharge, isSinglePhonePeTestItem } from "@/lib/phonepe-test-shipping";
 import { formatPrice } from "@/data/sarees";
-import binIcon from "../../attached_assets/bin_(2)_1795455427948.png";
-import insuranceIcon from "../../attached_assets/insurance_1795456279777.png";
-import cartIcon from "../../attached_assets/shopping-bag_(3)_1787337643766.png";
+const binIcon = "/images/bin_(2)_1795455427948.png";
+const insuranceIcon = "/images/insurance_1795456279777.png";
+const cartIcon = "/images/shopping-bag_(3)_1787337643766.png";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/cart")({

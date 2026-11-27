@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, ChevronDown, ChevronRight, X } from "lucide-react";
 import { getCountryCallingCode, type CountryCode } from "libphonenumber-js";
 import { toast } from "sonner";
-import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+const logoImage = "/images/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import { formatCustomerPhone, parsePhoneForCountry, phoneCountryOptions } from "@/lib/customer-phone";
 
 export type Customer = { _id?: string; phone: string; name?: string; email?: string; wishlist?: string[] };

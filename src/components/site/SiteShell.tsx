@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
-import whatsappIcon from "../../../attached_assets/apple_1787301622693.png";
+const whatsappIcon = "/images/apple_1787301622693.png";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (

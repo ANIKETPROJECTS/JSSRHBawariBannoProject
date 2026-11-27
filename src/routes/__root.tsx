@@ -12,8 +12,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import comingSoonLogoImage from "../../attached_assets/Full_Final-01_1792488092202.png";
-import comingSoonBackgroundImage from "../../attached_assets/pexels-mccutcheon-1450034_1792488431857.jpg";
+const comingSoonLogoImage = "/images/Full_Final-01_1792488092202.png";
+const comingSoonBackgroundImage = "/images/pexels-mccutcheon-1450034_1792488431857.jpg";
 import { CartProvider } from "@/components/site/CartContext";
 import { CustomerAuthProvider } from "@/components/site/CustomerAuthContext";
 import { ReviewsProvider } from "@/components/site/ReviewsContext";

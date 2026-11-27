@@ -8,12 +8,12 @@ import { useCustomerAuth } from "@/components/site/CustomerAuthContext";
 import { calculateShippingCharge } from "@/lib/phonepe-test-shipping";
 import { formatPrice } from "@/data/sarees";
 import { formatCustomerPhone } from "@/lib/customer-phone";
-import locationIcon from "../../attached_assets/location_(1)_1795455962716.png";
-import securityIcon from "../../attached_assets/security_1795456066348.png";
-import shoppingBagIcon from "../../attached_assets/shopping-bag_1795456111574.png";
-import insuranceIcon from "../../attached_assets/insurance_1795456279777.png";
-import editIcon from "../../attached_assets/edit-text_1795457969053.png";
-import binIcon from "../../attached_assets/bin_(2)_1795455427948.png";
+const locationIcon = "/images/location_(1)_1795455962716.png";
+const securityIcon = "/images/security_1795456066348.png";
+const shoppingBagIcon = "/images/shopping-bag_1795456111574.png";
+const insuranceIcon = "/images/insurance_1795456279777.png";
+const editIcon = "/images/edit-text_1795457969053.png";
+const binIcon = "/images/bin_(2)_1795455427948.png";
 import "@/components/site/cart-checkout.css";
 
 export const Route = createFileRoute("/checkout")({

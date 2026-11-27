@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
-import locationIcon from "../../attached_assets/location_(1)_1787339144815.png";
-import phoneIcon from "../../attached_assets/phone-call_1787339180267.png";
-import mailIcon from "../../attached_assets/mail_1787339203534.png";
-import clockIcon from "../../attached_assets/clock_1787339231150.png";
+const locationIcon = "/images/location_(1)_1787339144815.png";
+const phoneIcon = "/images/phone-call_1787339180267.png";
+const mailIcon = "/images/mail_1787339203534.png";
+const clockIcon = "/images/clock_1787339231150.png";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({

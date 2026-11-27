@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
-import logoImage from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
-import instagramIcon from "../../../attached_assets/instagram_1789283397488.png";
-import whatsappIcon from "../../../attached_assets/whatsapp_1789286832089.png";
+const logoImage = "/images/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+const instagramIcon = "/images/instagram_1789283397488.png";
+const whatsappIcon = "/images/whatsapp_1789286832089.png";
 
 const facebookIcon = "/images/facebook.png";
 

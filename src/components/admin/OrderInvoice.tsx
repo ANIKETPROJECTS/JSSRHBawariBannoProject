@@ -1,5 +1,5 @@
 import { Printer, X } from "lucide-react";
-import storefrontLogo from "../../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+const storefrontLogo = "/images/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 
 type InvoiceItem = {
   productId?: string;

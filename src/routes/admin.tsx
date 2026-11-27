@@ -4,7 +4,7 @@ import { BarChart3, Boxes, Building2, CheckCircle2, ChevronLeft, ChevronRight, C
 import { toast } from "sonner";
 import { getProductColor, normalizeProductColor, otherColorKey, productColors } from "@/data/colors";
 import { OrderInvoice } from "@/components/admin/OrderInvoice";
-import storefrontLogo from "../../attached_assets/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
+const storefrontLogo = "/images/Bawari_Banno_Horizontal_Transparent-01_1789242095079.png";
 import { invalidateStorefrontCatalogCache } from "@/lib/storefront-catalog";
 import { countableOrder, isSuccessfulPayment, recognizedOrderRevenue } from "@/lib/order-payment";
 import { cn } from "@/lib/utils";
