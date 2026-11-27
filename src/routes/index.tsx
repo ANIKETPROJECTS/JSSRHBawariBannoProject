@@ -92,7 +92,7 @@ function Home() {
       </section>
 
       {/* Categories — portrait card grid */}
-      <section className="home-categories-section bg-[#ED145B] pb-4 pt-1 sm:pt-2">
+      <section hidden className="home-categories-section bg-[#ED145B] pb-4 pt-1 sm:pt-2">
         <div className="home-content-container home-category-container">
           <div className="home-section-heading home-category-heading relative mx-auto mb-3 sm:mb-4">
             <h2 className="home-category-title">
